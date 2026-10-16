@@ -1,6 +1,6 @@
 [package]
-name = "dodgeball"
-version = "0.2.0"
+name = "retro-sports"
+version = "0.3.0"
 edition = "2024"
 
 [dependencies]

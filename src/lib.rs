@@ -1,12 +1,8 @@
-//! DODGE OR DIE! - a 16-bit style dodgeball game.
-//! The game itself never touches the window or the speakers; `main.rs` does.
+//! RETRO SPORTS - a collection of 16-bit style sports games on Helico Island.
+//! The games never touch the window or the speakers; `main.rs` does.
 
-pub mod app;
-pub mod audio;
-pub mod court;
-pub mod game;
-pub mod gfx;
-pub mod headless;
-pub mod render;
-pub mod sprites;
-pub mod teams;
+pub mod cart;
+pub mod console;
+pub mod engine;
+pub mod games;
+pub mod hub;

@@ -2,13 +2,14 @@
 //! game over and the champion screen. Pure logic + drawing into a Frame;
 //! the window, keyboard and speakers live in main.rs.
 
-use crate::audio::Track;
-use crate::court::Scenery;
-use crate::game::*;
-use crate::gfx::*;
-use crate::render::*;
-use crate::sprites::{blit, Palette, Pose, Sprite, SpriteBank, OX, OY, T};
-use crate::teams::*;
+use super::audio::Track;
+use super::court::Scenery;
+use super::game::*;
+use crate::engine::gfx::*;
+use super::render::*;
+use crate::engine::input::{any, edge};
+use crate::engine::sprites::{blit, Palette, Pose, Sprite, SpriteBank, OX, OY, T};
+use super::teams::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Mode {
@@ -53,23 +54,6 @@ pub struct App {
     pub count: i32,
     pub frame: u32,
     confetti: Vec<(f32, f32, f32, u32)>,
-}
-
-fn edge(now: Pad, prev: Pad) -> Pad {
-    Pad {
-        up: now.up && !prev.up,
-        down: now.down && !prev.down,
-        left: now.left && !prev.left,
-        right: now.right && !prev.right,
-        a: now.a && !prev.a,
-        b: now.b && !prev.b,
-        c: now.c && !prev.c,
-        start: now.start && !prev.start,
-    }
-}
-
-fn any(p: Pad) -> bool {
-    p.a || p.b || p.c || p.start || p.up || p.down || p.left || p.right
 }
 
 impl App {

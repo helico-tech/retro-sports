@@ -1,33 +1,37 @@
-# DODGE OR DIE!
+# RETRO SPORTS
 
-A 16-bit style dodgeball game in Rust, in the spirit of California Games,
-Ski or Die and Super Dodge Ball. 3 vs 3, four crews, four courts, 1P ladder
-or 2P versus. All art and sound are generated in code.
+A collection of 16-bit style sports games on Helico Island, in Rust, in the
+spirit of California Games, Ski or Die and Super Dodge Ball. All art and
+sound are generated in code. Games: DODGE OR DIE! (dodgeball), DISC DOGS!
+(frisbee), TEGENWIND! (Dutch cycling), TRAIL MIX! (trail running),
+HANG TIME! (hang gliding).
 
 ## Build and run
-- `cargo run --release` — play (window, keyboard, sound).
-- `cargo test` — smoke tests (matches finish, all screens render).
-- `cargo run --release -- --sim 1000` — CPU-vs-CPU balance stats.
-- `cargo run --release -- --probe 6` — scripted "human" bots against the
-  1P ladder: finds exploits (super spam, perfect catches, stalling) and
-  checks the difficulty curve.
-- `cargo run -- --shots <dir>` — scripted PNG screenshots (3x) of every
-  screen, key moments and a sprite sheet. Use this to review visuals.
+- `cargo run --release` — play (window, keyboard, sound); starts on the
+  island selector.
+- `cargo test` — contract tests for every game (`tests/carts.rs`) plus
+  each game's own tests.
+- `cargo run -- --shots <dir> [game]` — scripted PNG screenshots (3x) of
+  every screen of every game (or one game, or `hub`). Use these to review
+  visuals.
+- `cargo run --release -- --<tool> <game> [n]` — a game's headless tools,
+  e.g. `--sim dodgeball 1000` (CPU-vs-CPU balance) or `--probe dodgeball 6`
+  (scripted "human" bots). Run without arguments to list them.
 - `web/build.sh` — browser build into `dist/`; test with
   `python3 -m http.server -d dist`, deploy with `npx wrangler deploy` to
-  https://dodgeball.helico.app (ADR 0002).
+  https://retro-sports.helico.app (ADR 0002).
 
-## Controls
-- P1: arrows, Z (or ,) throw/catch, X (or .) jump, C (or /) pass/duck,
-  Enter start/pause.
-- P2: WASD, F throw/catch, G jump, H pass/duck, Tab start/pause.
-- Double-tap left/right to run. Throw at the very top of a jump = super
-  shot. Jump while running = dive. Pass key without the ball = duck.
-- Hold the ball over 5 s and it goes to the other side (shot clock).
-- Esc: back to title (quits on the title). F1: scanlines on/off.
+## Controls (all games)
+- P1: arrows, Z (or ,) = A, X (or .) = B, C (or /) = C, Enter start.
+- P2: WASD, F, G, H, Tab.
+- Esc: back to the game's title, then back to the island (quits from the
+  island on desktop). F1: scanlines on/off.
 
 ## Map
-- [docs/architecture.md](docs/architecture.md) — modules and key rules.
+- [docs/architecture.md](docs/architecture.md) — engine, carts, key rules.
+- [docs/house-style.md](docs/house-style.md) — look, flow and controls
+  every game follows.
+- [docs/specs/](docs/specs/) — one design per game, plus the island.
 - [docs/adr/](docs/adr/) — decisions.
 - [work/queue.md](work/queue.md) — what to pick up next.
 - [work/epics/](work/epics/) and [work/issues/](work/issues/).

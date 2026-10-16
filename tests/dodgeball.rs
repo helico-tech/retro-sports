@@ -1,7 +1,7 @@
-use dodgeball::app::{App, Scene};
-use dodgeball::game::{Ctrl, Match, Pad};
-use dodgeball::gfx::Frame;
-use dodgeball::teams::{Court, TEAMS};
+use retro_sports::games::dodgeball::app::{App, Scene};
+use retro_sports::games::dodgeball::game::{Ctrl, Match, Pad};
+use retro_sports::engine::gfx::Frame;
+use retro_sports::games::dodgeball::teams::{Court, TEAMS};
 
 #[test]
 fn cpu_matches_always_finish() {
@@ -51,11 +51,11 @@ fn every_scene_draws() {
 
 #[test]
 fn sounds_render() {
-    for s in dodgeball::audio::ALL_SFX {
-        assert!(!dodgeball::audio::sfx_samples(s).is_empty());
+    for s in retro_sports::games::dodgeball::audio::ALL_SFX {
+        assert!(!retro_sports::games::dodgeball::audio::sfx_samples(s).is_empty());
     }
-    for t in dodgeball::audio::ALL_TRACKS {
-        let wav = dodgeball::audio::wav(&dodgeball::audio::music_samples(t));
+    for t in retro_sports::games::dodgeball::audio::ALL_TRACKS {
+        let wav = retro_sports::engine::synth::wav(&retro_sports::games::dodgeball::audio::music_samples(t));
         assert!(wav.len() > 44 + 44100);
     }
 }

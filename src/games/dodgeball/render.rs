@@ -1,21 +1,12 @@
 //! Draws a match: court, crowd, players, ball, effects, HUD and banners.
 
-use crate::court::Scenery;
-use crate::game::*;
-use crate::gfx::*;
-use crate::sprites::{self, blit, blit_ghost, canvas_to_screen, Palette, Pose, Sprite, SpriteBank};
-use crate::teams::{flash_palette, ghost_palette, palette, OUTLINE};
+use super::court::Scenery;
+use super::game::*;
+use crate::engine::gfx::*;
+use crate::engine::sprites::{self, blit, blit_ghost, canvas_to_screen, Palette, Pose, Sprite, SpriteBank};
+use super::teams::{flash_palette, ghost_palette, palette, OUTLINE};
 
-pub const SUNSET: [u32; 6] =
-    [rgb(248, 248, 168), rgb(248, 224, 72), rgb(248, 176, 32), rgb(248, 120, 32), rgb(232, 64, 48), rgb(176, 32, 88)];
-
-pub fn grad7(c: u32) -> [u32; 7] {
-    [mix(c, 0xFFFFFF, 0.7), mix(c, 0xFFFFFF, 0.35), c, c, shade(c, 7, 8), shade(c, 3, 4), shade(c, 5, 8)]
-}
-
-pub fn grad6(c: u32) -> [u32; 6] {
-    [mix(c, 0xFFFFFF, 0.6), mix(c, 0xFFFFFF, 0.25), c, shade(c, 7, 8), shade(c, 3, 4), shade(c, 3, 5)]
-}
+pub use crate::engine::ui::{grad6, grad7, SUNSET};
 
 const BALL: [&str; 8] = ["..KKKK..", ".KRRRRK.", "KRWRRRrK", "KRRRRRrK", "KRRRRRrK", "KRRRrrrK", ".KrrrrK.", "..KKKK.."];
 
@@ -149,7 +140,7 @@ pub fn draw_wrench(f: &mut Frame, x: i32, y: i32, spin: f32) {
 
 fn coach_palette(team: usize) -> Palette {
     let mut pal = palette(team, 0);
-    let td = &crate::teams::TEAMS[team];
+    let td = &super::teams::TEAMS[team];
     pal[sprites::SKIN as usize] = rgb(232, 176, 136);
     pal[sprites::SKIN_D as usize] = rgb(184, 120, 88);
     pal[sprites::HAIR as usize] = rgb(200, 200, 208);
@@ -293,7 +284,7 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, bank: &SpriteBank, t: 
     for (i, p) in m.players.iter().enumerate() {
         if p.state == PState::Out && p.ghost < 140.0 {
             let (sx, sy) = proj(p.x, p.y, p.ghost);
-            let s = bank.get(crate::teams::TEAMS[m.sides[p.team].team].players[p.slot].style, Pose::Stand);
+            let s = bank.get(super::teams::TEAMS[m.sides[p.team].team].players[p.slot].style, Pose::Stand);
             let sway = ((p.ghost * 0.08).sin() * 3.0) as i32;
             blit_ghost(f, s, sx + sway, sy, p.face < 0.0, &ghost_palette(), t);
             f.circle_outline(sx + sway, sy - 32, 4, rgb(248, 232, 96));
@@ -405,12 +396,12 @@ fn draw_quote(f: &mut Frame, m: &Match, bank: &SpriteBank) {
     f.text_sh(66, y + 14, &b, rgb(248, 248, 248), OUTLINE, false);
 }
 
-fn dust_color(c: crate::teams::Court) -> u32 {
+fn dust_color(c: super::teams::Court) -> u32 {
     match c {
-        crate::teams::Court::Beach => rgb(248, 224, 168),
-        crate::teams::Court::Slopes => rgb(248, 248, 248),
-        crate::teams::Court::Boardwalk => rgb(192, 152, 112),
-        crate::teams::Court::Skatepark => rgb(216, 216, 224),
+        super::teams::Court::Beach => rgb(248, 224, 168),
+        super::teams::Court::Slopes => rgb(248, 248, 248),
+        super::teams::Court::Boardwalk => rgb(192, 152, 112),
+        super::teams::Court::Skatepark => rgb(216, 216, 224),
     }
 }
 
@@ -418,7 +409,7 @@ fn draw_player(f: &mut Frame, m: &Match, bank: &SpriteBank, i: usize, t: u32) {
     let p = &m.players[i];
 
     let team = m.sides[p.team].team;
-    let def = &crate::teams::TEAMS[team].players[p.slot];
+    let def = &super::teams::TEAMS[team].players[p.slot];
     let pose = pose_for(m, i);
     let s = bank.get(def.style, pose);
     let (sx, sy) = proj(p.x, p.y, p.z);
@@ -484,7 +475,7 @@ pub fn draw_hud(f: &mut Frame, m: &Match, bank: &SpriteBank, t: u32) {
     f.hline(0, W - 1, 32, rgb(176, 32, 88));
     for side in 0..2 {
         let team = m.sides[side].team;
-        let td = &crate::teams::TEAMS[team];
+        let td = &super::teams::TEAMS[team];
         let base = if side == 0 { 4 } else { 152 };
         let name = td.short;
         let nx = if side == 0 { base } else { 252 - text_width(name, true) };

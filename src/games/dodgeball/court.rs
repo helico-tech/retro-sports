@@ -1,9 +1,9 @@
 //! Court backgrounds. The static part is drawn once into a cached frame; the
 //! animated bits (crowd, water, snow, lights) are drawn on top every frame.
 
-use crate::game::{proj, Rng, DEPTH, MID, X_MAX, X_MIN};
-use crate::gfx::*;
-use crate::teams::Court;
+use super::game::{proj, Rng, DEPTH, MID, X_MAX, X_MIN};
+use crate::engine::gfx::*;
+use super::teams::Court;
 
 struct Fan {
     x: i32,
@@ -530,7 +530,7 @@ fn court_floor(f: &mut Frame, fill: Option<(u32, u32)>, line: u32, mid: u32) {
         let (ax0, ay0) = proj(x, 0.0, 0.0);
         let (ax1, ay1) = proj(x, DEPTH, 0.0);
         let mut k = 0;
-        crate::gfx::line_points(ax0, ay0, ax1, ay1, |x, y| {
+        crate::engine::gfx::line_points(ax0, ay0, ax1, ay1, |x, y| {
             if (k / 3) % 2 == 0 {
                 f.set(x, y, line);
             }

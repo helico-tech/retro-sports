@@ -1,58 +1,15 @@
 //! Headless tools: render scripted screenshots to PNG, and simulate many
 //! CPU-vs-CPU matches to check game balance. No window needed.
 
-use crate::app::{App, Mode, Scene};
-use crate::court::Scenery;
-use crate::game::*;
-use crate::gfx::*;
-use crate::render::draw_match;
-use crate::sprites::{blit, ALL_POSES};
-use crate::teams::*;
+use super::app::{App, Mode, Scene};
+use super::court::Scenery;
+use super::game::*;
+use crate::engine::gfx::*;
+use super::render::draw_match;
+use crate::engine::sprites::{blit, ALL_POSES};
+use super::teams::*;
+use crate::engine::png::{save_png, save_sheet, write_rgb};
 use std::path::Path;
-
-pub fn save_png(f: &Frame, path: &Path, scale: usize) {
-    let (w, h) = (W as usize * scale, H as usize * scale);
-    let mut data = vec![0u8; w * h * 3];
-    for y in 0..h {
-        for x in 0..w {
-            let c = f.px[(y / scale) * W as usize + x / scale];
-            let i = (y * w + x) * 3;
-            data[i] = (c >> 16) as u8;
-            data[i + 1] = (c >> 8) as u8;
-            data[i + 2] = c as u8;
-        }
-    }
-    write_rgb(path, w, h, &data);
-}
-
-fn write_rgb(path: &Path, w: usize, h: usize, data: &[u8]) {
-    let file = std::fs::File::create(path).expect("create png");
-    let mut enc = png::Encoder::new(std::io::BufWriter::new(file), w as u32, h as u32);
-    enc.set_color(png::ColorType::Rgb);
-    enc.set_depth(png::BitDepth::Eight);
-    enc.write_header().unwrap().write_image_data(data).unwrap();
-}
-
-/// Tile several frames into one image (to judge animation).
-fn save_sheet(frames: &[Frame], cols: usize, path: &Path, scale: usize) {
-    let rows = frames.len().div_ceil(cols);
-    let (fw, fh) = (W as usize * scale, H as usize * scale);
-    let (w, h) = (fw * cols, fh * rows);
-    let mut data = vec![0u8; w * h * 3];
-    for (k, f) in frames.iter().enumerate() {
-        let (ox, oy) = ((k % cols) * fw, (k / cols) * fh);
-        for y in 0..fh {
-            for x in 0..fw {
-                let c = f.px[(y / scale) * W as usize + x / scale];
-                let i = ((oy + y) * w + ox + x) * 3;
-                data[i] = (c >> 16) as u8;
-                data[i + 1] = (c >> 8) as u8;
-                data[i + 2] = c as u8;
-            }
-        }
-    }
-    write_rgb(path, w, h, &data);
-}
 
 fn press(app: &mut App, a: bool, dir: Option<&str>) {
     let mut p = Pad { a, ..Pad::default() };
@@ -591,7 +548,7 @@ pub fn probe(per: u32) {
         (Def::Decent, Off::Decent),
     ];
     for &(def, off) in &rows {
-        for &skill in &crate::app::CPU_SKILL {
+        for &skill in &super::app::CPU_SKILL {
             let mut r = Res::default();
             for my in 0..4 {
                 for k in 1..4 {

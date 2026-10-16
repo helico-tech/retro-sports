@@ -2,8 +2,8 @@
 //! drawing, no I/O), stepped at 60 Hz. The world is a court seen from the
 //! side: x runs left-right, y is depth (0 = far line), z is height.
 
-use crate::gfx::rgb;
-use crate::teams::{Court, TeamDef, TEAMS};
+use crate::engine::gfx::rgb;
+use super::teams::{Court, TeamDef, TEAMS};
 
 pub const TEAM_SIZE: usize = 3;
 pub const MAX_HP: i32 = 3;
@@ -25,43 +25,8 @@ pub fn proj(x: f32, y: f32, z: f32) -> (i32, i32) {
     ((MID + (x - MID) * s).round() as i32, (COURT_TOP + y - z).round() as i32)
 }
 
-#[derive(Clone, Copy, Default, Debug, PartialEq)]
-pub struct Pad {
-    pub up: bool,
-    pub down: bool,
-    pub left: bool,
-    pub right: bool,
-    /// throw / catch
-    pub a: bool,
-    /// jump
-    pub b: bool,
-    /// pass
-    pub c: bool,
-    pub start: bool,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Rng(pub u64);
-
-impl Rng {
-    pub fn next(&mut self) -> u32 {
-        let mut x = self.0;
-        x ^= x << 13;
-        x ^= x >> 7;
-        x ^= x << 17;
-        self.0 = x;
-        (x >> 32) as u32
-    }
-    pub fn f(&mut self) -> f32 {
-        (self.next() >> 8) as f32 / (1u32 << 24) as f32
-    }
-    pub fn range(&mut self, a: f32, b: f32) -> f32 {
-        a + (b - a) * self.f()
-    }
-    pub fn int(&mut self, n: i32) -> i32 {
-        (self.next() % n.max(1) as u32) as i32
-    }
-}
+pub use crate::engine::input::Pad;
+pub use crate::engine::rng::Rng;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Sfx {

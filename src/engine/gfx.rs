@@ -86,6 +86,19 @@ impl Frame {
         self.px.copy_from_slice(&other.px);
     }
 
+    /// Copy rows `src_y..src_y + h` of `other` to rows starting at `dst_y`.
+    /// For split screen: draw each player's view into its own frame, then
+    /// copy a band of each into the screen.
+    pub fn copy_band(&mut self, other: &Frame, src_y: i32, dst_y: i32, h: i32) {
+        for r in 0..h {
+            let (sy, dy) = (src_y + r, dst_y + r);
+            if (0..H).contains(&sy) && (0..H).contains(&dy) {
+                let (s, d) = ((sy * W) as usize, (dy * W) as usize);
+                self.px[d..d + W as usize].copy_from_slice(&other.px[s..s + W as usize]);
+            }
+        }
+    }
+
     pub fn clear(&mut self, c: u32) {
         self.px.fill(c);
     }

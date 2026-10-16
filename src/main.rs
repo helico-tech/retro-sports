@@ -1,17 +1,18 @@
 // release builds on Windows open no console window next to the game
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
-use dodgeball::app::App;
-use dodgeball::audio::{self, Track, ALL_SFX, ALL_TRACKS};
-use dodgeball::game::{Pad, Sfx};
-use dodgeball::gfx::{Frame, H, W};
 use macroquad::audio::{load_sound_from_bytes, play_sound, stop_sound, PlaySoundParams, Sound};
 use macroquad::prelude::*;
+use retro_sports::console::{bank_sounds, Console, Cue};
+use retro_sports::engine::gfx::{Frame, H, W};
+use retro_sports::engine::input::Pad;
+use retro_sports::engine::synth::wav;
+use retro_sports::games::CARTS;
 use std::collections::HashMap;
 
 fn conf() -> Conf {
     Conf {
-        window_title: "DODGE OR DIE!".to_owned(),
+        window_title: "RETRO SPORTS".to_owned(),
         window_width: W * 3,
         window_height: H * 3,
         high_dpi: true,
@@ -20,13 +21,36 @@ fn conf() -> Conf {
     }
 }
 
+const USAGE: &str = "usage: retro-sports [--shots <dir> [game]] [--<tool> <game> [n]]";
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    match args.get(1).map(String::as_str) {
-        Some("--shots") => dodgeball::headless::shots(args.get(2).map(String::as_str).unwrap_or("shots")),
-        Some("--probe") => dodgeball::headless::probe(args.get(2).and_then(|s| s.parse().ok()).unwrap_or(4)),
-        Some("--sim") => dodgeball::headless::sim(args.get(2).and_then(|s| s.parse().ok()).unwrap_or(100)),
-        _ => macroquad::Window::from_config(conf(), run()),
+    let Some(flag) = args.get(1).and_then(|a| a.strip_prefix("--")) else {
+        return macroquad::Window::from_config(conf(), run());
+    };
+    if flag == "shots" {
+        let dir = args.get(2).map(String::as_str).unwrap_or("shots");
+        let only = args.get(3).map(String::as_str);
+        if only.is_none() || only == Some("hub") {
+            retro_sports::hub::shots(&format!("{dir}/hub"));
+        }
+        for c in CARTS.iter().filter(|c| only.is_none() || only == Some(c.id)) {
+            (c.shots)(&format!("{dir}/{}", c.id));
+        }
+        return;
+    }
+    let cart = args.get(2).and_then(|id| CARTS.iter().find(|c| c.id == id));
+    let tool = cart.and_then(|c| c.tools.iter().find(|(name, _)| *name == flag));
+    match tool {
+        Some((_, run_tool)) => run_tool(args.get(3).and_then(|s| s.parse().ok()).unwrap_or(100)),
+        None => {
+            eprintln!("{USAGE}");
+            for c in CARTS {
+                let tools: Vec<_> = c.tools.iter().map(|(n, _)| *n).collect();
+                eprintln!("  {:<10} tools: {}", c.id, tools.join(", "));
+            }
+            std::process::exit(2);
+        }
     }
 }
 
@@ -57,30 +81,28 @@ fn pads() -> [Pad; 2] {
     ]
 }
 
-fn sfx_volume(s: Sfx) -> f32 {
-    match s {
-        Sfx::Cheer => 0.5,
-        Sfx::Bounce | Sfx::Pickup => 0.6,
-        _ => 0.8,
+/// A game's sounds, loaded into the audio device the first time it is used.
+struct Loaded {
+    sfx: Vec<Option<(Sound, f32)>>,
+    music: Vec<Option<(Sound, f32)>>,
+}
+
+async fn load_bank(bank: usize) -> Loaded {
+    let b = bank_sounds(bank);
+    let mut out = Loaded { sfx: Vec::new(), music: Vec::new() };
+    for s in &b.sfx {
+        out.sfx.push(load_sound_from_bytes(&wav(&s.samples)).await.ok().map(|x| (x, s.volume)));
     }
+    for s in &b.music {
+        out.music.push(load_sound_from_bytes(&wav(&s.samples)).await.ok().map(|x| (x, s.volume)));
+    }
+    out
 }
 
 async fn run() {
-    let mut sounds: HashMap<Sfx, Sound> = HashMap::new();
-    for s in ALL_SFX {
-        if let Ok(snd) = load_sound_from_bytes(&audio::wav(&audio::sfx_samples(s))).await {
-            sounds.insert(s, snd);
-        }
-    }
-    let mut music: HashMap<Track, Sound> = HashMap::new();
-    for t in ALL_TRACKS {
-        if let Ok(snd) = load_sound_from_bytes(&audio::wav(&audio::music_samples(t))).await {
-            music.insert(t, snd);
-        }
-    }
-
     let seed = (macroquad::miniquad::date::now() * 1000.0) as u64;
-    let mut app = App::new(seed);
+    let mut console = Console::new(seed);
+    let mut banks: HashMap<usize, Loaded> = HashMap::new();
     let mut frame = Frame::new();
     let mut rgba = Vec::new();
     frame.to_rgba(&mut rgba);
@@ -91,43 +113,50 @@ async fn run() {
     let mut acc = 0.0f32;
     let mut pending_esc = false;
     let mut scanlines = true;
-    let mut playing: Option<Track> = None;
+    let mut playing: Option<Cue> = None;
     loop {
+        if !banks.contains_key(&console.bank()) {
+            banks.insert(console.bank(), load_bank(console.bank()).await);
+            // loading takes a moment; don't fast-forward the game to catch up
+            get_frame_time();
+            acc = 0.0;
+        }
         acc += get_frame_time().min(0.1);
         pending_esc |= is_key_pressed(KeyCode::Escape);
         if is_key_pressed(KeyCode::F1) {
             scanlines = !scanlines;
         }
         while acc >= dt {
-            app.update(pads(), pending_esc);
+            console.update(pads(), pending_esc);
             pending_esc = false;
             acc -= dt;
         }
-        for s in app.sfx.drain(..) {
-            if let Some(snd) = sounds.get(&s) {
-                play_sound(snd, PlaySoundParams { looped: false, volume: sfx_volume(s) });
+        for cue in console.sfx.drain(..) {
+            if let Some(Some((snd, vol))) = banks.get(&cue.bank).and_then(|b| b.sfx.get(cue.id)) {
+                play_sound(snd, PlaySoundParams { looped: false, volume: *vol });
             }
         }
-        let want = app.music();
+        let want = console.music();
         if want != playing {
-            if let Some(snd) = playing.and_then(|p| music.get(&p)) {
+            if let Some(Some((snd, _))) = playing.and_then(|p| banks.get(&p.bank).and_then(|b| b.music.get(p.id))) {
                 stop_sound(snd);
             }
-            if let Some(snd) = want.and_then(|w| music.get(&w)) {
-                play_sound(snd, PlaySoundParams { looped: true, volume: 0.45 });
+            if let Some(Some((snd, vol))) = want.and_then(|w| banks.get(&w.bank).and_then(|b| b.music.get(w.id))) {
+                play_sound(snd, PlaySoundParams { looped: true, volume: *vol });
             }
             playing = want;
         }
-        if app.quit {
+        if console.quit {
             // a browser tab has nothing to quit to; stopping the loop would freeze it
             if cfg!(target_arch = "wasm32") {
-                app.quit = false;
+                console.quit = false;
+                console.hub.quit = false;
             } else {
                 break;
             }
         }
 
-        app.draw(&mut frame);
+        console.draw(&mut frame);
         frame.to_rgba(&mut rgba);
         tex.update_from_bytes(W as u32, H as u32, &rgba);
 

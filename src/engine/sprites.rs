@@ -3,7 +3,7 @@
 //! given a black outline. At draw time the roles map to a player's palette,
 //! which gives every team its own colors from the same art (palette swap).
 
-use crate::gfx::{line_points, Frame};
+use super::gfx::{line_points, Frame};
 
 pub const SW: i32 = 24;
 pub const SH: i32 = 32;
@@ -186,9 +186,11 @@ pub const ALL_POSES: [Pose; 16] = [
     Pose::Dive,
 ];
 
-/// Joints, facing right: head, neck, hip, back elbow, back hand, front elbow,
-/// front hand, back knee, back foot, front knee, front foot.
-type Skel = [(i32, i32); 11];
+/// Joints in a 24x32 canvas, facing right: head, neck, hip, back elbow,
+/// back hand, front elbow, front hand, back knee, back foot, front knee,
+/// front foot. Games can make their own poses (on a bike, under a glider)
+/// and draw them with `person`.
+pub type Skel = [(i32, i32); 11];
 
 fn skel(p: Pose) -> Skel {
     match p {
@@ -261,11 +263,19 @@ fn head(style: usize) -> [&'static str; 10] {
 }
 
 fn render(pose: Pose, style: usize) -> Sprite {
-    let k = skel(pose);
+    let flat = pose == Pose::Down || pose == Pose::Dive;
+    person(&skel(pose), style, flat, pose == Pose::Down)
+}
+
+/// Rasterise a person from a skeleton, with one of the `HAIR_STYLES` heads,
+/// in color roles (see `Palette`) and with an outline. `flat`: lying down
+/// (shoulders and hips turn); `head_on_side`: head rotated 90 degrees.
+pub fn person(k: &Skel, style: usize, flat: bool, head_on_side: bool) -> Sprite {
+    let style = style % HAIR_STYLES;
     let (hd, neck, hip) = (k[0], k[1], k[2]);
     let (bel, bha, fel, fha) = (k[3], k[4], k[5], k[6]);
     let (bkn, bft, fkn, fft) = (k[7], k[8], k[9], k[10]);
-    let down = pose == Pose::Down || pose == Pose::Dive;
+    let down = flat;
     let (bsh, fsh) = if down { ((neck.0 + 1, neck.1 - 1), (neck.0 + 1, neck.1 + 1)) } else { ((neck.0 - 1, neck.1 + 2), (neck.0 + 1, neck.1 + 2)) };
     let (bhip, fhip) = if down { ((hip.0, hip.1 - 1), (hip.0, hip.1 + 1)) } else { ((hip.0 - 1, hip.1), (hip.0 + 1, hip.1)) };
     let mid = |a: (i32, i32), b: (i32, i32)| ((a.0 + b.0) / 2, (a.1 + b.1) / 2);
@@ -306,7 +316,7 @@ fn render(pose: Pose, style: usize) -> Sprite {
     shoe(&mut s, fft, ACC);
     // head
     let rows = head(style);
-    s.stamp(hd.0 - 5, hd.1 - 5, &rows, pose == Pose::Down);
+    s.stamp(hd.0 - 5, hd.1 - 5, &rows, head_on_side);
     // front arm
     s.halo(fsh, fel, 4);
     s.halo(fel, fha, 4);

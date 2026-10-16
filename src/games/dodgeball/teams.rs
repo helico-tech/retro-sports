@@ -1,7 +1,7 @@
 //! The four crews, their players and their home courts.
 
-use crate::gfx::rgb;
-use crate::sprites::*;
+use crate::engine::gfx::rgb;
+use crate::engine::sprites::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Court {
@@ -125,7 +125,7 @@ pub const TEAMS: [TeamDef; 4] = [
     },
 ];
 
-pub const OUTLINE: u32 = rgb(16, 16, 32);
+pub use crate::engine::ui::OUTLINE;
 
 pub fn palette(team: usize, player: usize) -> Palette {
     let t = &TEAMS[team];
@@ -167,7 +167,7 @@ pub fn flash_palette(base: &Palette) -> Palette {
     let mut pal = *base;
     for (i, c) in pal.iter_mut().enumerate() {
         if i != OUT as usize {
-            *c = crate::gfx::mix(*c, 0xFFFFFF, 0.6);
+            *c = crate::engine::gfx::mix(*c, 0xFFFFFF, 0.6);
         }
     }
     pal
