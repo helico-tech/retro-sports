@@ -36,7 +36,7 @@ pub enum Scene {
 }
 
 /// CPU skill of the three rivals on each stage of the 1P ladder.
-pub const LADDER: [[f32; 3]; 3] = [[0.15, 0.25, 0.35], [0.4, 0.5, 0.6], [0.6, 0.72, 0.82]];
+pub const LADDER: [[f32; 3]; 3] = [[-0.2, -0.1, 0.05], [0.25, 0.38, 0.5], [0.38, 0.5, 0.62]];
 /// Skill of the CPU pilots that fly along in 2P and in the demo.
 pub const FILLER_SKILL: f32 = 0.5;
 const IDLE_DEMO: u32 = 900;
@@ -768,7 +768,7 @@ impl App {
             f.text_center(x, 118, name, rgb(248, 248, 248), OUTLINE, false);
             if self.mode == Mode::One {
                 let sk = p.brain.as_ref().map(|b| b.skill).unwrap_or(0.5);
-                let stars = 1 + (sk * 4.0) as i32;
+                let stars = (1 + (sk * 4.0) as i32).max(1);
                 for s in 0..5 {
                     let col = if s < stars { rgb(248, 216, 48) } else { rgb(64, 64, 96) };
                     f.rect(x - 14 + s * 6, 128, 4, 4, col);

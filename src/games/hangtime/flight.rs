@@ -67,12 +67,16 @@ pub enum State {
 // flight model (px and px/frame at 60 Hz)
 pub const TRIM: f32 = 0.80;
 const MIN_SINK_V: f32 = 0.66;
-const ENERGY: f32 = 13.0;
+pub const ENERGY: f32 = 13.0;
 /// Seconds after which there is no more lift ("sunset").
 pub const SUNSET_S: u32 = 210;
-/// Time bonus: 5 points per second under this, times the share of gates made.
+/// Time bonus: `TIME_PTS` per second under this, times the share of gates made.
 pub const TIME_PAR_S: i32 = 240;
 pub const GATE_PTS: i32 = 250;
+pub const HONK_PTS: i32 = 25;
+pub const TIME_PTS: i32 = 10;
+/// Landing rings around the target cross: (radius, points); 50 in the field.
+pub const RINGS: [(f32, i32); 3] = [(9.0, 500), (22.0, 300), (40.0, 150)];
 pub const FLARE_MAX_AGL: f32 = 32.0;
 
 pub fn polar_sink(v: f32) -> f32 {
@@ -129,6 +133,8 @@ pub struct Pilot {
     pub max_y: f32,
     pub lift_frames: u32,
     pub launch_v: f32,
+    /// frames until the storm can swallow this pilot again
+    pub storm_cool: i32,
 }
 
 impl Pilot {
@@ -360,6 +366,7 @@ impl Race {
                 max_y: 0.0,
                 lift_frames: 0,
                 launch_v: 0.0,
+                storm_cool: 0,
             });
         }
         // sheep graze on the landing field; one likes the bullseye
@@ -577,6 +584,7 @@ impl Race {
                     p.v = 0.95;
                     p.pitch = 0.0;
                     p.dazed = 150 - 12 * def.nerve;
+                    p.storm_cool = 60 * 25;
                     let (x, y) = (p.x, p.y);
                     self.banner(view, "PTOOEY!", rgb(160, 232, 120));
                     self.burst(x, y, FxKind::Star, 8, rgb(248, 248, 120), 1.2);
@@ -734,7 +742,7 @@ impl Race {
         let c = &self.course;
         let natural = c.thermal_lift(x0, y0, self.t) + c.ridge_lift(x0, y0);
         let natural = if natural > 0.0 { natural * d.lift_mul() } else { natural };
-        let storm = c.storm_lift(x0, y0);
+        let storm = if self.pilots[i].storm_cool > 0 { c.storm_lift(x0, y0).min(0.2) } else { c.storm_lift(x0, y0) };
         let mut air = natural - c.sink_at(x0) + storm + extra;
         let wind = c.wind;
         let storm_def = c.storm;
@@ -742,6 +750,9 @@ impl Race {
         let p = &mut self.pilots[i];
         if p.sunset {
             air = -0.16;
+            if p.clock > (SUNSET_S + 150) * 60 {
+                air = -1.0;
+            }
         } else if p.clock > SUNSET_S * 60 {
             p.sunset = true;
             self.banner(view, "SUNSET! LAND!", rgb(248, 136, 64));
@@ -858,11 +869,11 @@ impl Race {
         if let Some(k) = flock {
             if p.honk != k as i32 {
                 p.honk = k as i32;
-                p.bonus += 50;
+                p.bonus += HONK_PTS;
                 let (x, y) = (p.x, p.y);
                 self.stats.honks += 1;
                 self.banner(view, "HONK HONK!", rgb(248, 248, 248));
-                self.popup(x, y + 22.0, "+50", rgb(248, 232, 96));
+                self.popup(x, y + 22.0, &format!("+{HONK_PTS}"), rgb(248, 232, 96));
                 self.sound(view, Sfx::Honk);
             } else if self.t % 50 == 0 {
                 self.sound(view, Sfx::Honk);
@@ -879,10 +890,11 @@ impl Race {
             self.sound(view, Sfx::Ding);
         }
 
-        // the storm cloud swallows you
+        // the storm cloud swallows you (once in a while)
         let p = &mut self.pilots[i];
+        p.storm_cool -= 1;
         if let Some(st) = storm_def {
-            if (p.x - st.x).abs() < st.w + 6.0 && p.y > st.base - 2.0 && p.y < st.top {
+            if p.storm_cool <= 0 && !p.sunset && (p.x - st.x).abs() < st.w + 6.0 && p.y > st.base - 2.0 && p.y < st.top {
                 p.state = State::Suck(100);
                 p.turn = 0;
                 self.stats.cloudsucks += 1;
@@ -995,17 +1007,7 @@ impl Race {
         let in_field = c.in_field(p.x);
         let (x, y) = (p.x, p.y);
         let d = (p.x - c.target).abs();
-        let ring = if !in_field {
-            0
-        } else if d < 7.0 {
-            500
-        } else if d < 18.0 {
-            300
-        } else if d < 34.0 {
-            150
-        } else {
-            50
-        };
+        let ring = if !in_field { 0 } else { RINGS.iter().find(|r| d < r.0).map(|r| r.1).unwrap_or(50) };
         let mut pen = 0;
         let mut ring_pts = ring;
         let (txt, col, snd) = match kind {
@@ -1118,7 +1120,7 @@ impl Race {
         let n = self.course.gates.len() as i32;
         let p = &mut self.pilots[i];
         let secs = ((p.clock + p.walk_frames) / 60) as i32;
-        p.time_bonus = (TIME_PAR_S - secs).max(0) * 5 * p.gates_made() as i32 / n.max(1);
+        p.time_bonus = (TIME_PAR_S - secs).max(0) * TIME_PTS * p.gates_made() as i32 / n.max(1);
         p.state = State::Done;
     }
 

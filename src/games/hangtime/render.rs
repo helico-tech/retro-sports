@@ -702,13 +702,14 @@ fn draw_target(f: &mut Frame, c: &Course, cam: &Cam, t: u32) {
     let gy = cam.sy(c.ground_at(tx));
     let x = cam.sx(tx);
     // flattened rings on the grass
-    for (r, col) in [(34, rgb(248, 248, 248)), (30, rgb(232, 56, 56)), (18, rgb(248, 248, 248)), (14, rgb(232, 56, 56)), (7, rgb(248, 216, 48))] {
+    let [r0, r1, r2] = RINGS.map(|r| r.0 as i32);
+    for (r, col) in [(r2, rgb(248, 248, 248)), (r2 - 4, rgb(232, 56, 56)), (r1, rgb(248, 248, 248)), (r1 - 4, rgb(232, 56, 56)), (r0, rgb(248, 216, 48))] {
         f.fill_ellipse(x, gy + 1, r, 2, col);
     }
     f.line(x - 4, gy, x + 4, gy + 2, OUTLINE);
     f.line(x - 4, gy + 2, x + 4, gy, OUTLINE);
     // distance pennants: gold, silver, bronze
-    for (d, col) in [(7, rgb(248, 216, 48)), (18, rgb(200, 208, 224)), (34, rgb(208, 136, 72))] {
+    for (d, col) in [(r0, rgb(248, 216, 48)), (r1, rgb(200, 208, 224)), (r2, rgb(208, 136, 72))] {
         for s in [-1, 1] {
             let px = x + s * d;
             f.line(px, gy, px, gy - 7, rgb(96, 96, 112));

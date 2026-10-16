@@ -469,7 +469,8 @@ pub fn trace(venue: Venue, skill: f32, style: Style, seed: u64) {
         r.sfx.clear();
         n += 1;
         let p = &r.pilots[0];
-        if n % 60 == 0 {
+        let fine = std::env::var("FINE").is_ok() && p.gates.count_ones() == 4 && p.agl(&r.course) < 120.0 && p.airborne();
+        if n % 60 == 0 || (fine && n % 10 == 0) {
             println!(
                 "t{:>4} x{:>5.0} y{:>4.0} agl{:>4.0} v{:.2} vy{:+.2} face{:+} st {:?} gates {:b} air {:+.2}",
                 n / 60,
