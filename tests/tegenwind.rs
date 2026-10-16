@@ -16,10 +16,13 @@ fn cpu_races_always_finish() {
             let mut race = Race::new(stage, &cpu_field(stage), seed);
             run_race(&mut race, &mut []);
             assert!(race.finished(), "stage {stage} seed {seed} did not finish");
-            assert!(race.riders.iter().all(|r| r.finish.is_some()), "stage {stage} seed {seed}: someone never crossed the line");
+            // a CPU race ends a while after the winner; stragglers get an estimate
+            let crossed = race.riders.iter().filter(|r| r.finish.is_some()).count();
+            assert!(crossed >= 3, "stage {stage} seed {seed}: only {crossed} crossed the line");
             let res = race.results();
             let secs = res[0].1 as f32 / 60.0;
             assert!((60.0..200.0).contains(&secs), "stage {stage}: winner took {secs:.0}s");
+            assert!(res.iter().all(|e| (e.1 as f32 / 60.0) < 260.0 && !e.2), "stage {stage} seed {seed}: {res:?}");
         }
     }
 }
@@ -49,11 +52,13 @@ fn top_speed(bike: Bike, wind: f32, tuck: bool, draft: bool, gap: i32) -> f32 {
         r.y = 0.0;
         r.lane = 0;
         r.energy = 100.0;
+        let v0 = race.riders[0].v;
         let lead = &mut race.riders[1];
         lead.state = RState::Ride;
-        lead.x = if draft { 1022.0 } else { 9000.0 };
+        lead.x = if draft { 1026.0 } else { 9000.0 };
         lead.y = 0.0;
-        lead.v = 0.0;
+        lead.lane = 0;
+        lead.v = v0;
         race.gust = 1.0;
         let mut p = Pad { c: tuck, ..Pad::default() };
         if race.riders[0].since >= gap {

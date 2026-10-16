@@ -48,5 +48,27 @@ Order: riding loop first, then screens, art and sound, then CPU and
 balance, then the art and gameplay reviews.
 
 ## Progress log
+- 2026-10-16: race core first (`race.rs`): strokes from alternating LEFT/RIGHT
+  with a cadence limit per bike (9-10 frames, lower while starting, +7 when
+  bonked). Too early = wasted (no push, -1% speed, energy, breaks the rhythm);
+  a clean stroke right at the limit = PERFECT (+20%). Air drag on
+  `speed + headwind`; tuck (hold C) and drafting cut it; side wind drifts
+  you toward the canal (hold UP to lean in). Decision: the spec's "cadence
+  limit for your speed" became a limit per bike (plus low gear at the start
+  and the bonk); a speed-dependent beat made the rhythm unreadable.
+- 2026-10-16: added a brake (both pedal keys held for 10+ frames) so riders
+  can stop for a bollard or the drawbridge; the CPU uses it too.
+- 2026-10-16: first sim/probe runs: races were 140-170 s, the racefiets won
+  everything (a faster cadence is free power), Dennis won 92% in Amsterdam,
+  mashers never finished. Tuned stroke power, bikes (racefiets power 0.94 for
+  its 9-frame cadence), personalities, bonk recovery, the sweeper van and
+  the bridge (a sprint can beat the barrier).
+- 2026-10-16: art, scenery (cached sky, wrapped parallax strips, road strips
+  with cobble columns), render, HUD, app screens, audio, shots. Looked at
+  every screen; fixed HUD overlaps, select bios, intro layout, swimmer
+  clipping, the sofa lady looking like Oma Riek, banners over the road.
+- 2026-10-16: the contract test hung on the old list hub (it presses RIGHT,
+  the old hub only moved on UP/DOWN). Rebased `feat/tegenwind` onto
+  `ea2aba7` (island hub), like the other game branches.
 
 ## Follow-ups

@@ -1276,8 +1276,8 @@ impl Race {
             let drag = cd * air * air.abs() + C_ROLL * b.roll * surface * r.v;
             r.v = (r.v - drag).clamp(0.0, MAX_V);
             if done {
-                // roll out and brake after the line
-                r.v *= 0.985;
+                // roll out past the crowd, then stop and wave
+                r.v = if r.x < self.length + 150.0 { r.v.max(1.0) * 0.995 } else { r.v * 0.96 };
             }
             if r.draft > 0.3 && !done {
                 r.stats.draft_frames += 1;
@@ -1491,7 +1491,7 @@ impl Race {
         let d = r.who.def();
         let mut best = 0.0f32;
         for (j, o) in self.riders.iter().enumerate() {
-            if j == i || !o.riding() {
+            if j == i || !o.riding() || o.finish.is_some() {
                 continue;
             }
             let dx = o.x - r.x;
@@ -1724,7 +1724,8 @@ impl Race {
             for &j in &order[..k] {
                 let (fx, fy, fv, ok) = {
                     let f = &self.riders[j];
-                    (f.x, f.y, f.v, f.riding())
+                    // riders who finished are out of the way
+                    (f.x, f.y, f.v, f.riding() && f.finish.is_none() && !f.dnf)
                 };
                 if !ok {
                     continue;
@@ -2105,7 +2106,7 @@ impl Race {
 
         // tuck in a headwind when nothing is coming
         let head = wind.head() * d.wind_feel;
-        let near_hazard = hazard.map(|h| h.0 < look * 1.4).unwrap_or(false);
+        let near_hazard = hazard.map(|h| h.0 < look).unwrap_or(false);
         let safe_side = !(wind.side() > 0.3 && r.y > 0.6);
         if d.tuck_seek > 0.0 && head > 0.4 + (1.0 - d.tuck_seek) * 0.5 && !near_hazard && safe_side && skill > 0.25 {
             c.tuck = true;
