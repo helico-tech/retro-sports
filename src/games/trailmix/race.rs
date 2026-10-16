@@ -171,6 +171,9 @@ pub struct Runner {
     pub flash: i32,
     /// frames after a landing before the next jump
     pub land_t: i32,
+    /// how far the camera keeps this runner from the left edge: less when
+    /// fast, so you see further ahead (smoothed)
+    pub look: f32,
     pub say: Option<(&'static str, i32)>,
     pub stats: RunStats,
     next_ob: usize,
@@ -381,6 +384,7 @@ impl Race {
                 five_t: 0,
                 flash: 0,
                 land_t: 0,
+                look: 96.0,
                 say: None,
                 stats: RunStats::default(),
                 next_ob: 0,
@@ -714,6 +718,8 @@ impl Race {
             r.five_t = (r.five_t - 1).max(0);
             r.flash = (r.flash - 1).max(0);
             r.land_t = (r.land_t - 1).max(0);
+            let want = (96.0 - (r.v - 1.4) * 40.0).clamp(60.0, 100.0);
+            r.look += (want - r.look) * 0.03;
             r.hike *= 0.97;
             if r.hike < 0.02 {
                 r.hike = 0.0;

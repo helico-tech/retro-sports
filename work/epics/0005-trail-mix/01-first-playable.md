@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: blocked
 created: 2026-10-16
 ---
 # 01: First playable
@@ -93,6 +93,20 @@ sound, then CPU and balance, then reviews.
 - 2026-10-16: No engine changes. Everything new lives in the module
   (own outline pass, color sprites, wrapping strips, crop sheets).
 
+- 2026-10-16: Extra whimsy: rare sightings per race (a yeti walking
+  through the summit fog, a Helico balloon or a cow-shaped cloud over the
+  forest and meadow), a HYPE label in the HUD. The camera looks further
+  ahead when you are fast (smoothed per runner).
+- 2026-10-16: Checks: `cargo test` and `cargo test --release` pass except
+  `tests/carts.rs::console_enters_and_leaves_every_game` (issue 0030: the
+  hiker needs 136 frames to walk from the beach to Mount Helico, the test
+  waits 120; passes with 200, and with all five games registered).
+  `cargo clippy --release --all-targets`: no warnings in the module or its
+  tests. `cargo build --release --target wasm32-unknown-unknown` builds.
+  `App::new` 4 ms, a 2P split-screen frame (update + draw) 0.14 ms native,
+  sound bank 20 ms. Status `blocked` only on issue 0030; the game itself is
+  complete.
+
 ### Art review (2026-10-16)
 Looked at every shot at 3x, the pose sheets and two 12-frame animation
 sheets (jump, tumble), next to dodgeball's shots.
@@ -139,3 +153,7 @@ Played through `probe` bots and traces (`trace` dev tool), read the sim.
   ghost of your best time.
 
 ## Follow-ups
+- [Issue 0030](../../issues/0030-contract-test-hub-walk.md): contract test
+  gives up before the hiker reaches Mount Helico.
+- COULD items from the reviews: bust portraits on the intro card, a third
+  cow frame, more foreground plants, a 2P rubber band, a ghost runner.

@@ -76,7 +76,10 @@ pub fn camera(race: &Race, v: &View) -> Cam {
         None => race.runners[v.runner].x.max(0.0),
     };
     let alt = (c.height(x - 60.0) + c.height(x - 25.0) + c.height(x) + c.height(x + 25.0) + c.height(x + 60.0)) / 5.0;
-    let lead = if v.split { 100.0 } else { 96.0 };
+    let lead = match v.focus {
+        Some(_) => 96.0,
+        None => race.runners[v.runner].look,
+    };
     Cam { x: x - lead, alt, ground_y: v.y0 + v.h * if v.split { 70 } else { 73 } / 100, y0: v.y0, y1: v.y0 + v.h }
 }
 
