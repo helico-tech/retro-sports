@@ -61,3 +61,54 @@ Songs: a heroic alpine title song (a yodel-ish lead), a driving race
 song, an alphorn-like fanfare. Effects: footsteps, jump, splash, cowbell,
 goat baa, marmot whistle, crowd, gulp, trip, slide, aid ding, a
 heartbeat when stamina is low, menu blip and confirm.
+
+## How it plays (as built)
+- Pace: WALK / JOG / RUN / SPRINT at 0.72 / 1.12 / 1.5 / 1.95 px per
+  frame on the flat. Legs (stamina) per second: -8 / -3.5 / +1.2 / +10 on
+  the flat, plus 5 / 11 / 19 / 28 per unit of uphill slope; downhill
+  refunds a little. Endurance scales it. At 0 legs: BONK, forced to walk
+  at 0.5 until legs are back to 50 (slow: about 4 per second).
+- Power hike: on slopes over 0.18, alternate Z and C. Each alternate plant
+  adds pole power (decays 3% a frame); the poles then set the speed (up
+  to about sprint speed uphill) for 1.5 + 9 x slope legs per second.
+- Switchbacks: runners cover ground at 62% speed; Gerald climbs straight
+  up the cliff (shortcut) at full speed.
+- Jump (X): 2.5-2.9 up, gravity 0.16; at least 1.1 px/frame forward in the
+  air; a 9-frame landing lag and 7% speed loss stop bunny hopping.
+- Duck / brake (down): 68% speed, under branches and propped trunks,
+  deer leap over you, brakes the wobble on fast technical descents
+  (rock, scree, snow, mud). Wobble at 1 = WIPEOUT.
+- Snow descents: hold down to GLISSADE (up to 3 px/frame, legs recover).
+- Aid stations (Z within 15 px of the volunteer): trail mix +28, banana
+  +34, stroopwafel +24 and HYPE, pickle juice +45, long HYPE and a green
+  face. Fans (Z within 18 px): HIGH FIVE = HYPE 2.5 s (+14% speed, no leg
+  cost).
+- Falls: roots, rocks, logs and snow rocks trip you (tumble, faceplant,
+  get up: about 1.5 s plus lost speed, often muddy). Branches, trunks,
+  cows at speed, deer and marmots stun you (about 0.5 s).
+- Cows: pass them slower than 0.95 px/frame ("EXCUSE ME!") or get MOOed
+  back. Marmots pop up and whistle when you come close.
+- Gerald: leaps everything, shortcuts switchbacks, snacks at aid stations
+  and now and then (more when far ahead), mild rubber band (about -9% when
+  300 px ahead of the players, +9% when 300 px behind), heckles.
+- 1P lineup per stage: you, Gerald and two of the other runners; top 2
+  goes on in stages 1-2, stage 3 must be won. 2P: a 3-stage cup, points
+  10 / 6 / 3 / 1, with Gerald and one CPU runner.
+
+## Balance results
+Tuned with `cargo run --release -- --sim trailmix 200` and
+`--probe trailmix 25` (25 races x 4 runners per row), 2026-10-16.
+Knobs: `GOAT_FAC` = 0.92 / 0.9 / 0.93 and `CPU_SKILL` = 0.5-0.6 /
+0.6-0.7 / 0.75-0.85 in `headless.rs`.
+
+| Target | Result |
+|---|---|
+| Sprinting everything runs out and loses to smart pacing | Sim, same runner and skill: Smart beats Sprinter 100% on every stage (Sprinter 208 / 215 / 253 s, 9-11 bonks; Smart 152 / 167 / 175 s, 0-0.3 bonks). Probe Sprinter bot: last in 100% of races. |
+| Stage times 2-3 min | Decent bot 145 / 154 / 160 s. CPU runners 153 / 180 / 205 s (random skill 0.4-0.9). |
+| Decent player top 2 in stage 1 about 90% | 99% (wins 88%). |
+| Stage 2 in between | top 2 in 89%, beats Gerald 29%. |
+| Decent player beats Gerald in stage 3 about 30% | 32% (= wins stage 3, champion). |
+| No exploits | Hopper (jump all the time) 0-2% top 2 with 10-20 falls; Steady RUN (no poles, no food) 4% / 21% / 0% top 2; Lazy JOG last. |
+
+Other numbers: CPU runners fall 1.3-2.5 times per race and almost never
+bonk (0.01-0.26); the decent bot falls 2-3.5 times (5% missed obstacles).

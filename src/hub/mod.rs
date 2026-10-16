@@ -186,6 +186,11 @@ impl Hub {
         }
     }
 
+    /// Standing at a venue and ready to take input that enters a game.
+    pub fn ready(&self) -> bool {
+        self.phase == Phase::Roam && !self.walking()
+    }
+
     fn walking(&self) -> bool {
         (self.stops[self.stop].s - self.s).abs() > 0.01
     }
