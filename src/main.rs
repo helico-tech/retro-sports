@@ -119,7 +119,12 @@ async fn run() {
             playing = want;
         }
         if app.quit {
-            break;
+            // a browser tab has nothing to quit to; stopping the loop would freeze it
+            if cfg!(target_arch = "wasm32") {
+                app.quit = false;
+            } else {
+                break;
+            }
         }
 
         app.draw(&mut frame);

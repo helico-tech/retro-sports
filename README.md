@@ -22,6 +22,10 @@ sprites built from skeleton poses, and a chiptune synth.
 - Fall behind and your coach throws a wrench at you. If you can dodge a
   wrench, you can dodge a ball (and your next throw is a super shot).
 
+## Play in your browser
+**https://dodgeball.helico.app** — needs a keyboard. Sound starts after
+your first key press.
+
 ## Download
 Get the latest build from the [Releases](../../releases) page.
 
@@ -49,7 +53,8 @@ Get the latest build from the [Releases](../../releases) page.
 - Press catch just before the ball reaches you. Without the ball, the pass
   key ducks.
 - Hold the ball longer than 5 seconds and it goes to the other side.
-- Esc goes back to the title (and quits from there). F1 toggles scanlines.
+- Esc goes back to the title (and quits from there, except in the browser).
+  F1 toggles scanlines.
 
 ## Build from source
 ```sh
@@ -58,6 +63,10 @@ cargo run --release
 On Linux you need `libasound2-dev libx11-dev libxi-dev libgl1-mesa-dev`.
 On Windows the release build has no console window, so run the developer
 tools below from a debug build (`cargo run -- --sim 100`) to see output.
+
+Browser version: `web/build.sh` builds it into `dist/` (needs
+`rustup target add wasm32-unknown-unknown`). Serve it with
+`python3 -m http.server -d dist` and open http://localhost:8000.
 
 Developer tools, no window needed:
 - `cargo run --release -- --shots <dir>` renders screenshots of every screen.

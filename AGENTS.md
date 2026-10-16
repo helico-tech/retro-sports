@@ -13,6 +13,9 @@ or 2P versus. All art and sound are generated in code.
   checks the difficulty curve.
 - `cargo run -- --shots <dir>` — scripted PNG screenshots (3x) of every
   screen, key moments and a sprite sheet. Use this to review visuals.
+- `web/build.sh` — browser build into `dist/`; test with
+  `python3 -m http.server -d dist`, deploy with `npx wrangler deploy` to
+  https://dodgeball.helico.app (ADR 0002).
 
 ## Controls
 - P1: arrows, Z (or ,) throw/catch, X (or .) jump, C (or /) pass/duck,

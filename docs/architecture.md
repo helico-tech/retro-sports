@@ -1,7 +1,9 @@
 # Architecture
 
 One crate: a library with all game code, and a thin binary (`src/main.rs`)
-that owns the window, keyboard and speakers through macroquad.
+that owns the window, keyboard and speakers through macroquad. The same
+binary builds for the browser (`wasm32-unknown-unknown`, `web/`), hosted on
+Cloudflare at dodgeball.helico.app (ADR 0002).
 
 ## Modules
 - `gfx` — `Frame`: a 256x224 software framebuffer (SNES resolution).
