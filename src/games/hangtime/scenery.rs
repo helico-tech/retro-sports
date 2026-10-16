@@ -454,9 +454,9 @@ fn dunes_mid(rng: &mut Rng, sky: &[u32]) -> Layer {
     }
     let split = (1500.0 * kx) as i32;
     let p = with_plane(p, PLANE, haze, |x, band, h| {
-        // dunes fade into the polder over a dithered stretch
+        // dunes give way to the polder field by field, not pixel by pixel
         let blend = ((x - split + 60) as f32 / 120.0).clamp(0.0, 1.0);
-        let sandy = (hash(x / 3, band) % 100) as f32 / 100.0 >= blend;
+        let sandy = ((h >> 8) % 100) as f32 / 100.0 >= blend;
         if sandy {
             [rgb(232, 208, 152), rgb(216, 192, 136), rgb(176, 184, 112), rgb(240, 224, 168)][(h % 4) as usize]
         } else {
