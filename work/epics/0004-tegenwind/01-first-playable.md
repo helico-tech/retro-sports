@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 created: 2026-10-16
 ---
 # 01: First playable
@@ -120,5 +120,35 @@ balance, then the art and gameplay reviews.
   no exploit found (bell spam is free but harmless, hop spam costs energy
   and pedalling, the umbrella-sail in a tailwind is a fair trick).
 - COULD G7: a photo finish when riders cross within a few frames.
+- 2026-10-16: fixed A1-A8 (big held umbrella, rain cloud, slipstream lines,
+  bonking hammer with stars, planked bridge leaves, crisp spray, real people
+  on the party boat, shot script sheep), plus a photo finish banner, geese
+  that chase you when you ring at them, tuba and grandfather-clock cargo
+  after a continue, no label clutter around a bonked rider.
+- 2026-10-16: merged `feat/retro-sports` (island hub, Disc Dogs, Trail Mix)
+  as asked by the coordinator; CARTS = dodgeball, discdogs, tegenwind,
+  trailmix. All tests pass in debug and release.
+- 2026-10-16: clippy clean in the module; spec has "As built" and
+  "Balance results"; issue 0020 for the contract test that hangs instead
+  of failing.
+
+### Art review 2 (2026-10-16)
+- No MUST left. Checked every shot again (title, menu, select, intro
+  cards, all three stages, crash, swim, bonk, bridge, showers, stands,
+  rare sights, results, continue, game over, champion 1P/2P, demo, split
+  screen) and the rider/prop sheets.
+- COULD (open): the crashed bike lying on the road is still simple; the
+  cow cloud tucks behind the logo on the title.
+
+### Gameplay review 2 (2026-10-16)
+- No MUST left. Numbers in the spec's "Balance results": decent bot 96%
+  top 2 on the polder, 26% wins on the dike, every bike 15-35% on the dike,
+  tuck and draft both pay, mashing loses, no exploit found.
+- COULD (open): mashers and very slow players get swept up on the dike
+  (they can't reach it in 1P anyway); a tiny on-rider beat light for
+  players who never look at the HUD.
 
 ## Follow-ups
+- Issue 0020: contract test hangs instead of failing when the hub cursor
+  never moves.
+- COULD items above (crashed-bike sprite, title cow cloud).
