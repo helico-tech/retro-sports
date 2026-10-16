@@ -215,16 +215,93 @@ fn only_a_keeper_on_one_point_catches_outside_the_area() {
 }
 
 #[test]
-fn shot_kinds_follow_the_height_and_facing() {
+fn shot_kinds_follow_the_height_the_facing_and_the_jump() {
+    // on the ground: foot or chest
     assert_eq!(shot_kind(-1, false, 5.0, false), Some(Kind::Volley));
     assert_eq!(shot_kind(1, false, 5.0, false), Some(Kind::Heel));
     assert_eq!(shot_kind(-1, false, 16.0, false), Some(Kind::Chest));
-    assert_eq!(shot_kind(-1, false, 26.0, false), Some(Kind::Header));
+    assert_eq!(shot_kind(-1, false, 26.0, false), None, "a header needs a jump");
+    // in a jump: the head, or a bicycle kick with your back to the goal
+    assert_eq!(shot_kind(-1, true, 16.0, false), Some(Kind::Header));
+    assert_eq!(shot_kind(-1, true, 26.0, false), Some(Kind::Header));
     assert_eq!(shot_kind(1, true, 20.0, false), Some(Kind::Bicycle));
-    assert_eq!(shot_kind(-1, true, 16.0, false), Some(Kind::Chest));
     assert_eq!(shot_kind(1, true, 6.0, true), Some(Kind::Bicycle), "Lieke reaches lower");
     assert_eq!(shot_kind(1, true, 6.0, false), Some(Kind::Heel));
-    assert_eq!(shot_kind(-1, false, 40.0, false), None);
+    assert_eq!(shot_kind(-1, true, 40.0, false), None);
+}
+
+#[test]
+fn field_kids_stay_out_of_the_keepers_area() {
+    let mut w = open_play(12);
+    let s = shooter(&w);
+    w.kids[s].x = AREA_X + 10.0;
+    w.kids[s].ctrl = Ctrl::Human(0);
+    let left = Pad { left: true, ..Pad::default() };
+    for _ in 0..60 {
+        w.update(&[left, Pad::default()]);
+    }
+    assert!(w.kids[s].x > AREA_X, "a field kid walked into the area");
+}
+
+#[test]
+fn a_keeper_cannot_mash_his_hands_out() {
+    let mut w = open_play(13);
+    let kp = w.keeper;
+    w.kids[kp].ctrl = Ctrl::Human(0);
+    w.ball.x = 200.0;
+    w.ball.y = 36.0;
+    w.ball.z = 0.0;
+    let a = Pad { a: true, ..Pad::default() };
+    // press, release, press again while the first catch still recovers
+    w.update(&[a, Pad::default()]);
+    assert_eq!(w.kids[kp].act, Act::Catch);
+    for _ in 0..KEEPER_WINDOW + 2 {
+        w.update(&IDLE);
+    }
+    w.update(&[a, Pad::default()]);
+    assert_eq!(w.kids[kp].act, Act::Catch);
+    assert!(w.kids[kp].at > KEEPER_WINDOW, "the second press must not restart the catch");
+}
+
+#[test]
+fn a_jumping_keeper_does_not_catch() {
+    let mut w = open_play(14);
+    let kp = w.keeper;
+    w.kids[kp].z = 10.0;
+    assert!(!w.may_catch(kp));
+    w.kids[kp].z = 0.0;
+    w.kids[kp].x = GOAL_X + 8.0;
+    w.kids[kp].y = goal_mid();
+    assert!(w.may_catch(kp));
+}
+
+#[test]
+fn nobody_can_keep_the_ball_forever() {
+    let mut w = open_play(15);
+    let s = shooter(&w);
+    w.kids[s].ctrl = Ctrl::Human(0);
+    w.kids[s].x = 150.0;
+    w.kids[s].y = 36.0;
+    w.ball.x = 145.0;
+    w.ball.y = 36.0;
+    w.ball.z = 0.0;
+    w.ball.vx = 0.0;
+    w.ball.vy = 0.0;
+    w.ball.owner = Some(s);
+    // a human who just stands on the ball
+    assert!(run_until(&mut w, 60 * 6, |w| w.ball.owner != Some(s)), "the ball never left his feet");
+}
+
+#[test]
+fn a_dinner_tie_goes_against_the_keeper() {
+    let mut w = open_play(16);
+    let kp = w.keeper;
+    for k in w.kids.iter_mut() {
+        k.pts = 4;
+    }
+    w.play_t = MAX_GAME - 1;
+    w.update(&IDLE);
+    assert_eq!(w.loser, Some(kp));
 }
 
 #[test]
@@ -312,4 +389,41 @@ fn every_scene_draws() {
 fn balance_report() {
     probe::sim(40);
     probe::probe(40);
+}
+
+#[test]
+#[ignore]
+fn seat_report() {
+    use retro_sports::games::tienen::bot::BotKind;
+    for (venue, v) in VENUES.iter().enumerate() {
+        let mut agg = [[0i64; 6]; 4];
+        for seed in 0..40u64 {
+            let roster = [(PICKS[seed as usize % 4], Ctrl::Human(0), 0.75), (v.kids[0], Ctrl::Cpu, v.skill), (v.kids[1], Ctrl::Cpu, v.skill), (v.kids[2], Ctrl::Cpu, v.skill)];
+            let mut w = World::new(venue, roster, 900 + seed);
+            w.auto = [Some(BotKind::Decent), None];
+            let mut kt = [0i64; 4];
+            for _ in 0..60 * 60 * 6 {
+                w.update(&IDLE);
+                if w.phase == Phase::Play {
+                    kt[w.keeper] += 1;
+                }
+                if matches!(w.phase, Phase::Over | Phase::Brand | Phase::Done) {
+                    break;
+                }
+            }
+            for k in 0..4 {
+                let s = &w.kids[k].stats;
+                agg[k][0] += s.wissels as i64;
+                agg[k][1] += s.conceded as i64;
+                agg[k][2] += s.scored as i64;
+                agg[k][3] += s.saves as i64;
+                agg[k][4] += kt[k] / 60;
+                agg[k][5] += s.shots as i64;
+            }
+        }
+        println!("{}: per seat (wissels, conceded, scored, saves, secs keeping, shots) / 40 games", v.name);
+        for (k, a) in agg.iter().enumerate() {
+            println!("  seat {}: {:?}", k, a.map(|x| x as f32 / 40.0));
+        }
+    }
 }

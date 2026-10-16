@@ -48,24 +48,28 @@ props. The ball has a shadow, so you can always see where it will land.
 Field player:
 - Arrows: run. Facing follows the arrows: face the goal (left) for a
   volley or header, turn your back (right) for a heel or bicycle kick.
-- A: SHOOT at the goal. What comes out depends on the ball's height
-  when you touch it: feet = volley (or heel with your back to the goal),
-  chest = chest shot, head = header, in a jump with your back to the goal
-  and the ball above your waist = bicycle kick. Up/down aim at the far
-  or near post. On a ball on the ground, A is a ground pass to a mate.
-- B: JUMP (reach high balls, the start of a bicycle kick).
+  Field players may not enter the keeper's area.
+- A: SHOOT at the goal. On the ground you play it with the foot (volley,
+  or heel with your back to the goal) or the chest. In a jump (B, then A)
+  you head it, or, with your back to the goal, do a bicycle kick. Up/down
+  aim at the far or near post. On a ball on the ground, A is a ground
+  pass to a mate.
+- B: JUMP.
 - C: CROSS (VOORZET): lob it to a mate, from the ground or out of the
   air. Arrows pick the mate; no arrow = the mate closest to the goal.
-- A ball on the ground near your feet sticks to you (dribble).
+- A ball on the ground near your feet sticks to you (dribble), for at
+  most 4 seconds (SPELEN!).
 - A landing marker shows where a cross comes down.
 
 Keeper:
-- Arrows: move (stays near the goal).
-- A: CATCH (with an arrow held: dive that way). Inside the area only,
-  unless you are on 1 point. A catch is a WISSEL for the shooter.
-- B: jump. C: PUNCH it away (play goes on; a rebound may be shot).
+- Arrows: move. With no arrow held he finds his basic spot himself
+  (keeper assist); reading the shot is up to you.
+- A: CATCH, only with a foot on the ground in the area (anywhere when on
+  1 point). A catch is a WISSEL for the shooter. B + up/down: DIVE.
+  B: jump. C: PUNCH it away (it can miss). After a catch or punch the
+  keeper needs a moment before the next one.
 - Holding the ball: A rolls it out (arrows aim), or it goes by itself
-  after a few seconds.
+  after three seconds.
 
 ## Kids (select: SCHOT, KOP, KEEP, SNEL)
 - KEVIN: wears his Oranje shirt in bed. Shoots from everywhere.
@@ -77,8 +81,8 @@ Keeper:
 ## Venues (1P ladder)
 Each stage is one game of tienen against three local kids. You win the
 stage when somebody else hits zero **and** you scored the pitch's target
-in goal points (DOEL: 3, 4, 4): the big kids only respect you if you
-score. You lose when you hit zero, or when somebody else does before you
+in goals (DOEL: 3, 5, 6): the big kids only respect you if you score.
+You lose when you hit zero, or when somebody else does before you
 reached the target (continue).
 1. GALERIJFLAT, Saturday morning behind the flats: TIMMY (plays in
    his pyjamas), MO and JESSICA. Cars cross the pitch (AUTO!), a poodle
@@ -91,9 +95,10 @@ reached the target (continue).
 Score: goal points you scored, saves, points you have left, billenbrand
 hits, respect.
 
-2P: two humans and two CPU kids on a venue picked in the menu. The game
+2P: two humans and two CPU kids on a venue picked on the card. The game
 ends when somebody hits zero. If a human lost, the other wins; if a CPU
-lost, the human with more points left wins.
+lost, the human who scored more goal points wins, then the one with more
+points left; else it is a draw.
 
 Attract mode: four CPU kids on a random venue.
 
@@ -120,13 +125,22 @@ Targets:
 - A decent player wins stage 1 almost always (90%+) and stage 3 about a
   third of the time.
 - Greed is punished: the bicycle-kick bot does worse than the decent one.
+- Ignoring the shots as keeper fails: the lazy bot does not clear stage 3.
 - A lazy keeper loses.
 - A game takes about 1.5-3.5 minutes.
 
 ## As built (decisions)
 - Why the target (DOEL): in tienen you only go in goal through your own
   mistake, so a 1P player who never touches the ball cannot lose. The
-  target makes you play, and shooting is the risk.
+  target makes you play, and shooting is the risk. It counts goals, not
+  goal points, so bicycle kicks are not a shortcut to respect. CPU kids
+  also cross to a kid who has not touched the ball for 20 s (HE SLOME!).
+- Keeping: hands out for 12 frames, then 14 frames to recover, so
+  mashing does not work. A catch needs a foot on the ground (the wiki
+  rule), so high balls are punched. A failed catch of a hard shot can slip
+  through the hands (DOOR DE HANDEN!), more often the harder it is.
+- After 5 minutes the mums call (ETEN!): fewest points loses; on a tie
+  the keeper, then the one who scored less.
 - Crosses are lobs with a top of 36-58 px, high enough to head; a cross
   lands where the mate will be. The receiver lets a ball drop to the feet
   (a trap) unless they swing; a shot off your own touch does not count.
@@ -138,9 +152,24 @@ Targets:
 - The keeper rolls the ball out (on the ground); a human keeper who waits
   three seconds rolls it out by itself.
 - A dead ball nobody comes for (8 s) goes back to the keeper.
-- After 5 minutes the mums call everybody in (ETEN!): the kid with the
-  fewest points loses.
 - The poodle takes any ball on the ground outside the keeper's area, even
   from somebody's feet; touch her and she drops it.
 - Mevrouw Knorr only plays a part when the ball goes over the far fence at
   the school (OVER HET HEK!, a keeper change like any ball out).
+
+## Balance results
+Run with `cargo run --release -- --probe tienen 200` and `--sim tienen
+100` (2026-10-16). The probe bot sits in a human's seat (the CPU kids
+treat it as human), presses about 10 frames late as keeper and has a few
+frames of timing jitter.
+
+| Target | Result |
+| --- | --- |
+| Decent wins stage 1 90%+ | 91% |
+| Decent wins stage 3 about a third | 36% (stage 2: 78%) |
+| Greed is punished | greedy 71% / 32% / 11% |
+| A lazy keeper fails | lazy 72% / 53% / 16% |
+| A game takes 1.5-3.5 min of play | 3.5 / 3.2 / 2.3 min (CPU sim); ETEN ends 18% / 16% / 1% |
+
+Plus pauses (goals, keeper changes, latjetrap of about 20 s), a full 1P
+run takes about 10-12 minutes, a bit over the house style's 5-10.

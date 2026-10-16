@@ -407,16 +407,18 @@ impl App {
             Mode::Two => {
                 let h: Vec<usize> = (0..2).map(|p| w.human_kid(p).unwrap_or(p)).collect();
                 let lines: Vec<Vec<Line>> = h.iter().map(|&k| Self::lines_for(w, k)).collect();
+                // the one on zero loses; else the one who scored more, then
+                // the one with more points left; else a draw (2)
                 self.winner = if lo == h[0] {
                     1
                 } else if lo == h[1] {
                     0
                 } else {
                     let (a, b) = (&w.kids[h[0]], &w.kids[h[1]]);
-                    if b.pts > a.pts || (b.pts == a.pts && b.stats.scored > a.stats.scored) {
-                        1
-                    } else {
-                        0
+                    match (a.stats.scored, a.pts).cmp(&(b.stats.scored, b.pts)) {
+                        std::cmp::Ordering::Greater => 0,
+                        std::cmp::Ordering::Less => 1,
+                        std::cmp::Ordering::Equal => 2,
                     }
                 };
                 for (s, l) in self.score.iter_mut().zip(lines.iter()) {
@@ -429,7 +431,7 @@ impl App {
                 let me = w.human_kid(0).unwrap_or(0);
                 let mut lines = Self::lines_for(w, me);
                 let q = VENUES[w.venue].quota;
-                let s = w.kids[me].stats.scored;
+                let s = w.kids[me].stats.goal_count();
                 let safe = w.loser != Some(me);
                 self.cleared = safe && s >= q;
                 if s >= q {
@@ -437,7 +439,7 @@ impl App {
                 } else {
                     lines.push(Line { label: format!("DOEL {}/{}", s, q), pts: 0 });
                     if safe {
-                        self.reason = format!("ONLY {} OF {} GOAL POINTS. NO RESPECT.", s, q);
+                        self.reason = format!("ONLY {} OF {} GOALS. NO RESPECT.", s, q);
                     }
                 }
                 if self.cleared {
@@ -545,12 +547,13 @@ impl App {
     /// player, and whenever a human has just gone in goal.
     fn draw_tips(&self, f: &mut Frame, w: &World) {
         let human_keeper = w.kids[w.keeper].human();
-        let lines: Option<[&str; 2]> = if w.phase == Phase::Wissel && human_keeper.is_some() && w.pt > 20 {
-            Some(["YOU KEEP! Z CATCH, Z+UP/DOWN DIVE", "X JUMP, C PUNCH. CATCH = WISSEL!"])
-        } else if w.phase == Phase::Play && w.play_t < 420 && human_keeper.is_none() && self.stage == 0 && self.tries == 0 {
-            Some(["C: CROSS TO A MATE  Z: SHOOT IT", "OUT OF THE AIR  X: JUMP  ARROWS AIM"])
-        } else {
-            None
+        let lines: Option<[&str; 2]> = match human_keeper {
+            Some(0) if w.phase == Phase::Wissel && w.pt > 20 => Some(["YOU KEEP! Z CATCH, X+UP/DOWN DIVE,", "X JUMP, C PUNCH. CATCH = WISSEL!"]),
+            Some(_) if w.phase == Phase::Wissel && w.pt > 20 => Some(["2P KEEPS! F CATCH, G+W/S DIVE,", "G JUMP, H PUNCH. CATCH = WISSEL!"]),
+            None if w.phase == Phase::Play && w.play_t < 420 && self.stage == 0 && self.tries == 0 && self.mode == Mode::One => {
+                Some(["C CROSS. Z SHOOTS IT OUT OF THE AIR.", "X THEN Z: HEADER. BACK TO GOAL: OMHAAL"])
+            }
+            _ => None,
         };
         if let Some(l) = lines {
             let y = 196;
@@ -774,7 +777,7 @@ impl App {
             f.text_sh(tx + 8, ty - 3, "TIP", rgb(248, 136, 24), OUTLINE, false);
             f.text_sh(tx + 6, ty + 6, d.tip[0], white(), OUTLINE, false);
             f.text_sh(tx + 6, ty + 15, d.tip[1], white(), OUTLINE, false);
-            f.text_sh(tx + 6, ty + 26, &format!("SCORE {} GOAL POINTS FOR RESPECT,", d.quota), rgb(248, 232, 96), OUTLINE, false);
+            f.text_sh(tx + 6, ty + 26, &format!("SCORE {} GOALS FOR RESPECT,", d.quota), rgb(248, 232, 96), OUTLINE, false);
             f.text_sh(tx + 6, ty + 35, "AND DON'T BE THE ONE ON ZERO!", rgb(248, 232, 96), OUTLINE, false);
         }
         if (t / 20).is_multiple_of(2) && self.t > 40 {
@@ -897,7 +900,8 @@ impl App {
         sc.draw(f);
         f.shade_rect(0, 0, W, 72, 2, 3);
         // the winner on the shoulders of the others
-        let winner = if self.mode == Mode::Two { self.winner } else { 0 };
+        let draw = self.mode == Mode::Two && self.winner == 2;
+        let winner = if self.mode == Mode::Two { self.winner.min(1) } else { 0 };
         let id = PICKS[self.cursor[winner]];
         let (cx, gy) = (128, 170);
         let others: Vec<usize> = if self.mode == Mode::Two { vec![PICKS[self.cursor[1 - winner]], 9] } else { vec![4, 5, 6] };
@@ -917,7 +921,16 @@ impl App {
         f.logo(128, 6, "KONING VAN", 3, &SUNSET, OUTLINE, LOGO_SHADOW);
         f.logo(128, 32, "HET PLEIN!", 3, &SUNSET, OUTLINE, LOGO_SHADOW);
         let (line, sub) = if self.mode == Mode::Two {
-            (if winner == 0 { "SPELER 1 WINT!" } else { "SPELER 2 WINT!" }, format!("{} - {}", self.score[0], self.score[1]))
+            (
+                if draw {
+                    "GELIJKSPEL!"
+                } else if winner == 0 {
+                    "SPELER 1 WINT!"
+                } else {
+                    "SPELER 2 WINT!"
+                },
+                format!("{} - {}", self.score[0], self.score[1]),
+            )
         } else {
             ("NOBODY GOT YOUR BOTTOM", format!("SCORE {}", self.score[0]))
         };

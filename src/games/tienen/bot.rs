@@ -209,7 +209,7 @@ fn contact_height(kind: Kind) -> f32 {
     match kind {
         Kind::Volley | Kind::Heel => 6.0,
         Kind::Chest => 16.0,
-        Kind::Header => 25.0,
+        Kind::Header => 36.0,
         Kind::Bicycle => 38.0,
     }
 }
@@ -226,6 +226,10 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
         b.pressed = false;
         b.react = 0;
         b.err = (b.gauss() * (1.0 - skill) * 3.0).round() as i32;
+        if w.bot_kind(k).is_some() {
+            // a human's thumb: about 3 frames either way
+            b.err += (b.gauss() * 2.0).round() as i32;
+        }
         b.hold = 15 + b.rng.int(40) as u32 + ((1.0 - skill) * 30.0) as u32;
         b.wob = (b.rng.range(-8.0, 8.0), b.rng.range(-6.0, 6.0));
     }
@@ -242,7 +246,10 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
         it.face = 0;
         if b.react > b.hold || me.holding > 200 {
             let best = mates.iter().copied().max_by(|&a, &c| {
-                let s = |m: usize| spot_score(w.kids[m].x, w.kids[m].y) + if w.kids[m].human().is_some() { 10.0 } else { 0.0 };
+                // a kid who has not touched it in 20 s gets it, like it or not
+                let s = |m: usize| {
+                    spot_score(w.kids[m].x, w.kids[m].y) + if w.kids[m].human().is_some() { 10.0 } else { 0.0 } + if w.kids[m].since > 60 * 20 { 60.0 } else { 0.0 }
+                };
                 s(a).partial_cmp(&s(c)).unwrap_or(std::cmp::Ordering::Equal)
             });
             it.to = best;
@@ -259,9 +266,10 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
             b.want = Some(if far { Kind::Volley } else { choose_kind(w, k, b) });
         }
         let mut kind = b.want.unwrap_or(Kind::Volley);
-        // too low for a bicycle kick: head it
-        if kind == Kind::Bicycle && ball.z + ball.vz * ball.vz / (2.0 * G) < 42.0 && ball.vz <= 0.5 {
-            kind = Kind::Header;
+        // too low to jump for: take it with the foot
+        let top = if ball.vz > 0.0 { ball.z + ball.vz * ball.vz / (2.0 * G) } else { ball.z };
+        if matches!(kind, Kind::Bicycle | Kind::Header) && top < contact_height(kind) + 4.0 {
+            kind = if kind == Kind::Bicycle { Kind::Heel } else { Kind::Volley };
             b.want = Some(kind);
         }
         let face = if matches!(kind, Kind::Heel | Kind::Bicycle) { 1 } else { -1 };
@@ -287,7 +295,8 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
             return it;
         }
         let lead = (3 + b.err).max(1);
-        if kind == Kind::Bicycle {
+        if matches!(kind, Kind::Bicycle | Kind::Header) {
+            // jump, then meet it in the air
             if !b.jumped && t <= 10.0 + b.err as f32 {
                 it.b = true;
                 b.jumped = true;
@@ -394,6 +403,8 @@ fn keeper(w: &World, k: usize, b: &mut Brain) -> Intent {
     let lazy = w.bot_kind(k) == Some(BotKind::Lazy);
     let skill = if lazy { 0.15 } else { me.skill };
     let mut it = Intent::default();
+    let mut dive = 0.0f32;
+    let mut jump = false;
     if b.seen != w.touches {
         b.seen = w.touches;
         b.react = 0;
@@ -455,18 +466,22 @@ fn keeper(w: &World, k: usize, b: &mut Brain) -> Intent {
                 let yc = ball.y + ball.vy * t;
                 let zc = (ball.z + ball.vz * t - 0.5 * G * t * t).max(2.0);
                 let on_target = yc > G_Y0 - 5.0 && yc < G_Y1 + 5.0 && zc < BAR + 8.0;
+                // a human seat (probe) moves like the keeper assist but
+                // presses about 10 frames later than a CPU would decide
+                let lag = if w.bot_kind(k).is_some() { 10 } else { 0 };
                 if b.react > b.delay && on_target {
                     let ey = b.err as f32 * 1.5;
                     tx = GOAL_X + 6.0;
                     ty = yc + ey;
+                }
+                if b.react > b.delay + lag && on_target {
                     let gap = yc - me.y;
                     let walk = 1.3 * t;
                     if gap.abs() > walk + 4.0 && t < 12.0 && !lazy && !b.pressed {
-                        it.a = true;
-                        it.my = gap.signum();
+                        dive = gap.signum();
                         b.pressed = true;
                     } else if zc > 27.0 && !b.jumped && t < 14.0 {
-                        it.b = true;
+                        jump = true;
                         b.jumped = true;
                     }
                     let when = 4 + b.err.max(-2) + if lazy { -3 } else { 0 };
@@ -484,5 +499,14 @@ fn keeper(w: &World, k: usize, b: &mut Brain) -> Intent {
     let (mx, my) = go(me, tx, ty);
     it.mx = mx;
     it.my = my;
+    if dive != 0.0 {
+        // B with a direction dives
+        it.b = true;
+        it.my = dive;
+    } else if jump {
+        it.b = true;
+        it.mx = 0.0;
+        it.my = 0.0;
+    }
     it
 }

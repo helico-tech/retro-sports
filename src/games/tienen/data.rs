@@ -53,7 +53,7 @@ impl Kind {
             Kind::Chest => (5.5, 6.0),
             Kind::Header => (4.5, 5.5),
             Kind::Heel => (6.0, 6.5),
-            Kind::Bicycle => (9.5, 10.5),
+            Kind::Bicycle => (11.0, 12.0),
         }
     }
     /// Head kinds use KOP, foot kinds SCHOT.
@@ -339,7 +339,7 @@ pub const VENUES: [Venue; 3] = [
         short: "DE FLAT",
         tagline: ["SATURDAY MORNING BEHIND THE FLATS.", "MIND THE CARS. AND TIMMY'S MUM."],
         kids: [4, 5, 6],
-        skill: 0.3,
+        skill: 0.45,
         rival: "MO",
         heckles: &["JIJ GAAT ERIN!", "MIJN BAL, MIJN REGELS!", "AUTO? WELKE AUTO?"],
         tip: ["CROSS WITH C, SHOOT IT OUT OF THE AIR", "WITH Z. A BOUNCE IN THE GOAL: WISSEL!"],
@@ -358,12 +358,12 @@ pub const VENUES: [Venue; 3] = [
         skill: 0.6,
         rival: "DAAN",
         heckles: &["GROEP 3 MAG NIET MEE!", "DAT TELT NIET!", "BIJ AJAX DOEN WE DAT ZO."],
-        tip: ["HEADERS AND HEELS TAKE 2 POINTS.", "TURN YOUR BACK (RIGHT) FOR A HEEL."],
+        tip: ["A HEADER: JUMP (X), THEN Z. 2 POINTS.", "BACK TO THE GOAL (RIGHT) + Z: HEEL, 2."],
         cars: false,
         dog: true,
         fence: true,
         van: false,
-        quota: 4,
+        quota: 5,
     },
     Venue {
         place: Place::Kooi,
@@ -371,7 +371,7 @@ pub const VENUES: [Venue; 3] = [
         short: "DE KOOI",
         tagline: ["THE CAGE, UNDER THE LAMPS.", "THE BIG KIDS FROM THE NEXT STREET."],
         kids: [10, 11, 12],
-        skill: 0.85,
+        skill: 1.0,
         rival: "RICARDO",
         heckles: &["KEEPER IS EEN GATENKAAS!", "HEB JE HEM?!", "BILLENBRAND! BILLENBRAND!"],
         tip: ["JUMP (X) WITH YOUR BACK TO THE GOAL,", "THEN Z: OMHAAL! 5 POINTS. IF IT WORKS."],
@@ -379,7 +379,7 @@ pub const VENUES: [Venue; 3] = [
         dog: false,
         fence: false,
         van: true,
-        quota: 4,
+        quota: 6,
     },
 ];
 

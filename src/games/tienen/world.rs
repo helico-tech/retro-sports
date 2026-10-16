@@ -33,6 +33,11 @@ pub const MID: f32 = 128.0;
 pub const TOP: f32 = 118.0;
 /// frames a swing can meet the ball
 pub const WINDOW: u32 = 9;
+/// frames a field kid's foot swing can meet the ball
+pub const FOOT_WINDOW: u32 = 14;
+/// the keeper's hands are out this long, then he recovers this long
+pub const KEEPER_WINDOW: u32 = 12;
+pub const KEEPER_RECOVER: u32 = 14;
 /// latjetrap and billenbrand spot
 pub const SPOT_X: f32 = 118.0;
 /// After this long the mums call everybody in: the kid with the fewest
@@ -141,6 +146,13 @@ pub struct KidStats {
     pub crosses: u32,
 }
 
+impl KidStats {
+    /// Goals scored, of any kind (the 1P respect target counts these).
+    pub fn goal_count(&self) -> i32 {
+        self.goals.iter().sum::<u32>() as i32
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Kid {
     /// index into KIDS
@@ -165,6 +177,8 @@ pub struct Kid {
     pub bubble: Option<(String, u32)>,
     /// frames the ball has been at this kid's feet
     pub holding: u32,
+    /// frames since this kid last touched the ball
+    pub since: u32,
 }
 
 impl Kid {
@@ -188,6 +202,7 @@ impl Kid {
             stats: KidStats::default(),
             bubble: None,
             holding: 0,
+            since: 0,
         }
     }
     pub fn air(&self) -> bool {
@@ -569,7 +584,7 @@ impl World {
             Phase::Goal => {
                 self.auto_kids(false);
                 self.step_ball_free();
-                if self.pt > 130 {
+                if self.pt > 90 {
                     self.give_keeper_ball();
                     self.phase = Phase::Play;
                     self.pt = 0;
@@ -577,7 +592,7 @@ impl World {
             }
             Phase::Wissel => {
                 self.auto_kids(true);
-                if self.pt > 110 {
+                if self.pt > 75 {
                     self.give_keeper_ball();
                     self.phase = Phase::Play;
                     self.pt = 0;
@@ -627,6 +642,9 @@ impl World {
     // ------------------------------------------------------------ play
 
     fn update_play(&mut self, intents: &[Intent; 4]) {
+        for kid in self.kids.iter_mut() {
+            kid.since += 1;
+        }
         for (k, &it) in intents.iter().enumerate().take(self.kids.len()) {
             if k == self.keeper {
                 self.control_keeper(k, it);
@@ -662,8 +680,15 @@ impl World {
         }
         let air = kid.air();
         match kid.act {
-            Act::Swing { .. } if kid.at > 16 => kid.set(Act::Idle),
-            Act::Down if kid.at > 34 => kid.set(Act::Idle),
+            Act::Swing { hit, .. } if kid.at > 16 => {
+                if !hit {
+                    // LUCHTSCHOP
+                    self.sfx.push(Sfx::Whiff);
+                }
+                kid.set(Act::Idle)
+            }
+            // after a bicycle kick you lie there for a second
+            Act::Down if kid.at > 70 => kid.set(Act::Idle),
             Act::Cheer | Act::Sulk if kid.at > 60 => kid.set(Act::Idle),
             _ => {}
         }
@@ -720,9 +745,7 @@ impl World {
                 kid.set(Act::Swing { kind, cross: it.c, hit: false });
                 self.brains[k].aim = it.aim;
                 self.brains[k].to = it.to;
-                if !it.c && kind == Kind::Bicycle {
-                    self.sfx.push(Sfx::Whiff);
-                }
+
             }
         }
     }
@@ -735,7 +758,8 @@ impl World {
             kid.cool -= 1;
         }
         match kid.act {
-            Act::Catch | Act::Punch if kid.at > 14 => kid.set(Act::Idle),
+            // hands out for KEEPER_WINDOW frames, then a moment to recover
+            Act::Catch | Act::Punch if kid.at > KEEPER_WINDOW + KEEPER_RECOVER => kid.set(Act::Idle),
             Act::Dive(_) if kid.at > 22 => kid.set(Act::Down),
             Act::Down if kid.at > 22 => kid.set(Act::Idle),
             Act::Roll if kid.at > 14 => kid.set(Act::Idle),
@@ -761,9 +785,24 @@ impl World {
             }
             _ => {}
         }
+        // keeper assist: with no arrow held and no shot on its way, a human
+        // keeper finds his basic spot; reading the shot stays his job
+        let shot_coming = self.ball.shot.is_some() && self.ball.vx < -0.4;
+        let assist = kid.human().is_some() && it.mx == 0.0 && it.my == 0.0 && !held && !shot_coming;
         if !air {
             let sp = 1.2 + 0.1 * snel(kid.id) as f32;
             let (mut mx, mut my) = (it.mx, it.my);
+            if assist {
+                // keeper assist: no arrow held, he finds his spot himself
+                let (tx, ty) = keeper_spot(&self.ball, kid);
+                let (dx, dy) = (tx - kid.x, (ty - kid.y) * 1.3);
+                let d = (dx * dx + dy * dy).sqrt();
+                if d > 1.5 {
+                    let s = (d / 8.0).min(1.0);
+                    mx = dx / d * s;
+                    my = dy / d * s;
+                }
+            }
             let l = (mx * mx + my * my).sqrt();
             if l > 1.0 {
                 mx /= l;
@@ -780,19 +819,30 @@ impl World {
             }
             return;
         }
-        if it.b && !air {
-            kid.vz = JUMP_V + 0.15 * keep(kid.id) as f32;
-            kid.z = 0.1;
+        // no mashing: a new move only from standing
+        if kid.act != Act::Idle {
+            return;
         }
-        if it.a {
-            if it.my.abs() > 0.3 && !air {
+        if it.b && !air {
+            if it.my.abs() > 0.3 {
                 kid.set(Act::Dive(if it.my > 0.0 { 1 } else { -1 }));
             } else {
-                kid.set(Act::Catch);
+                kid.vz = JUMP_V + 0.15 * keep(kid.id) as f32;
+                kid.z = 0.1;
             }
+        } else if it.a {
+            kid.set(Act::Catch);
         } else if it.c {
             kid.set(Act::Punch);
         }
+    }
+
+    /// The rule: a keeper may catch with a foot on the ground in his area,
+    /// or anywhere when he is on 1 point.
+    pub fn may_catch(&self, kp: usize) -> bool {
+        let kid = &self.kids[kp];
+        let grounded = kid.z < 1.0 || matches!(kid.act, Act::Dive(_));
+        grounded && (in_area(kid.x, kid.y) || kid.pts == 1)
     }
 
     fn kid_physics(&mut self, k: usize) {
@@ -816,7 +866,8 @@ impl World {
         if keeper {
             kid.x = kid.x.clamp(GOAL_X + 3.0, 150.0);
         } else {
-            kid.x = kid.x.clamp(GOAL_X + 4.0, 250.0);
+            // the keeper's area is his: field kids stay out
+            kid.x = kid.x.clamp(AREA_X + 2.0, 250.0);
         }
         kid.y = kid.y.clamp(-3.0, DEPTH + 4.0);
         let moving = kid.vx.abs() + kid.vy.abs() > 0.2;
@@ -862,6 +913,7 @@ impl World {
 
     fn touch(&mut self, k: usize) {
         self.touches += 1;
+        self.kids[k].since = 0;
         self.ball.last_touch = Some(k);
         if k != self.keeper {
             self.ball.last_field = Some(k);
@@ -879,7 +931,7 @@ impl World {
         let (mut tx, mut ty) = match to {
             Some(m) => {
                 let o = &self.kids[m];
-                (o.x - 4.0 + o.vx * 20.0, o.y + o.vy * 20.0)
+                ((o.x + 3.0 + o.vx * 20.0).max(AREA_X + 6.0), o.y + o.vy * 20.0)
             }
             None => (sx - 50.0, goal_mid()),
         };
@@ -893,6 +945,11 @@ impl World {
         let apex = (36.0 + dist * 0.1 + self.rng.range(0.0, 8.0)).clamp(36.0, 58.0).max(z0 + 6.0);
         let vz = (2.0 * G * (apex - z0)).sqrt();
         let t = (vz + (vz * vz + 2.0 * G * z0).sqrt()) / G;
+        if let Some(m) = to
+            && self.kids[m].since > 60 * 20
+        {
+            self.kids[k].say("HE SLOME! JIJ!", 60);
+        }
         self.touch(k);
         let b = &mut self.ball;
         b.z = z0;
@@ -970,7 +1027,7 @@ impl World {
         let mut tz = if kind == Kind::Header { 11.0 } else { 13.0 };
         let dist = ((sx - GOAL_X).powi(2) + (sy - ty).powi(2)).sqrt();
         let (sdy, sdz) = kind.spread();
-        let f = (1.45 - 0.15 * stat as f32) * (0.5 + dist / 110.0) * (1.0 + off);
+        let f = (1.25 - 0.13 * stat as f32) * (0.5 + dist / 110.0) * (1.0 + off);
         ty += self.gauss() * sdy * f;
         tz += self.gauss() * sdz * f;
         let speed = kind.speed() * (0.85 + 0.05 * stat as f32);
@@ -1021,7 +1078,7 @@ impl World {
                 continue;
             }
             if let Act::Swing { cross, hit: false, .. } = kid.act {
-                if kid.at > WINDOW + if kid.air() { 6 } else { 0 } {
+                if kid.at > if kid.air() { WINDOW + 6 } else { FOOT_WINDOW } {
                     continue;
                 }
                 let rel = b.z - kid.z;
@@ -1129,6 +1186,15 @@ impl World {
             self.ball.owner = None;
             return;
         }
+        if kid.holding > 240 {
+            // SPELEN!: the others will not wait
+            if let Some(m) = self.pick_mate(o, 0.0, 0.0) {
+                self.kids[m].say("SPELEN!", 50);
+            }
+            let to = self.pick_mate(o, 0.0, 0.0);
+            self.cross(o, to);
+            return;
+        }
         let b = &mut self.ball;
         b.x = kid.x + kid.face as f32 * 5.0 + kid.vx * 2.0;
         b.y = kid.y + 0.5;
@@ -1140,7 +1206,7 @@ impl World {
         // dribbled into the keeper's area: the keeper may grab it
         let (bx, by) = (b.x, b.y);
         let kp = &self.kids[self.keeper];
-        if in_area(bx, by) && (kp.x - bx).abs() < 7.0 && (kp.y - by).abs() < 5.0 && matches!(kp.act, Act::Catch | Act::Dive(_)) {
+        if in_area(bx, by) && (kp.x - bx).abs() < 7.0 && (kp.y - by).abs() < 5.0 && matches!(kp.act, Act::Catch | Act::Dive(_)) && self.may_catch(self.keeper) {
             self.ball.owner = None;
             self.caught(self.keeper);
         }
@@ -1150,8 +1216,9 @@ impl World {
     fn keeper_contact(&mut self, kp: usize, b: &Ball) -> bool {
         let kid = &self.kids[kp];
         let rel = b.z - kid.z;
+        let reaching = matches!(kid.act, Act::Catch | Act::Punch) && kid.at <= KEEPER_WINDOW;
         let (hx, hy, rx, ry, z0, z1) = match kid.act {
-            Act::Catch | Act::Punch => (kid.x + 3.0, kid.y, 9.0, 7.5, -2.0, 34.0),
+            Act::Catch | Act::Punch if reaching => (kid.x + 3.0, kid.y, 9.0, 7.5, -2.0, 34.0),
             Act::Dive(d) => (kid.x + 2.0, kid.y + d as f32 * 6.0, 10.0, 12.0, -3.0, 20.0),
             _ => (kid.x + 2.0, kid.y, 5.0, 4.5, 0.0, 28.0),
         };
@@ -1162,16 +1229,16 @@ impl World {
             return false;
         }
         let sp = b.speed();
-        let area = in_area(kid.x, kid.y) || kid.pts == 1;
+        let area = self.may_catch(kp);
         match kid.act {
-            Act::Catch | Act::Dive(_) => {
+            Act::Catch | Act::Dive(_) if reaching || matches!(kid.act, Act::Dive(_)) => {
                 // a slow ball on the ground: just pick it up
                 if b.z < 3.0 && sp < 1.6 && area {
                     self.caught(kp);
                     return true;
                 }
                 let k = keep(kid.id) as f32;
-                let mut p = 0.32 + 0.11 * k - 0.10 * (sp - 3.0) - 0.35 * near.sqrt();
+                let mut p = 0.22 + 0.11 * k - 0.10 * (sp - 3.0) - 0.35 * near.sqrt();
                 if matches!(kid.act, Act::Dive(_)) {
                     p *= 0.85;
                 }
@@ -1179,16 +1246,33 @@ impl World {
                     p -= 0.1;
                 }
                 let p = p.clamp(0.08, 0.96);
+                let squeeze = (0.4 + 0.12 * (sp - 3.5)).clamp(0.15, 0.6);
                 if area && self.rng.f() < p {
                     self.caught(kp);
+                } else if b.shot.is_some() && b.vx < 0.0 && self.rng.f() < squeeze {
+                    // DOOR DE HANDEN: it slips through and goes on
+                    self.kids[kp].cool = 14;
+                    self.ball.vx *= 0.75;
+                    self.ball.vy *= 0.75;
+                    let (x, y) = (self.kids[kp].x + 30.0, self.kids[kp].y - 30.0);
+                    self.popup(x, y, "DOOR DE HANDEN!", 0xF89060);
+                    return false;
                 } else {
                     self.parry(kp, 0.0);
                 }
                 true
             }
-            Act::Punch => {
-                self.parry(kp, 1.0);
-                true
+            Act::Punch if reaching => {
+                // a punch can miss too
+                let k = keep(kid.id) as f32;
+                let p = (0.35 + 0.09 * k - 0.08 * (sp - 3.0) - 0.4 * near.sqrt()).clamp(0.1, 0.95);
+                if self.rng.f() < p {
+                    self.parry(kp, 1.0);
+                    true
+                } else {
+                    self.kids[kp].cool = 8;
+                    false
+                }
             }
             Act::Hold => false,
             _ => {
@@ -1209,12 +1293,12 @@ impl World {
         self.ball.last_touch = Some(kp);
         self.ball.owner = None;
         self.ball.held = false;
-        self.kids[kp].cool = 12;
+        self.kids[kp].cool = 5;
         self.touches += 1;
         self.tally[6] += 1;
         self.stuck = 0;
         let b = &mut self.ball;
-        b.vx = b.vx.abs() * (0.45 + 0.2 * power) + 0.9 + 1.4 * power.max(0.0);
+        b.vx = b.vx.abs() * (0.45 + 0.2 * power) + 1.2 + 1.2 * power.max(0.0);
         b.vy = b.vy * 0.4 + r1 * (1.0 + power.max(0.0));
         b.vz = (b.vz * 0.3).max(0.0) + 1.3 + r2 + 1.2 * power.max(0.0);
         b.air = true;
@@ -1462,13 +1546,14 @@ impl World {
         let before = self.kids[kp].pts;
         let after = before - v;
         self.kids[by].stats.goals[kind.index()] += 1;
-        let had = self.kids[by].stats.scored;
         self.kids[by].stats.scored += v;
         if let Some(q) = self.quota
-            && self.kids[by].human().is_some() && had < q && had + v >= q {
-                let (x, y) = (self.kids[by].x, self.kids[by].y);
-                self.popup(x, y - 52.0, "RESPECT!", 0x60E0F8);
-            }
+            && self.kids[by].human().is_some()
+            && self.kids[by].stats.goal_count() == q
+        {
+            let (x, y) = (self.kids[by].x, self.kids[by].y);
+            self.popup(x, y - 52.0, "RESPECT!", 0x60E0F8);
+        }
         self.kids[kp].stats.conceded += v;
         self.kids[by].set(Act::Cheer);
         self.kids[kp].set(Act::Sulk);
@@ -1533,7 +1618,7 @@ impl World {
                 ("OVER HET HEK!", 0xF8F8F8)
             }
         };
-        let len = if why == Why::Fence { 60 } else { 110 };
+        let len = if why == Why::Fence { 60 } else { 85 };
         self.banner(title, &format!("WISSEL! {} IN DE GOAL", name), len, col);
         self.sfx.push(Sfx::Groan);
         self.ball.shot = None;
@@ -1648,27 +1733,31 @@ impl World {
     fn check_stuck(&mut self) {
         let b = &self.ball;
         let dead = b.loose() && b.speed() < 0.05 && b.z < 0.5;
-        let nobody = self.field().all(|k| {
-            let kid = &self.kids[k];
-            (kid.x - b.x).abs() + (kid.y - b.y).abs() > 14.0
-        });
-        if (dead && nobody) || b.roof {
+        if b.roof {
+            self.stuck += 8;
+        } else if dead {
             self.stuck += 1;
         } else {
             self.stuck = 0;
         }
-        // a ball the keeper can reach in his area: the keeper takes it
-        if self.stuck > 60 * 8 {
+        // nobody plays it: the keeper takes it
+        if self.stuck > 60 * 5 {
             self.stuck = 0;
             self.keepers_ball();
         }
     }
 
     fn call_dinner(&mut self) {
-        // the kid with the fewest points loses
-        let mut lo = 0;
-        for k in 1..self.kids.len() {
-            if self.kids[k].pts < self.kids[lo].pts {
+        // the kid with the fewest points loses; on a tie the keeper, then
+        // the one who scored less
+        let kp = self.keeper;
+        let start = self.rng.int(self.kids.len() as i32) as usize;
+        let n = self.kids.len();
+        let key = |w: &World, k: usize| (w.kids[k].pts, (k != kp) as i32, w.kids[k].stats.scored);
+        let mut lo = start;
+        for j in 1..n {
+            let k = (start + j) % n;
+            if key(self, k) < key(self, lo) {
                 lo = k;
             }
         }
@@ -1741,7 +1830,7 @@ impl World {
                 }
             }
             _ => {
-                if l.st < 90 {
+                if l.st < 70 {
                     self.ball_motion();
                     self.posts_and_bar();
                     let b = &self.ball;
@@ -2112,7 +2201,7 @@ impl World {
                 kid.set(Act::Bent);
             }
             if kid.human().is_some() {
-                kid.y = (kid.y + it.my * 0.9).clamp(goal_mid() - 10.0, goal_mid() + 10.0);
+                kid.y = (kid.y + it.my * 0.4).clamp(goal_mid() - 10.0, goal_mid() + 10.0);
             }
         }
         let br = &mut self.brand;
@@ -2185,6 +2274,16 @@ impl World {
     }
 }
 
+/// Where a keeper should stand: on the line between the ball and the goal.
+pub fn keeper_spot(b: &Ball, _kid: &Kid) -> (f32, f32) {
+    let mid = goal_mid();
+    let bx = b.x.max(GOAL_X + 10.0);
+    let near = ((bx - GOAL_X) / 120.0).clamp(0.0, 1.0);
+    let tx = GOAL_X + 6.0 + (1.0 - near) * 6.0;
+    let ty = mid + (b.y - mid) * (0.55 - 0.25 * near);
+    (tx, ty.clamp(G_Y0 - 4.0, G_Y1 + 4.0))
+}
+
 pub fn kid_name(id: usize) -> &'static str {
     kid(id).name
 }
@@ -2194,18 +2293,25 @@ fn kid_def_acrobat(id: usize) -> bool {
 }
 
 /// What a touch becomes, from the facing (-1 = to the goal), being in the
-/// air, and the ball's height over the kid's feet.
+/// air, and the ball's height over the kid's feet. On the ground you play
+/// it with the foot or the chest; in a jump with the head, or with a
+/// bicycle kick when your back is to the goal.
 pub fn shot_kind(face: i32, air: bool, rel: f32, acrobat: bool) -> Option<Kind> {
-    let (lo, hi) = if acrobat { (5.0, 38.0) } else { (9.0, 33.0) };
-    if air && face == 1 && rel >= lo && rel <= hi {
-        return Some(Kind::Bicycle);
-    }
-    if rel < 12.0 {
+    if air {
+        let (lo, hi) = if acrobat { (5.0, 38.0) } else { (9.0, 33.0) };
+        if face == 1 && rel >= lo && rel <= hi {
+            Some(Kind::Bicycle)
+        } else if (12.0..=36.0).contains(&rel) {
+            Some(Kind::Header)
+        } else if rel < 12.0 {
+            Some(if face == 1 { Kind::Heel } else { Kind::Volley })
+        } else {
+            None
+        }
+    } else if rel < 12.0 {
         Some(if face == 1 { Kind::Heel } else { Kind::Volley })
-    } else if rel < 20.0 {
+    } else if rel < 21.0 {
         Some(Kind::Chest)
-    } else if rel <= 34.0 {
-        Some(Kind::Header)
     } else {
         None
     }

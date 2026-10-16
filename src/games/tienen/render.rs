@@ -441,7 +441,7 @@ pub fn draw_hud(f: &mut Frame, w: &World, art: &Art, t: u32) {
             f.text(x0 + 33, 15, "KEEPT", c);
         } else if let (Some(q), Some(_)) = (w.quota, k.human()) {
             // the respect target
-            let s = k.stats.scored;
+            let s = k.stats.goal_count();
             let col = if s >= q { rgb(96, 224, 248) } else { rgb(200, 200, 232) };
             art.ball[0].draw(f, x0 + 30, 14, &PROPS, false);
             f.text(x0 + 40, 15, &format!("{}/{}", s.min(q), q), col);

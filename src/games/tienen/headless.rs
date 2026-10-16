@@ -126,7 +126,7 @@ pub fn shots(out: &str) {
         snap(&app, dir, "13_wissel.png");
     }
     let mut app = fresh(12);
-    if until(&mut app, 60 * 90, |w| w.kids.iter().any(|k| matches!(k.act, Act::Dive(_)) && k.at == 8)) {
+    if until(&mut app, 60 * 240, |w| w.kids.iter().any(|k| matches!(k.act, Act::Dive(_)) && k.at == 6)) {
         snap(&app, dir, "14_dive.png");
     }
     // the car
@@ -245,7 +245,7 @@ pub fn shots(out: &str) {
             b.last_field = Some(s);
             b.air = true;
         }
-        if until(&mut app, 60 * 10, |w| w.why == Some(Why::Fence) && w.phase == Phase::Wissel && w.pt == 80) {
+        if until(&mut app, 60 * 10, |w| w.why == Some(Why::Fence) && w.phase == Phase::Wissel && w.pt == 62) {
             snap(&app, dir, "29_knorr.png");
         }
     }

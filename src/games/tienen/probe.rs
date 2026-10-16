@@ -19,7 +19,17 @@ pub struct Game {
 
 /// Play one game to the end (without the billenbrand).
 pub fn play(venue: usize, roster: [(usize, Ctrl, f32); 4], seed: u64) -> Game {
-    let mut w = World::new(venue, roster, seed);
+    // a probe bot sits in a human's seat, so the game treats it as one
+    let mut seat = roster;
+    let mut auto = None;
+    for r in seat.iter_mut() {
+        if let Ctrl::Probe(kind) = r.1 {
+            r.1 = Ctrl::Human(0);
+            auto = Some(kind);
+        }
+    }
+    let mut w = World::new(venue, seat, seed);
+    w.auto = [auto, None];
     let pads = [Pad::default(); 2];
     let mut latje = 0;
     for _ in 0..60 * 60 * 8 {
@@ -37,7 +47,7 @@ pub fn play(venue: usize, roster: [(usize, Ctrl, f32); 4], seed: u64) -> Game {
             *g += n;
         }
     }
-    Game { secs: w.play_t as f32 / 60.0, scored: w.kids[0].stats.scored, loser: w.loser.unwrap_or(9), dinner: w.dinner, goals, tally: w.tally, latje_secs: latje as f32 / 60.0 }
+    Game { secs: w.play_t as f32 / 60.0, scored: w.kids[0].stats.goals.iter().sum::<u32>() as i32, loser: w.loser.unwrap_or(9), dinner: w.dinner, goals, tally: w.tally, latje_secs: latje as f32 / 60.0 }
 }
 
 fn cpu_roster(venue: usize, extra: usize) -> [(usize, Ctrl, f32); 4] {

@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 created: 2026-10-16
 ---
 # 01: First playable
@@ -67,4 +67,43 @@ and sound, then the island, then reviews and tuning.
   67% / 35%, greedy (bicycle kicks) and lazy keeper clearly worse. Made the
   bicycle kick wider (riskier) and the cage kids skill 0.85.
 
+### Art review 1 (2026-10-16), against dodgeball and Zenuwen shots
+- MUST (fixed): heckle bubbles and popups piled up under the banner;
+  Kevin's bio ran off his panel; the game-over bubble covered its line;
+  the HUD 1P tag covered a keeper's name.
+- SHOULD (fixed): a pale goal (darker net, mouth, outlined bar); banners
+  over the back-line kids (moved up); a toy-sized car (now 62 px, with a
+  driver); a poodle as white as the ball (pink bow, bigger, ball in her
+  mouth); popups on the goal (moved right); Gijs is "too big for the goal"
+  (now a bigger body); "SCORE 0" next to a total (RUN SCORE / NOT ADDED);
+  the island pitch was a grey slab (bigger, with a goal and net).
+- SHOULD (open): the continue screen is plain. COULD (open): Lieke's
+  helmet, light pools in De Kooi, the two humans on the 2P card, more
+  contrast for banners on the flats.
+
+### Gameplay review 1 (2026-10-16), with sim/probe and exploit bots
+- MUST (fixed): keeper mashing (now a window and a recovery, punch can
+  miss, catch only on the ground); goal-hanging next to the keeper (field
+  kids stay out of the area, shorter keeper cooldown after a parry); 2P
+  rewarded hiding (now by goal points); stalling on the ball or next to a
+  dead ball (SPELEN! after 4 s, dead ball back to the keeper after 5 s);
+  ETEN ties went against seat 0.
+- SHOULD (fixed): the shot kind was luck (now foot/chest on the ground,
+  head or bicycle kick in a jump); human keeping was not feasible (keeper
+  assist to the basic spot; dive on B + direction); the probe did not
+  play like a human (now in a human seat with human lag); hiding after the
+  target (CPU kids cross to a kid who has not touched it in 20 s).
+- COULD (fixed): the dribble grab ignored the 1-point rule; the
+  billenbrand wiggle was too fast; the goal roof waited 8 s; the whiff
+  sound played on every bicycle kick; P2 saw P1's keys.
+- Found on the way: the keeper assist first walked to where the shot
+  would cross (no reaction time), so a human keeper body-blocked nearly
+  everything (1 goal against per game vs 5); now only the basic spot.
+- Retuned: catches weaker, hard shots slip through, shorter pauses,
+  targets in goals 3/5/6, De Kooi skill 1.0. Numbers in the spec.
+- `cargo test` passes (20 Tienen tests), clippy clean in the module and
+  the hub, the wasm build compiles. README, AGENTS.md, architecture and
+  the island spec list seven games.
+
 ## Follow-ups
+- [Issue 0060: Tienen polish left](../../issues/0060-tienen-polish-left.md)
