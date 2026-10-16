@@ -36,7 +36,7 @@ pub enum Scene {
 }
 
 /// CPU skill of the three rivals on each stage of the 1P ladder.
-pub const LADDER: [[f32; 3]; 3] = [[-0.2, -0.1, 0.05], [0.25, 0.38, 0.5], [0.38, 0.5, 0.62]];
+pub const LADDER: [[f32; 3]; 3] = [[-0.2, -0.1, 0.05], [0.05, 0.2, 0.35], [0.15, 0.3, 0.45]];
 /// Skill of the CPU pilots that fly along in 2P and in the demo.
 pub const FILLER_SKILL: f32 = 0.5;
 const IDLE_DEMO: u32 = 900;

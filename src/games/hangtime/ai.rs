@@ -270,7 +270,7 @@ impl Brain {
                 Goal::Burn => pad.down = true,
                 Goal::Climb { .. } => {
                     // over-eager pulling in lift: slow, sometimes a stall
-                    if self.skill < 0.45 && (self.t / 7) % 10 < ((0.45 - self.skill) * 14.0) as u32 {
+                    if self.skill < 0.45 && (self.t / 7) % 10 < (((0.45 - self.skill) * 10.0) as u32).min(4) {
                         pad.up = true;
                     }
                 }
@@ -298,7 +298,7 @@ impl Brain {
             },
         }
         // the stall warning: good pilots react early, weak ones late
-        if p.v < d.stall_speed() + 0.01 + 0.07 * self.skill {
+        if p.v < d.stall_speed() + 0.012 + 0.07 * self.skill.max(0.0) {
             pad.up = false;
             pad.down = true;
         }
