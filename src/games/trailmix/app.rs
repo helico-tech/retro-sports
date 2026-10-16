@@ -716,13 +716,13 @@ impl App {
             f.text(x - 2, py + ph - 8, "+", if a.item == Item::Pickle { rgb(120, 232, 96) } else { WHITE });
         }
         let dist = format!("{:.1} KM", (course.finish - START_X) / 1000.0);
-        f.text_sh(px, py + ph + 4, &dist, rgb(200, 200, 232), OUTLINE, false);
+        f.text_sh(px + 2, py + 1, &dist, rgb(200, 200, 232), OUTLINE, false);
         let goal = match self.mode {
             Mode::One if self.stage < 2 => "TOP 2 GO ON",
             Mode::One => "WIN IT ALL. BEAT GERALD.",
             _ => "CUP RACE: 10, 6, 3, 1 POINTS",
         };
-        f.text_sh(px + pw - text_width(goal, false), py + ph + 4, goal, YELLOW, OUTLINE, false);
+        f.text_center(128, py + ph + 5, goal, YELLOW, OUTLINE, false);
         // the line-up
         let racers = self.racers();
         let n = racers.len() as i32;
@@ -747,7 +747,7 @@ impl App {
         }
         // tagline and tips
         if self.t > 40 {
-            f.text_center(128, 137, TAGLINES[self.stage.min(2)], rgb(248, 232, 200), OUTLINE, false);
+            f.text_center(128, 138, TAGLINES[self.stage.min(2)], rgb(248, 232, 200), OUTLINE, false);
         }
         f.rect(0, 194, W, 30, rgb(16, 16, 48));
         f.hline(0, W - 1, 193, rgb(248, 176, 32));
@@ -854,7 +854,12 @@ impl App {
                 f.logo(128, 168, txt, scale, &grad6(col), OUTLINE, rgb(8, 8, 24));
             }
             let goat_won = self.results.first().map(|s| s.def == GERALD).unwrap_or(false);
-            let quip = if goat_won { "GERALD: BAAAH! (THAT MEANS 'TOO SLOW')" } else { "GERALD: I WAS EATING. IT DOESN'T COUNT." };
+            let k = (self.stage + self.results.iter().map(|s| s.time as usize).sum::<usize>()) % 3;
+            let quip = if goat_won {
+                ["GERALD: BAAAH! (THAT MEANS 'TOO SLOW')", "GERALD: FOUR LEGS. JUST SAYING.", "GERALD: I ALSO ATE A SIGN."][k]
+            } else {
+                ["GERALD: I WAS EATING. IT DOESN'T COUNT.", "GERALD: A COW WAS IN MY WAY. BAAH.", "GERALD: REMATCH. TOMORROW. 5 AM."][k]
+            };
             f.text_center(128, 198, quip, rgb(200, 200, 232), OUTLINE, false);
             if (t / 20) % 2 == 0 {
                 f.text_center(128, 212, "PUSH Z", WHITE, OUTLINE, true);

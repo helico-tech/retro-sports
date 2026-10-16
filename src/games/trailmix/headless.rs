@@ -10,8 +10,8 @@ use super::race::*;
 use super::runners::GERALD;
 
 /// Gerald's speed and the two CPU runners' skill, per stage.
-pub const GOAT_FAC: [f32; 3] = [0.86, 0.93, 1.0];
-pub const CPU_SKILL: [[f32; 2]; 3] = [[0.45, 0.55], [0.6, 0.7], [0.75, 0.85]];
+pub const GOAT_FAC: [f32; 3] = [0.86, 0.9, 0.93];
+pub const CPU_SKILL: [[f32; 2]; 3] = [[0.5, 0.6], [0.6, 0.7], [0.75, 0.85]];
 
 fn snap(app: &App, dir: &Path, name: &str) {
     let mut f = Frame::new();
@@ -47,6 +47,8 @@ fn bot_race(app: &mut App, dir: &Path, prefix: &str, max_shots: usize) {
     let mut n = 0;
     let mut prev: Option<(RunStats, RState, bool, i32, i32)> = None;
     let mut frame = 0u32;
+    // animation sheets: a jump and a tumble, every 3rd frame
+    let mut sheets: [(Vec<Frame>, bool, &str); 2] = [(Vec::new(), false, "jump_sequence"), (Vec::new(), false, "tumble_sequence")];
     while app.scene == Scene::Play && frame < RACE_CAP + 2000 {
         frame += 1;
         let pads = {
@@ -107,6 +109,25 @@ fn bot_race(app: &mut App, dir: &Path, prefix: &str, max_shots: usize) {
             }
         }
         prev = Some(st);
+        for (k, sh) in sheets.iter_mut().enumerate() {
+            let start = match k {
+                0 => me.state == RState::Air && me.st_t == 1 && race.t > 300,
+                _ => me.state == RState::Tumble && me.st_t == 1,
+            };
+            if start && !sh.1 && sh.0.is_empty() {
+                sh.1 = true;
+            }
+            if sh.1 && frame % 3 == 0 {
+                let mut f = Frame::new();
+                app.draw(&mut f);
+                sh.0.push(f);
+                if sh.0.len() >= 12 {
+                    sh.1 = false;
+                    crop_sheet(&sh.0, 40, 110, 112, 84, &dir.join(format!("{}_{}.png", prefix, sh.2)));
+                    println!("wrote {}_{}.png", prefix, sh.2);
+                }
+            }
+        }
         if let Some(e) = event {
             if !seen.contains(&e) && n < max_shots {
                 seen.push(e);
@@ -119,6 +140,29 @@ fn bot_race(app: &mut App, dir: &Path, prefix: &str, max_shots: usize) {
             snap(app, dir, &format!("{}_play_{}.png", prefix, periodic));
         }
     }
+}
+
+/// The same rectangle of several frames, 4 per row, at 3x.
+fn crop_sheet(frames: &[Frame], x0: i32, y0: i32, w: i32, h: i32, path: &Path) {
+    let scale = 3usize;
+    let cols = 4usize;
+    let rows = frames.len().div_ceil(cols);
+    let (cw, ch) = (w as usize * scale + 6, h as usize * scale + 6);
+    let (tw, th) = (cols * cw, rows * ch);
+    let mut data = vec![0u8; tw * th * 3];
+    for (k, f) in frames.iter().enumerate() {
+        let (ox, oy) = ((k % cols) * cw + 3, (k / cols) * ch + 3);
+        for y in 0..h as usize * scale {
+            for x in 0..w as usize * scale {
+                let c = f.get(x0 + (x / scale) as i32, y0 + (y / scale) as i32);
+                let i = ((oy + y) * tw + ox + x) * 3;
+                data[i] = (c >> 16) as u8;
+                data[i + 1] = (c >> 8) as u8;
+                data[i + 2] = c as u8;
+            }
+        }
+    }
+    crate::engine::png::write_rgb(path, tw, th, &data);
 }
 
 fn c_slope(race: &Race, x: f32) -> f32 {
@@ -152,7 +196,7 @@ pub fn shots(out: &str) {
         if stage > 0 {
             // results -> next intro
             idle(&mut app, 60);
-            snap(&app, dir, &format!("{}_intro_stage{}.png", 20 + stage * 10, stage + 1));
+            snap(&app, dir, &format!("{}_intro_stage{}.png", 10 + stage * 10, stage + 1));
             press(&mut app, A);
         }
         let prefix = format!("{}", 11 + stage * 10);
@@ -377,6 +421,8 @@ pub enum BotKind {
     Decent,
     /// leaves the pace at JOG and only jumps
     Lazy,
+    /// RUN and jump all the time (bunny hopping over everything)
+    Hopper,
 }
 
 /// The racers of a 1P stage: you, Gerald and two CPU runners.
@@ -426,10 +472,11 @@ impl Bot {
             BotKind::Sprinter => Pace::Sprint,
             BotKind::Steady => Pace::Run,
             BotKind::Lazy => Pace::Jog,
+            BotKind::Hopper => Pace::Run,
             BotKind::Decent => {
                 let st = r.stamina;
                 let remain = c.finish - x;
-                if remain < 700.0 && st > remain / 40.0 {
+                if remain < 900.0 && st > remain * 0.09 + 4.0 {
                     Pace::Sprint
                 } else if s > STEEP {
                     Pace::Jog
@@ -454,7 +501,7 @@ impl Bot {
             }
         }
         // poles: alternate A and C about 4-5 times a second
-        if decent && s > STEEP && r.state == RState::Run {
+        if decent && s > STEEP && r.state == RState::Run && r.stamina > 22.0 && !r.bonk {
             self.pole_t -= 1;
             if self.pole_t <= 0 {
                 self.pole_t = 11 + self.rng.int(5);
@@ -531,6 +578,9 @@ impl Bot {
                 self.grab_off = self.rng.range(-12.0, 12.0);
             }
         }
+        if self.kind == BotKind::Hopper && r.state == RState::Run && !self.prev.b {
+            p.b = true;
+        }
         if p.b {
             p.down = false;
         }
@@ -547,11 +597,12 @@ struct ProbeRes {
     beat_goat: u32,
     falls: u32,
     bonks: u32,
+    goat_time: u64,
 }
 
 pub fn probe(per: u32) {
-    println!("{:<10} {:>5} {:>8} {:>16} {:>6} {:>6} {:>9} {:>6} {:>6}", "bot", "stage", "time", "places 1/2/3/4", "top2%", "win%", "goat beat", "falls", "bonks");
-    for kind in [BotKind::Lazy, BotKind::Sprinter, BotKind::Steady, BotKind::Decent] {
+    println!("{:<10} {:>5} {:>8} {:>16} {:>6} {:>6} {:>9} {:>6} {:>6} {:>8}", "bot", "stage", "time", "places 1/2/3/4", "top2%", "win%", "goat beat", "falls", "bonks", "gerald");
+    for kind in [BotKind::Lazy, BotKind::Sprinter, BotKind::Steady, BotKind::Hopper, BotKind::Decent] {
         for stage in 0..3 {
             let mut res = ProbeRes::default();
             for me in 0..4 {
@@ -575,12 +626,14 @@ pub fn probe(per: u32) {
                         res.beat_goat += 1;
                     }
                     res.falls += race.runners[mi].stats.falls;
+                    let gi = race.runners.iter().position(|r| r.goat()).unwrap();
+                    res.goat_time += race.result_time(gi) as u64;
                     res.bonks += race.runners[mi].stats.bonks;
                 }
             }
             let n = res.n as f32;
             println!(
-                "{:<10} {:>5} {:>7.1}s {:>16} {:>6.0} {:>6.0} {:>8.0}% {:>6.1} {:>6.1}",
+                "{:<10} {:>5} {:>7.1}s {:>16} {:>6.0} {:>6.0} {:>8.0}% {:>6.1} {:>6.1} {:>7.1}s",
                 format!("{:?}", kind),
                 stage + 1,
                 secs((res.time / res.n as u64) as u32),
@@ -589,8 +642,28 @@ pub fn probe(per: u32) {
                 100.0 * res.places[0] as f32 / n,
                 100.0 * res.beat_goat as f32 / n,
                 res.falls as f32 / n,
-                res.bonks as f32 / n
+                res.bonks as f32 / n,
+                secs((res.goat_time / res.n as u64) as u32)
             );
         }
+    }
+}
+
+/// Development aid: trace a decent bot through a stage.
+pub fn trace(stage: usize) {
+    let me = 1;
+    let mut race = Race::new(stage, &lineup(stage, me, Ctrl::Human(0)), 5);
+    let mut bot = Bot::new(BotKind::Decent, 5);
+    let mut last_bonk = false;
+    while !race.finished() && race.t < RACE_CAP {
+        let pad = bot.pad(&race, 3);
+        race.update(&[pad, Pad::default()]);
+        race.sfx.clear();
+        let r = &race.runners[3];
+        if (race.t % 300 == 0 && race.phase == Phase::Race) || r.bonk != last_bonk {
+            let s = race.course.slope(r.x);
+            println!("t {:>5.1}s x {:>6.0} slope {:>5.2} {:?} pace {:?} v {:.2} stam {:>5.1} hike {:.2} bonk {} state {:?} zone {}", race.t as f32 / 60.0, r.x, s, race.course.ground(r.x), r.pace, r.v, r.stamina, r.hike, r.bonk, r.state, race.course.zone(r.x, super::course::ZoneKind::Switchback).is_some());
+        }
+        last_bonk = r.bonk;
     }
 }

@@ -567,10 +567,48 @@ impl Scenery {
             1 => rgb(120, 192, 88),
             _ => rgb(120, 120, 144),
         };
+        let off = (cam_x * 0.6) as i32;
         for y in fill_from.max(y0)..y1.min(H) {
             let row = (y * W) as usize;
+            let d = y - fill_from;
             for x in 0..W {
-                f.px[row + x as usize] = back;
+                let wx = x + off;
+                let c = match self.stage {
+                    // forest floor: tree trunks and shade
+                    0 => {
+                        let trunk = wx.rem_euclid(23) < 2 && d < 30;
+                        if trunk {
+                            rgb(48, 40, 40)
+                        } else if (wx + y) & 1 == 0 && d % 6 < 2 {
+                            rgb(32, 104, 72)
+                        } else {
+                            back
+                        }
+                    }
+                    // meadow: mown stripes and flowers
+                    1 => {
+                        let h = hash(wx, y, 7);
+                        if h % 97 == 0 {
+                            [rgb(248, 248, 248), rgb(248, 216, 48), rgb(232, 96, 168)][(h / 97 % 3) as usize]
+                        } else if (d / 5) % 2 == 0 && (wx + y) & 1 == 0 {
+                            rgb(104, 176, 80)
+                        } else {
+                            back
+                        }
+                    }
+                    // scree slopes
+                    _ => {
+                        let h = hash(wx, y, 9);
+                        if h % 13 == 0 {
+                            rgb(144, 144, 168)
+                        } else if h % 17 == 0 {
+                            rgb(96, 96, 120)
+                        } else {
+                            back
+                        }
+                    }
+                };
+                f.px[row + x as usize] = c;
             }
         }
         // birds
@@ -988,11 +1026,17 @@ fn hut() -> CSprite {
 fn aid_table() -> CSprite {
     let mut f = scratch();
     let (x, base) = (128, 200);
-    // banner on two poles
-    f.rect(x - 16, base - 34, 2, 35, rgb(160, 160, 176));
-    f.rect(x + 15, base - 34, 2, 35, rgb(160, 160, 176));
-    f.rect(x - 16, base - 34, 33, 9, rgb(48, 120, 216));
-    f.text(x - 8, base - 33, "AID", rgb(248, 248, 248));
+    // banner on two poles, with bunting
+    f.rect(x - 18, base - 44, 2, 45, rgb(160, 160, 176));
+    f.rect(x + 17, base - 44, 2, 45, rgb(160, 160, 176));
+    f.rect(x - 18, base - 44, 37, 12, rgb(48, 120, 216));
+    f.hline(x - 18, x + 18, base - 44, rgb(120, 184, 248));
+    f.text_sh(x - 8, base - 42, "AID", rgb(248, 248, 248), rgb(24, 56, 120), true);
+    let cols = [rgb(232, 64, 64), rgb(248, 216, 48), rgb(64, 184, 96), rgb(248, 248, 248)];
+    for k in 0..6 {
+        let px = x - 16 + k * 6;
+        f.fill_poly(&[(px, base - 31), (px + 4, base - 31), (px + 2, base - 27)], cols[k as usize % 4]);
+    }
     // table with a white cloth, cups and a jug
     f.rect(x - 14, base - 12, 28, 3, rgb(248, 248, 248));
     f.rect(x - 14, base - 9, 28, 3, rgb(216, 216, 232));
@@ -1002,7 +1046,7 @@ fn aid_table() -> CSprite {
     f.rect(x + 8, base - 19, 4, 7, rgb(200, 232, 248));
     f.rect(x - 13, base - 6, 2, 7, BARK);
     f.rect(x + 11, base - 6, 2, 7, BARK);
-    cut(&f, 36, 36)
+    cut(&f, 40, 47)
 }
 
 fn hole() -> CSprite {

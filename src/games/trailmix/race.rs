@@ -169,6 +169,8 @@ pub struct Runner {
     pub grab_t: i32,
     pub five_t: i32,
     pub flash: i32,
+    /// frames after a landing before the next jump
+    pub land_t: i32,
     pub say: Option<(&'static str, i32)>,
     pub stats: RunStats,
     next_ob: usize,
@@ -342,7 +344,13 @@ impl Race {
                 Ctrl::Human(p) => 8 - p as i32 * 3,
                 _ => 1 + (k as i32 * 2) % 6,
             };
-            let x = START_X - 6.0 - (n - 1 - k) as f32 * 3.0;
+            // a little queue behind the line, humans at the front
+            let slot = match ctrl {
+                Ctrl::Human(p) => p,
+                _ => 2 + k,
+            };
+            let x = START_X - 6.0 - slot as f32 * 13.0;
+            let _ = n;
             runners.push(Runner {
                 def,
                 ctrl,
@@ -370,6 +378,7 @@ impl Race {
                 grab_t: 0,
                 five_t: 0,
                 flash: 0,
+                land_t: 0,
                 say: None,
                 stats: RunStats::default(),
                 next_ob: 0,
@@ -700,6 +709,7 @@ impl Race {
             r.grab_t = (r.grab_t - 1).max(0);
             r.five_t = (r.five_t - 1).max(0);
             r.flash = (r.flash - 1).max(0);
+            r.land_t = (r.land_t - 1).max(0);
             r.hike *= 0.97;
             if r.hike < 0.02 {
                 r.hike = 0.0;
@@ -898,7 +908,6 @@ impl Race {
                     }
                     if item == Item::Pickle {
                         r.pickle = 110;
-                        r.flash = 6;
                     }
                     self.popup(x, alt + 50.0, item.name(), if item == Item::Pickle { GREEN } else { YELLOW });
                     if is_view {
@@ -939,15 +948,19 @@ impl Race {
         if s > STEEP && self.runners[i].state == RState::Run && !self.runners[i].bonk {
             let b = if it.a { 1 } else { 2 };
             let r = &mut self.runners[i];
-            let gain = if r.last_pole != b { 0.3 } else { 0.04 };
+            let alternate = r.last_pole != b;
+            let gain = if alternate { 0.3 } else { 0.04 };
             r.hike = (r.hike + gain).min(1.0);
             r.last_pole = b;
+            if alternate && is_view {
+                self.sfx.push(Sfx::Step);
+            }
         }
     }
 
     fn jump(&mut self, i: usize) {
         let r = &mut self.runners[i];
-        if !matches!(r.state, RState::Run | RState::Glissade) {
+        if !matches!(r.state, RState::Run | RState::Glissade) || r.land_t > 0 {
             return;
         }
         let ag = if r.goat() { 6.0 } else { RUNNERS[r.def].agility as f32 };
@@ -967,6 +980,11 @@ impl Race {
     }
 
     fn land(&mut self, i: usize) {
+        // landing costs a little speed, and you need a moment before the next jump
+        if !self.runners[i].goat() {
+            self.runners[i].land_t = 9;
+            self.runners[i].v *= 0.93;
+        }
         let x = self.runners[i].x;
         let alt = self.runners[i].alt;
         match self.course.ground(x) {
@@ -1491,7 +1509,7 @@ impl Race {
             Strategy::Smart => {
                 let st_ = r.stamina;
                 // enough legs left to sprint home?
-                let home = remain < 300.0 + 700.0 * skill && st_ > remain / 45.0;
+                let home = remain < 300.0 + 700.0 * skill && st_ > remain * 0.09 + 5.0;
                 let tech = matches!(g, Ground::Scree | Ground::Rock | Ground::Mud);
                 if r.bonk {
                     Pace::Walk
@@ -1678,7 +1696,7 @@ impl Race {
         // a little rubber band so the race stays close
         let r = &self.runners[i];
         if !self.cpu_only && r.snack == 0 && r.state == RState::Run {
-            let f = if lead > 300.0 { 0.985 } else if lead < -300.0 { 1.01 } else { 1.0 };
+            let f = if lead > 300.0 { 0.995 } else if lead < -300.0 { 1.004 } else { 1.0 };
             self.runners[i].v *= f;
         }
         if self.runners[i].shortcut && self.t % 240 == 0 {

@@ -180,8 +180,8 @@ pub fn skel(p: TPose) -> Skel {
         TPose::Curl | TPose::Tumble2 | TPose::Tumble3 | TPose::Tumble4 => {
             [(15, 16), (13, 19), (9, 24), (13, 22), (16, 25), (15, 21), (17, 24), (13, 26), (9, 28), (14, 25), (11, 28)]
         }
-        // butt up, face in the dirt, arms splayed
-        TPose::Faceplant => [(19, 26), (16, 24), (10, 20), (15, 27), (19, 30), (18, 27), (22, 30), (9, 26), (4, 30), (11, 26), (6, 30)],
+        // flat on the belly, face in the dirt, feet kicking in the air
+        TPose::Faceplant => [(20, 27), (17, 27), (9, 27), (19, 29), (23, 30), (20, 28), (23, 28), (5, 27), (3, 21), (6, 28), (6, 22)],
         TPose::GetUp => [(14, 12), (13, 16), (10, 23), (13, 20), (15, 24), (14, 20), (17, 24), (9, 29), (4, 30), (15, 25), (15, 30)],
         // sitting on the snow, feet first, one arm waving
         TPose::Glissade1 => [(8, 14), (8, 19), (9, 27), (5, 23), (3, 27), (12, 18), (16, 13), (15, 26), (21, 29), (14, 25), (20, 28)],
@@ -365,7 +365,7 @@ pub fn render_person(style: usize, pose: TPose, extra: Option<Extra>) -> Sprite 
         p => p,
     };
     let k = skel(base);
-    let mut s = person(&k, style, false, false);
+    let mut s = person(&k, style, base == TPose::Faceplant, false);
     if let Some(e) = extra {
         decorate(&mut s, &k, e, base);
     }
@@ -655,6 +655,29 @@ const DEER: [&str; 20] = [
     "........................",
 ];
 
+const DEER2: [&str; 20] = [
+    "......................h.h",
+    "......................hhh",
+    ".....................BBB.",
+    "....................BBKBB",
+    "....................BBBBK",
+    "...................BBBB..",
+    "..................BBB....",
+    ".E................BBB....",
+    "EEBBBBBBBBBBBBBBBBBB.....",
+    ".BBBBBEBBBBBEBBBBBBB.....",
+    ".BBBBBBBBBEBBBBBBBB......",
+    "..BBBBBBBBBBBBBBBB.......",
+    "..bbbbbbbbbbbbbbbbb......",
+    "...bb.bb......bb.bb......",
+    "....bbb........bbb.......",
+    ".....K..........K........",
+    "........................",
+    "........................",
+    "........................",
+    "........................",
+];
+
 const COWBELL: [&str; 5] = [".YY.", "YYYY", "YyyY", "yyyy", ".KK."];
 
 const ITEMS: [[&str; 7]; 4] = [
@@ -678,6 +701,8 @@ pub struct Art {
     pub marmot_up: Bm,
     pub marmot_sleep: Bm,
     pub deer: Bm,
+    /// legs tucked, mid-leap
+    pub deer2: Bm,
     pub cowbell: Bm,
     pub items: Vec<Bm>,
     pub goat_pal: BPal,
@@ -703,6 +728,7 @@ impl Art {
             marmot_up: Bm::from(&MARMOT_UP),
             marmot_sleep: Bm::from(&MARMOT_SLEEP),
             deer: Bm::from(&DEER),
+            deer2: Bm::from(&DEER2),
             cowbell: Bm::from(&COWBELL),
             items: ITEMS.iter().map(|r| Bm::from(r)).collect(),
             goat_pal: bpal(&[

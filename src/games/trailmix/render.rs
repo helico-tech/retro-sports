@@ -478,7 +478,9 @@ fn draw_deer(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32) {
     };
     if show {
         let sx = cam.sx(x);
-        cx.art.deer.draw(f, sx, y, false, &cx.art.deer_pal);
+        let leaping = k >= DEER_CROSS.0 && (t / 6) % 2 == 0;
+        let bm = if leaping { &cx.art.deer2 } else { &cx.art.deer };
+        bm.draw(f, sx, y, false, &cx.art.deer_pal);
         if k < DEER_CROSS.0 && (t / 6) % 2 == 0 {
             f.text_sh(sx + 8, y - 30, "!", rgb(248, 72, 72), OUTLINE, true);
         }
