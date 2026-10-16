@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: blocked
 created: 2026-10-16
 ---
 # 01: First playable
@@ -127,5 +127,16 @@ then reviews and balance.
   - G11 No sound on a turn (sfx bank is at 16).
   - G12 The storm is a gamble shortcut (high but dizzy, far downwind);
     not dominant in the sim, CPUs skirt it. Watch in playtests.
+- 2026-10-16: Balance tuned and recorded in the spec (decent probe
+  94% / 57% / 29% over the ladder; flights 1:57-2:21). Clippy clean in
+  the module; `cargo test` and `cargo test --release` pass except
+  `console_enters_and_leaves_every_game` (issue 0040: the hub walk between
+  the only two registered carts is longer than the test waits; passes
+  with a longer wait and once all five carts are registered). wasm builds.
+  Story left `blocked` on issue 0040 only; everything else in "Done
+  when" holds.
 
 ## Follow-ups
+- [Issue 0040](../../issues/0040-console-test-walk-too-far.md): console
+  contract test vs. the hub walk (blocks "cargo test passes" here).
+- [Issue 0041](../../issues/0041-hangtime-polish-left.md): COULD items.

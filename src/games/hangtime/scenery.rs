@@ -350,7 +350,7 @@ fn dunes_far(rng: &mut Rng, sky: &[u32]) -> Layer {
             } else if x < sea_end + 20 && y < hz + 8 {
                 let k = y - hz;
                 let base = [rgb(104, 144, 200), rgb(88, 128, 192), rgb(72, 112, 184), rgb(64, 104, 176)][(k / 2).min(3) as usize];
-                if hash(x, y) % 11 == 0 { rgb(200, 224, 248) } else { base }
+                if hash(x, y).is_multiple_of(11) { rgb(200, 224, 248) } else { base }
             } else {
                 let k = y - hz;
                 mix([rgb(152, 176, 120), rgb(136, 168, 104), rgb(120, 160, 96)][(k / 8).min(2) as usize], haze, 0.35)
@@ -427,7 +427,7 @@ fn dunes_mid(rng: &mut Rng, sky: &[u32]) -> Layer {
             p.set(x, y, mix(c, haze, 0.15));
         }
         // marram grass on the dunes
-        if duney > 0.5 && hash(x, 7) % 3 == 0 {
+        if duney > 0.5 && hash(x, 7).is_multiple_of(3) {
             let gh = 2 + (hash(x, 9) % 4) as i32;
             p.line(x, top, x + (hash(x, 3) % 3) as i32 - 1, top - gh, mix(rgb(120, 160, 72), haze, 0.3));
         }
@@ -475,6 +475,7 @@ fn dunes_mid(rng: &mut Rng, sky: &[u32]) -> Layer {
     Layer { pic: p, kx, ky, foot0: 12.0, plane: PLANE }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn mountains(p: &mut Pic, pts: &[(i32, i32)], body: u32, side: u32, snow: u32, snow_d: u32, base: i32, snowline: i32) {
     let mut poly: Vec<(i32, i32)> = pts.to_vec();
     poly.push((pts[pts.len() - 1].0, base));
@@ -591,6 +592,7 @@ fn alps_mid(rng: &mut Rng, sky: &[u32]) -> Layer {
     Layer { pic: p, kx, ky, foot0: 12.0, plane: PLANE }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn mesa(p: &mut Pic, x: i32, w: i32, top: i32, base: i32, body: u32, side: u32, bands: &[u32]) {
     p.poly(&[(x, base), (x + 3, top + 4), (x + 5, top), (x + w - 5, top), (x + w - 3, top + 4), (x + w, base)], body);
     for (k, &c) in bands.iter().enumerate() {
@@ -1190,7 +1192,7 @@ impl Scenery {
                 }
                 // speckles, pebbles and a darker band of deep soil
                 let hh = hash(wx, sy - top);
-                if d > 2 && hh % 23 == 0 {
+                if d > 2 && hh.is_multiple_of(23) {
                     col = shade(col, 7, 8);
                 }
                 if d > 18 && surf != Surf::Rock && hh % 97 < 2 {
@@ -1207,17 +1209,17 @@ impl Scenery {
             if top > 0 && top < vh {
                 let hsh = hash(wx, 77);
                 match surf {
-                    Surf::Sand if hsh % 7 == 0 => {
+                    Surf::Sand if hsh.is_multiple_of(7) => {
                         let gh = 2 + (hsh >> 8) as i32 % 4;
                         let lean = ((hsh >> 4) % 3) as i32 - 1;
                         f.line(sx, top, sx + lean, top - gh, rgb(112, 168, 72));
                     }
-                    Surf::Grass | Surf::Field | Surf::Tulips if hsh % 4 == 0 => f.set(sx, top - 1, cols[1]),
+                    Surf::Grass | Surf::Field | Surf::Tulips if hsh.is_multiple_of(4) => f.set(sx, top - 1, cols[1]),
                     _ => {}
                 }
             }
-            if let Some(level) = water {
-                if level > g {
+            if let Some(level) = water
+                && level > g {
                     let wtop = cy - (level - cam.1).round() as i32;
                     for sy in wtop.max(0)..top.min(vh) {
                         let d = sy - wtop;
@@ -1230,13 +1232,12 @@ impl Scenery {
                         if self.venue == Venue::Alps {
                             col = mix(col, rgb(48, 160, 160), 0.35);
                         }
-                        if d > 0 && d < 5 && (hash(wx + (t / 12) as i32 * 3, sy) % 17) == 0 {
+                        if d > 0 && d < 5 && hash(wx + (t / 12) as i32 * 3, sy).is_multiple_of(17) {
                             col = rgb(232, 248, 248);
                         }
                         f.px[(sy * W + sx) as usize] = col;
                     }
                 }
-            }
         }
     }
 }

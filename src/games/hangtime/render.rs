@@ -53,7 +53,7 @@ pub fn look_for(p: &Pilot, c: &super::course::Course, t: u32) -> Look {
                 PPose::Tuck
             } else if agl < 22.0 {
                 PPose::Upright
-            } else if (t / 20 + p.def as u32) % 2 == 0 {
+            } else if (t / 20 + p.def as u32).is_multiple_of(2) {
                 PPose::Prone
             } else {
                 PPose::Prone2
@@ -99,17 +99,17 @@ pub fn look_for(p: &Pilot, c: &super::course::Course, t: u32) -> Look {
             }
         },
         State::Paddle(_) => {
-            l.pose = if (p.anim as usize) % 2 == 0 { PPose::Paddle1 } else { PPose::Paddle2 };
+            l.pose = if (p.anim as usize).is_multiple_of(2) { PPose::Paddle1 } else { PPose::Paddle2 };
             l.wing = false;
             l.wreck = true;
         }
         State::Walk(_) => {
-            l.pose = if (p.anim as usize) % 2 == 0 { PPose::Walk1 } else { PPose::Walk2 };
+            l.pose = if (p.anim as usize).is_multiple_of(2) { PPose::Walk1 } else { PPose::Walk2 };
             l.pitch = 20.0;
         }
         State::Done => {
             let good = matches!(p.landing, Some(Landing::Perfect | Landing::Soft)) && c.in_field(p.land_x);
-            if good && (t / 30 + p.def as u32) % 3 == 0 {
+            if good && (t / 30 + p.def as u32).is_multiple_of(3) {
                 l.pose = PPose::Cheer;
                 l.wing = false;
                 l.wreck = true;
@@ -182,11 +182,11 @@ pub fn draw_pilot(f: &mut Frame, art: &Art, def: usize, sx: i32, sy: i32, l: &Lo
 /// Every sprite on a few sheets (to judge the art at 1x and the animation).
 pub fn sprite_sheet(art: &Art) -> Vec<Frame> {
     let mut out = Vec::new();
-    for def in 0..PILOTS.len() {
+    for (def, d) in PILOTS.iter().enumerate() {
         let mut f = Frame::new();
         f.clear(rgb(112, 168, 224));
         f.rect(0, 150, W, H - 150, rgb(96, 168, 80));
-        f.text_sh(4, 4, PILOTS[def].name, rgb(248, 248, 248), OUTLINE, false);
+        f.text_sh(4, 4, d.name, rgb(248, 248, 248), OUTLINE, false);
         // pitch frames
         for (k, p) in super::art::PITCHES.iter().enumerate() {
             let l = Look::flying(*p, false);
@@ -298,15 +298,14 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam,
         let k = if th.w < 39.0 { 0 } else if th.w < 44.0 { 1 } else { 2 };
         draw_pic_clip(f, &sc.cumulus[k], cam.sx(th.x), cam.sy(th.top + 8.0), cam.vh, false);
     }
-    if let (Some(st), Some(pic)) = (c.storm, &sc.storm) {
-        if cam.visible(st.x, 140.0) {
+    if let (Some(st), Some(pic)) = (c.storm, &sc.storm)
+        && cam.visible(st.x, 140.0) {
             let shake = if race.flash > 0 { (t % 3) as i32 - 1 } else { 0 };
             draw_pic_clip(f, pic, cam.sx(st.x) + shake, cam.sy(st.base), cam.vh, false);
             if race.flash > 0 {
                 lightning(f, cam.sx(st.x) + ((t / 7 % 5) as i32 - 2) * 18, cam.sy(st.base), cam.sy(c.ground_at(st.x)), t, cam.vh);
             }
         }
-    }
     draw_family(f, race, sc, cam, t);
     draw_bundle(f, race, art, cam, t);
     sc.draw_ground(f, c, pos, cam.cy, cam.vh, t);
@@ -334,8 +333,8 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam,
                 draw_pic(f, &cr.sheep[4], x, y, flip);
                 stars(f, x + if flip { -6 } else { 6 }, y - 9, t);
             }
-            SheepMode::Run => draw_pic(f, &cr.sheep[if (t / 4) % 2 == 0 { 3 } else { 1 }], x, y, flip),
-            SheepMode::Walk => draw_pic(f, &cr.sheep[if (t / 10) % 2 == 0 { 0 } else { 1 }], x, y, flip),
+            SheepMode::Run => draw_pic(f, &cr.sheep[if (t / 4).is_multiple_of(2) { 3 } else { 1 }], x, y, flip),
+            SheepMode::Walk => draw_pic(f, &cr.sheep[if (t / 10).is_multiple_of(2) { 0 } else { 1 }], x, y, flip),
             SheepMode::Graze => draw_pic(f, &cr.sheep[if (s.t / 40) % 3 == 0 { 0 } else { 2 }], x, y, flip),
         }
     }
@@ -395,13 +394,12 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam,
             bubble(f, x, y - 44, txt);
         }
         // tag over human pilots
-        if let Ctrl::Human(k) = p.ctrl {
-            if p.airborne() || matches!(p.state, State::Wait | State::Run | State::Hop(_)) {
+        if let Ctrl::Human(k) = p.ctrl
+            && (p.airborne() || matches!(p.state, State::Wait | State::Run | State::Hop(_))) {
                 // keep the tag under the HUD band
                 let top = if cam.vh < 200 { 14 } else { 36 };
                 tag(f, x, (y - if p.airborne() { 52 } else { 60 }).max(top), k, t);
             }
-        }
     }
     for (k, g) in c.gates.iter().enumerate() {
         if cam.visible(g.x, 40.0) {
@@ -412,11 +410,10 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam,
     // inside the storm: only a shaking cloud
     if let Some(st) = c.storm {
         for p in &race.pilots {
-            if let State::Suck(k) = p.state {
-                if cam.visible(st.x, 60.0) && (k / 3) % 2 == 0 {
+            if let State::Suck(k) = p.state
+                && cam.visible(st.x, 60.0) && (k / 3) % 2 == 0 {
                     stars(f, cam.sx(st.x) + ((k * 7) % 40) - 20, cam.sy(p.y), t);
                 }
-            }
         }
     }
     draw_fx(f, race, cam);
@@ -515,13 +512,13 @@ fn draw_family(f: &mut Frame, race: &Race, sc: &Scenery, cam: &Cam, t: u32) {
         let hy = sy - 6 + if k == 1 { 1 } else { 0 };
         f.rect(sx + dx - 1, hy - 1, 3, 3, *skin);
         f.hline(sx + dx - 1, sx + dx + 1, hy - 2, *hair);
-        let wave = near && ((t / 6) as usize + k) % 2 == 0;
+        let wave = near && ((t / 6) as usize + k).is_multiple_of(2);
         if near || k == 2 {
             let ay = if wave { hy - 4 } else { hy - 2 };
             f.line(sx + dx + 1, hy, sx + dx + 2, ay, *skin);
         }
     }
-    if near && (t / 40) % 2 == 0 {
+    if near && (t / 40).is_multiple_of(2) {
         bubble(f, sx + 10, sy - 50, "HI!");
     }
 }
@@ -608,13 +605,13 @@ pub fn draw_props(f: &mut Frame, c: &Course, cheer: bool, sc: &Scenery, art: &Ar
             PropKind::Lighthouse => {
                 if (t / 8) % 16 < 3 {
                     let (lx, ly) = (x, y - 56);
-                    let dir = if (t / 128) % 2 == 0 { 1 } else { -1 };
+                    let dir = if (t / 128).is_multiple_of(2) { 1 } else { -1 };
                     f.fill_poly(&[(lx, ly), (lx + dir * 40, ly - 7), (lx + dir * 40, ly + 7)], rgb(248, 248, 200));
                 }
             }
             PropKind::Windsock => windsock(f, x, y, c.wind, t),
             PropKind::Cow => {
-                let fr = if (t / 50 + pr.var) % 3 == 0 { 1 } else { 0 };
+                let fr = if (t / 50 + pr.var).is_multiple_of(3) { 1 } else { 0 };
                 draw_pic(f, &art.critters.cow[fr], x, y + 1, pr.var % 2 == 1);
             }
             PropKind::KiteSurfer => kite_surfer(f, x, cam.sy(6.0), pr.var, t),
@@ -646,7 +643,7 @@ fn kite_surfer(f: &mut Frame, x: i32, wy: i32, var: u32, t: u32) {
     // board and spray
     f.rect(sx - 4, wy - 1, 9, 2, OUTLINE);
     f.hline(sx - 3, sx + 3, wy - 1, col);
-    if (t / 4) % 2 == 0 {
+    if (t / 4).is_multiple_of(2) {
         f.set(sx - 6, wy - 2, rgb(248, 248, 248));
         f.set(sx - 7, wy - 3, rgb(248, 248, 248));
     }
@@ -759,7 +756,7 @@ fn draw_markers(f: &mut Frame, race: &Race, art: &Art, cam: &Cam, t: u32) {
                         Venue::Dunes => [rgb(248, 248, 240), rgb(232, 232, 216)][j % 2],
                         _ => [rgb(248, 152, 32), rgb(248, 216, 48), rgb(216, 72, 40)][j % 3],
                     };
-                    let flick = ((t / 6) as usize + j) % 2 == 0;
+                    let flick = ((t / 6) as usize + j).is_multiple_of(2);
                     f.set(sx, sy, col);
                     if flick {
                         f.set(sx + 1, sy, col);
@@ -1035,7 +1032,7 @@ pub fn draw_hud(f: &mut Frame, race: &Race, i: usize, t: u32) {
     // clock
     f.text_center(128, 2, "TIME", rgb(160, 168, 216), OUTLINE, false);
     let tc = clock_text(p.shown_time());
-    let sunset = p.sunset && (t / 8) % 2 == 0;
+    let sunset = p.sunset && (t / 8).is_multiple_of(2);
     f.text_grad_center(128, 13, &tc, &grad7(if sunset { rgb(248, 96, 64) } else { rgb(248, 224, 72) }), OUTLINE, true);
     // score, gates, place
     f.text_sh(180, 2, "SCORE", rgb(160, 168, 216), OUTLINE, false);
@@ -1047,7 +1044,7 @@ pub fn draw_hud(f: &mut Frame, race: &Race, i: usize, t: u32) {
     }
     let pl = place(race, i);
     f.text_grad(226, 13, ordinal(pl), &grad7(if pl == 1 { rgb(248, 216, 48) } else { rgb(200, 200, 232) }), OUTLINE, false);
-    if p.v < PILOTS[p.def].stall_speed() + 0.07 && p.state == State::Fly && (t / 6) % 2 == 0 {
+    if p.v < PILOTS[p.def].stall_speed() + 0.07 && p.state == State::Fly && (t / 6).is_multiple_of(2) {
         f.text_sh(4, 23, "STALL!", rgb(248, 72, 72), OUTLINE, false);
     } else if p.tuck {
         f.text_sh(4, 23, "TUCK", rgb(248, 216, 48), OUTLINE, false);
@@ -1080,7 +1077,7 @@ pub fn vario_bar(f: &mut Frame, x: i32, y: i32, h: i32, v: f32, t: u32) {
             f.hline(x + 1, x + 4, mid + 1 + k, if k > h / 4 { rgb(248, 72, 72) } else { rgb(216, 120, 72) });
         }
     }
-    if v > 0.05 && (t / 6) % 2 == 0 {
+    if v > 0.05 && (t / 6).is_multiple_of(2) {
         f.hline(x + 2, x + 3, y - 3, rgb(160, 248, 120));
         f.hline(x + 1, x + 4, y - 2, rgb(160, 248, 120));
     }
@@ -1118,7 +1115,7 @@ pub fn minimap(f: &mut Frame, race: &Race, me: Option<usize>, x0: i32, y0: i32, 
     }
     if let Some(m) = me {
         let p = &race.pilots[m];
-        if (t / 8) % 3 != 0 {
+        if !(t / 8).is_multiple_of(3) {
             f.rect(sx(p.x) - 1, sy(p.y) - 1, 3, 3, rgb(248, 248, 248));
         }
     }
@@ -1147,7 +1144,7 @@ pub fn draw_hud_small(f: &mut Frame, race: &Race, i: usize, y: i32, t: u32) {
     }
     let pl = place(race, i);
     f.text_sh(208, y + 3, ordinal(pl), if pl == 1 { rgb(248, 216, 48) } else { rgb(200, 200, 232) }, OUTLINE, false);
-    if p.v < PILOTS[p.def].stall_speed() + 0.07 && p.state == State::Fly && (t / 6) % 2 == 0 {
+    if p.v < PILOTS[p.def].stall_speed() + 0.07 && p.state == State::Fly && (t / 6).is_multiple_of(2) {
         f.text_sh(228, y + 3, "STALL", rgb(248, 72, 72), OUTLINE, false);
     }
 }
@@ -1165,7 +1162,7 @@ pub fn gate_pointer(f: &mut Frame, race: &Race, i: usize, cam: &Cam, top: i32, t
         return;
     }
     let (a, b) = (cam.sy(g.hi).clamp(top + 2, cam.vh - 3), cam.sy(g.lo).clamp(top + 2, cam.vh - 3));
-    let col = if (t / 10) % 2 == 0 { rgb(248, 216, 48) } else { rgb(248, 136, 32) };
+    let col = if (t / 10).is_multiple_of(2) { rgb(248, 216, 48) } else { rgb(248, 136, 32) };
     f.rect(W - 4, a, 3, (b - a).max(1), OUTLINE);
     f.line(W - 3, a, W - 3, b, col);
     let n = format!("{}", k + 1);

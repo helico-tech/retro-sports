@@ -144,8 +144,8 @@ impl App {
             Mode::One => {
                 let me = self.cursor[0];
                 let mut e: Vec<Entry> = vec![(me, Ctrl::Human(0), 0.0, Style::Normal)];
-                for k in 0..3 {
-                    e.push(((me + 1 + k) % 4, Ctrl::Cpu, LADDER[self.stage][k], Style::Normal));
+                for (k, &sk) in LADDER[self.stage].iter().enumerate() {
+                    e.push(((me + 1 + k) % 4, Ctrl::Cpu, sk, Style::Normal));
                 }
                 e
             }
@@ -279,7 +279,7 @@ impl App {
                 }
             }
             Scene::Continue => {
-                if self.t % 60 == 0 {
+                if self.t.is_multiple_of(60) {
                     self.count -= 1;
                     self.sfx.push(Sfx::Blip);
                 }
@@ -319,8 +319,7 @@ impl App {
     fn update_select(&mut self, e: [Pad; 2]) {
         let ok = |p: Pad| p.a || p.start;
         let players = if self.mode == Mode::Two { 2 } else { 1 };
-        for pi in 0..players {
-            let p = e[pi];
+        for (pi, &p) in e.iter().enumerate().take(players) {
             if !self.locked[pi] {
                 let c = self.cursor[pi];
                 let n = match (p.left, p.right, p.up, p.down) {
@@ -397,11 +396,10 @@ impl App {
                     if self.done_t == 0 {
                         self.done_t = race.t;
                     }
-                    if race.t > self.done_t + 150 {
-                        if let Some(k) = (0..race.pilots.len()).filter(|&k| race.pilots[k].airborne()).max_by(|&a, &b| race.pilots[a].x.partial_cmp(&race.pilots[b].x).unwrap()) {
+                    if race.t > self.done_t + 150
+                        && let Some(k) = (0..race.pilots.len()).filter(|&k| race.pilots[k].airborne()).max_by(|&a, &b| race.pilots[a].x.partial_cmp(&race.pilots[b].x).unwrap()) {
                             f = k;
                         }
-                    }
                 }
                 self.follow[0] = f;
             }
@@ -554,7 +552,7 @@ impl App {
                     f.rect(0, HUD_H + 1, W, 10, rgb(16, 16, 48));
                     f.text_center(128, HUD_H + 2, &format!("WATCHING {name}"), rgb(200, 200, 232), OUTLINE, false);
                 }
-                if me.state == State::Done && !race.finished() && (t / 30) % 2 == 0 {
+                if me.state == State::Done && !race.finished() && (t / 30).is_multiple_of(2) {
                     f.rect(0, 212, W, 12, rgb(16, 16, 48));
                     f.text_center(128, 214, "HOLD Z TO FAST FORWARD", rgb(248, 232, 64), OUTLINE, true);
                 }
@@ -568,7 +566,7 @@ impl App {
         }
         if self.mode == Mode::Demo {
             f.rect(0, 212, W, 12, rgb(16, 16, 48));
-            if (t / 30) % 2 == 0 {
+            if (t / 30).is_multiple_of(2) {
                 f.text_center(128, 214, "DEMO PLAY - PUSH START", rgb(248, 232, 64), OUTLINE, true);
             }
         }
@@ -578,7 +576,7 @@ impl App {
     fn draw_prompts(&self, f: &mut Frame, race: &Race, t: u32) {
         let p = &race.pilots[0];
         let c = &race.course;
-        let blink = (t / 16) % 2 == 0;
+        let blink = (t / 16).is_multiple_of(2);
         let (z0, _) = c.launch.zone();
         let msg = match p.state {
             State::Wait => Some("GET READY..."),
@@ -588,12 +586,11 @@ impl App {
             State::Fly if p.agl(c) < 30.0 && p.agl(c) >= 9.0 && race.pilots[0].clock > 120 => Some("GET READY TO FLARE..."),
             _ => None,
         };
-        if let Some(m) = msg {
-            if blink || matches!(p.state, State::Wait) || m.starts_with("GET") {
+        if let Some(m) = msg
+            && (blink || matches!(p.state, State::Wait) || m.starts_with("GET")) {
                 f.rect(0, 200, W, 12, rgb(16, 16, 48));
                 f.text_center(128, 202, m, rgb(248, 248, 248), OUTLINE, true);
             }
-        }
     }
 
     fn draw_title(&self, f: &mut Frame, t: u32) {
@@ -655,7 +652,7 @@ impl App {
             f.text_grad_center(128, 95, "THE GREAT HELICO SKY RALLY", &grad7(rgb(248, 216, 96)), OUTLINE, false);
         }
         if !self.menu_open {
-            if (t / 24) % 2 == 0 && st > 36 {
+            if (t / 24).is_multiple_of(2) && st > 36 {
                 f.text_grad_center(128, 112, "PUSH START", &grad7(rgb(248, 248, 248)), OUTLINE, true);
             }
         } else {
@@ -685,9 +682,8 @@ impl App {
     fn draw_select(&self, f: &mut Frame, t: u32) {
         stripes(f, t, rgb(16, 32, 88), rgb(24, 48, 112));
         f.text_grad_center(128, 6, "CHOOSE YOUR PILOT", &grad7(rgb(248, 200, 48)), OUTLINE, true);
-        for k in 0..4 {
+        for (k, d) in PILOTS.iter().enumerate() {
             let (cx, cy) = (6 + (k % 2) as i32 * 124, 20 + (k / 2) as i32 * 92);
-            let d = &PILOTS[k];
             let acc = d.ui;
             let hover: Vec<usize> = (0..2).filter(|&p| (p == 0 || self.mode == Mode::Two) && self.cursor[p] == k).collect();
             f.rect(cx, cy, 120, 88, rgb(8, 16, 48));
@@ -720,7 +716,7 @@ impl App {
             for &p in &hover {
                 let col = if p == 0 { rgb(248, 232, 64) } else { rgb(96, 224, 248) };
                 let locked = self.locked[p];
-                if locked || (t / 8) % 2 == 0 {
+                if locked || (t / 8).is_multiple_of(2) {
                     f.rect_outline(cx - 1, cy - 1, 122, 90, col);
                     f.rect_outline(cx, cy, 120, 88, col);
                 }
@@ -780,13 +776,12 @@ impl App {
             let sa = a.brain.as_ref().map(|x| x.skill).unwrap_or(0.0);
             let sb = b.brain.as_ref().map(|x| x.skill).unwrap_or(0.0);
             sa.partial_cmp(&sb).unwrap()
-        }) {
-            if self.t > 40 {
+        })
+            && self.t > 40 {
                 let k = others.iter().position(|p| p.def == r.def).unwrap_or(0) as i32;
                 let x = 128 + (k * 2 - (n - 1)) * 40;
                 bubble(f, x, 82, PILOTS[r.def].quote);
             }
-        }
         // the tip box
         let y = 140;
         f.rect(6, y, 244, 58, rgb(16, 16, 48));
@@ -807,7 +802,7 @@ impl App {
         for (k, s) in tips.iter().enumerate() {
             f.text_sh(12, y + 4 + k as i32 * 10, s, if k == 0 { rgb(248, 232, 64) } else { rgb(232, 232, 248) }, OUTLINE, false);
         }
-        if self.t > 60 && (t / 20) % 2 == 0 {
+        if self.t > 60 && (t / 20).is_multiple_of(2) {
             f.text_center(128, 208, "PUSH START", rgb(248, 248, 248), OUTLINE, true);
         }
         if self.mode == Mode::Two {
@@ -871,7 +866,7 @@ impl App {
                 let p = &race.pilots[i];
                 let y = 132 + k as i32 * 12;
                 let me = matches!(p.ctrl, Ctrl::Human(_));
-                let col = if me { if (t / 10) % 2 == 0 { rgb(248, 232, 64) } else { rgb(248, 248, 248) } } else { rgb(200, 200, 232) };
+                let col = if me { if (t / 10).is_multiple_of(2) { rgb(248, 232, 64) } else { rgb(248, 248, 248) } } else { rgb(200, 200, 232) };
                 f.text_sh(46, y, ordinal(k + 1), if k == 0 { rgb(248, 216, 48) } else { rgb(176, 184, 224) }, OUTLINE, false);
                 f.text_sh(72, y, PILOTS[p.def].name, col, OUTLINE, false);
                 f.text_sh(176, y, &format!("{:>5}", p.total()), col, OUTLINE, false);
@@ -883,7 +878,7 @@ impl App {
                 _ => format!("TOTAL  1P {}   2P {}", self.totals[0], self.totals[1]),
             };
             f.text_grad_center(128, 186, &msg, &grad7(if self.mode != Mode::One || self.won_stage() { rgb(120, 232, 96) } else { rgb(248, 104, 96) }), OUTLINE, true);
-            if (t / 20) % 2 == 0 {
+            if (t / 20).is_multiple_of(2) {
                 f.text_center(128, 204, "PUSH START", rgb(248, 248, 248), OUTLINE, true);
             }
         }
@@ -898,7 +893,7 @@ impl App {
         f.logo(178, 60, &n, 7, &grad6(rgb(248, 232, 64)), OUTLINE, rgb(0, 0, 0));
         f.text_center(178, 128, "STUCK IN A TREE.", rgb(232, 232, 248), OUTLINE, false);
         f.text_center(178, 140, "AGAIN.", rgb(232, 232, 248), OUTLINE, false);
-        if (t / 20) % 2 == 0 {
+        if (t / 20).is_multiple_of(2) {
             f.text_center(128, 212, "PUSH Z TO TRY AGAIN", rgb(248, 248, 248), OUTLINE, true);
         }
     }
@@ -925,11 +920,10 @@ impl App {
         sc.draw_back(f, cam.pos(), cam.cy, H, t);
         sc.draw_ground(f, c, cam.pos(), cam.cy, H, t);
         for (i, pr) in c.props.iter().enumerate() {
-            if (pr.x - cam.x).abs() < 170.0 {
-                if let Some(p) = &sc.props[i] {
+            if (pr.x - cam.x).abs() < 170.0
+                && let Some(p) = &sc.props[i] {
                     draw_pic(f, p, cam.sx(pr.x), cam.sy(pr.y) + 1, false);
                 }
-            }
         }
         // podium: the champion on top, two rivals beside
         let champ = self.champion_def();
@@ -941,7 +935,7 @@ impl App {
             f.rect(x + 8, gy - h, 10, h, shade(col, 3, 4));
             f.text_center(x, gy - h + 4, &format!("{}", k + 1), rgb(24, 24, 48), col, true);
             let hop = if k == 0 { (((t as i32) % 30) - 15).abs() / 3 } else { 0 };
-            let pose = if k == 0 || (t / 20) % 2 == 0 { PPose::Cheer } else { PPose::Stand };
+            let pose = if k == 0 || (t / 20).is_multiple_of(2) { PPose::Cheer } else { PPose::Stand };
             let l = Look { pose, pitch: 14.0, turn: 0, flip: false, wing: pose != PPose::Cheer, wreck: false };
             draw_pilot(f, &self.art, def, x, gy - h - 1 - hop, &l);
         }

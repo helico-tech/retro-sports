@@ -378,7 +378,7 @@ impl Course {
         let mut rng = Rng(seed | 1);
         let n = (LEN + 1) as usize;
         let mut ground = vec![0.0f32; n];
-        let (p1, p2) = (rng.range(0.0, 6.28), rng.range(0.0, 6.28));
+        let (p1, p2) = (rng.range(0.0, std::f32::consts::TAU), rng.range(0.0, std::f32::consts::TAU));
         let launch = Launch {
             x0: spec.launch.0 as f32,
             x1: spec.launch.1 as f32,
@@ -412,7 +412,7 @@ impl Course {
         let thermals = spec
             .thermals
             .iter()
-            .map(|&(x, w, s, top, marker)| Thermal { x: x as f32, w: w as f32, s, top: top as f32, phase: rng.range(0.0, 6.28), marker })
+            .map(|&(x, w, s, top, marker)| Thermal { x: x as f32, w: w as f32, s, top: top as f32, phase: rng.range(0.0, std::f32::consts::TAU), marker })
             .collect();
         let gates = spec.gates.iter().map(|&(x, lo, hi)| Gate { x: x as f32, lo: lo as f32, hi: hi as f32 }).collect();
         let storm = (venue == Venue::Canyon).then_some(Storm { x: 2700.0, base: 470.0, top: 610.0, w: 60.0 });
@@ -465,14 +465,14 @@ impl Course {
         }
         // smooth so the edges of the lift band are soft
         let mut sm = up.clone();
-        for x in 0..n {
+        for (x, v) in sm.iter_mut().enumerate() {
             let (mut s, mut c) = (0.0, 0.0);
             for d in -8i32..=8 {
                 let i = (x as i32 + d).clamp(0, n as i32 - 1) as usize;
                 s += up[i].0;
                 c += 1.0;
             }
-            sm[x].0 = s / c;
+            v.0 = s / c;
         }
         self.ridge_up = sm;
         self.lee = lee;

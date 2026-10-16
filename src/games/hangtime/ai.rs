@@ -107,7 +107,7 @@ impl Brain {
                     self.next_step = self.t + period as u32;
                 }
                 let l = race.course.launch;
-                if matches!(p.state, State::Run) && p.x >= l.x1 + self.launch_at && self.t % 2 == 0 {
+                if matches!(p.state, State::Run) && p.x >= l.x1 + self.launch_at && self.t.is_multiple_of(2) {
                     pad.b = true;
                 }
                 return pad;
@@ -428,7 +428,7 @@ impl Brain {
         if dist < 330.0 {
             // close in: S-turns do the big work; a slower glide is steeper
             if need < gr_trim * 0.95 && p.v > 0.68 && p.y - c.ground_at(c.target) > 10.0 {
-                pad.up = self.t % 3 == 0;
+                pad.up = self.t.is_multiple_of(3);
             }
             return;
         }

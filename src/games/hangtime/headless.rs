@@ -82,13 +82,12 @@ pub fn shots(out: &str) {
             seen.push("run".into());
             snap(&app, dir, "06_run.png");
         }
-        if let Some(b) = &r.banners[0] {
-            if b.t == 12 && !seen.contains(&b.text) {
+        if let Some(b) = &r.banners[0]
+            && b.t == 12 && !seen.contains(&b.text) {
                 seen.push(b.text.clone());
                 let name = format!("07_{}.png", b.text.to_lowercase().replace([' ', '!', '?'], "_").trim_end_matches('_'));
                 snap(&app, dir, &name);
             }
-        }
         // a turn in progress, frame by frame
         if p.turn > 0 && sheet.len() < 8 && p.airborne() {
             let mut f = Frame::new();
@@ -449,8 +448,8 @@ pub fn probe(n: u32) {
                 for s in 0..n {
                     let seed = s as u64 * 7 + 3 + me as u64 * 101 + k as u64 * 1009;
                     let mut entries: Vec<Entry> = vec![(me, Ctrl::Cpu, skill, style)];
-                    for j in 0..3 {
-                        entries.push(((me + 1 + j) % 4, Ctrl::Cpu, LADDER[k][j], Style::Normal));
+                    for (j, &sk) in LADDER[k].iter().enumerate() {
+                        entries.push(((me + 1 + j) % 4, Ctrl::Cpu, sk, Style::Normal));
                     }
                     let r = fly(*venue, &entries, seed);
                     cnt += 1;

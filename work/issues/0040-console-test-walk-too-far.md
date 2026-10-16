@@ -21,5 +21,7 @@ test passes once the games are integrated.
 On `feat/hangtime` (dodgeball + hangtime only): `cargo test --test carts`.
 
 ## Notes
+Checked on `feat/hangtime`: with the wait raised to 240 frames the test
+passes, so the game itself enters and leaves fine.
 Fix in the test (wait until `!hub.walking()` or simply longer), not in a
 game. The hangtime branch does not touch the hub or `tests/carts.rs`.

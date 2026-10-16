@@ -410,7 +410,7 @@ pub fn glider(pat: Sail, pitch_deg: f32, yaw_deg: f32) -> Spr {
         if cross.abs() < 0.5 {
             continue;
         }
-        let a3 = tri.map(|q| tf(q));
+        let a3 = tri.map(&tf);
         let lit = {
             let u = [a3[1][0] - a3[0][0], a3[1][1] - a3[0][1], a3[1][2] - a3[0][2]];
             let v = [a3[2][0] - a3[0][0], a3[2][1] - a3[0][1], a3[2][2] - a3[0][2]];

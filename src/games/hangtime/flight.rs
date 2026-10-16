@@ -420,20 +420,18 @@ impl Race {
         let mut l = 0.0;
         let mut flock = None;
         for (k, fl) in self.flocks.iter().enumerate() {
-            if let Some((lx, ly)) = fl.pos(self.t, self.course.wind) {
-                if x > lx - 70.0 && x < lx - 4.0 && (y - ly).abs() < 18.0 {
+            if let Some((lx, ly)) = fl.pos(self.t, self.course.wind)
+                && x > lx - 70.0 && x < lx - 4.0 && (y - ly).abs() < 18.0 {
                     l += 0.40;
                     flock = Some(k);
                 }
-            }
         }
         let mut ufo = false;
-        if let Some(u) = &self.ufo {
-            if u.beaming() && (x - u.x).abs() < 14.0 && y < u.y - 4.0 && y > u.y - 170.0 {
+        if let Some(u) = &self.ufo
+            && u.beaming() && (x - u.x).abs() < 14.0 && y < u.y - 4.0 && y > u.y - 170.0 {
                 l += 0.65;
                 ufo = true;
             }
-        }
         (l, flock, ufo)
     }
 
@@ -450,8 +448,8 @@ impl Race {
         self.t += 1;
         // CPU pilots think first, on the world as it is
         let mut cmd = vec![Pad::default(); self.pilots.len()];
-        for i in 0..self.pilots.len() {
-            cmd[i] = match self.pilots[i].ctrl {
+        for (i, c) in cmd.iter_mut().enumerate() {
+            *c = match self.pilots[i].ctrl {
                 Ctrl::Human(k) => pads[k.min(1)],
                 Ctrl::Cpu => {
                     let mut b = self.pilots[i].brain.take().expect("cpu pilot has a brain");
@@ -875,7 +873,7 @@ impl Race {
                 self.banner(view, "HONK HONK!", rgb(248, 248, 248));
                 self.popup(x, y + 22.0, &format!("+{HONK_PTS}"), rgb(248, 232, 96));
                 self.sound(view, Sfx::Honk);
-            } else if self.t % 50 == 0 {
+            } else if self.t.is_multiple_of(50) {
                 self.sound(view, Sfx::Honk);
             }
         }
@@ -893,8 +891,8 @@ impl Race {
         // the storm cloud swallows you (once in a while)
         let p = &mut self.pilots[i];
         p.storm_cool -= 1;
-        if let Some(st) = storm_def {
-            if p.storm_cool <= 0 && !p.sunset && (p.x - st.x).abs() < st.w + 6.0 && p.y > st.base - 2.0 && p.y < st.top {
+        if let Some(st) = storm_def
+            && p.storm_cool <= 0 && !p.sunset && (p.x - st.x).abs() < st.w + 6.0 && p.y > st.base - 2.0 && p.y < st.top {
                 p.state = State::Suck(100);
                 p.turn = 0;
                 self.stats.cloudsucks += 1;
@@ -903,7 +901,6 @@ impl Race {
                 self.flash = 8;
                 return;
             }
-        }
         self.check_gates(i);
         self.check_heckle(i);
         self.check_ground(i);
@@ -1036,15 +1033,14 @@ impl Race {
         p.penalty += pen;
         // a sheep where you land
         let mut baa = false;
-        if kind != Landing::Splash {
-            if let Some(s) = self.sheep.iter_mut().find(|s| (s.x - x).abs() < 8.0 && s.mode != SheepMode::Fly) {
+        if kind != Landing::Splash
+            && let Some(s) = self.sheep.iter_mut().find(|s| (s.x - x).abs() < 8.0 && s.mode != SheepMode::Fly) {
                 s.mode = SheepMode::Fly;
                 s.vh = 2.6;
                 s.vx = if x < s.x { 1.0 } else { -1.0 } * 0.9;
                 s.t = 0;
                 baa = true;
             }
-        }
         if baa {
             let p = &mut self.pilots[i];
             p.penalty += 100;
@@ -1156,12 +1152,11 @@ impl Race {
         if self.flash > 0 {
             self.flash -= 1;
         }
-        if let Some(c) = self.course.storm {
-            if self.t % 400 == 130 {
+        if let Some(c) = self.course.storm
+            && self.t % 400 == 130 {
                 self.flash = 5;
                 let _ = c;
             }
-        }
         // the UFO
         if Some(self.t) == self.ufo_at {
             let lead = self.pilots.iter().filter(|p| p.airborne()).map(|p| (p.view.is_some(), p.x, p.y)).max_by(|a, b| a.0.cmp(&b.0));
