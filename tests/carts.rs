@@ -81,9 +81,12 @@ fn console_enters_and_leaves_every_game() {
             }
         };
         settle(&mut con);
+        let mut steps = 0;
         while con.hub.cursor != i {
             press(&mut con, Pad { right: true, ..Pad::default() });
             settle(&mut con);
+            steps += 1;
+            assert!(steps <= CARTS.len(), "the hiker never reaches {}", CARTS[i].id);
         }
         press(&mut con, Pad { start: true, ..Pad::default() });
         for _ in 0..180 {
