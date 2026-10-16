@@ -97,7 +97,7 @@ const SKIN_D: (u32, u32) = pair(rgb(248, 216, 184), rgb(224, 168, 128));
 pub const KIDS: [KidDef; 13] = [
     KidDef {
         name: "KEVIN",
-        bio: ["WEARS HIS ORANJE", "SHIRT IN BED.", "SHOOTS FROM ANYWHERE."],
+        bio: ["WEARS HIS ORANJE", "SHIRT IN BED.", "SHOOTS ON SIGHT."],
         stats: [5, 2, 2, 4],
         style: 0,
         skin: SKIN_A,
@@ -139,7 +139,7 @@ pub const KIDS: [KidDef; 13] = [
     },
     KidDef {
         name: "LIEKE",
-        bio: ["3 YEARS OF BICYCLE", "KICKS. LANDED ONE.", "WEARS A HELMET NOW."],
+        bio: ["3 YEARS OF BICYCLE", "KICKS. LANDED ONE.", "STILL TRYING."],
         stats: [3, 2, 2, 5],
         style: 1,
         skin: SKIN_A,

@@ -233,7 +233,7 @@ fn mountain(f: &mut Frame) {
 }
 
 /// The trapveldje behind the village: left x, top y, width, height.
-pub const PITCH: (i32, i32, i32, i32) = (96, 105, 20, 12);
+pub const PITCH: (i32, i32, i32, i32) = (91, 103, 27, 15);
 
 fn trapveldje(f: &mut Frame) {
     let (x, y, w, h) = PITCH;
@@ -247,9 +247,14 @@ fn trapveldje(f: &mut Frame) {
     // chalk: the outline and the keeper's box
     f.rect_outline(x + 1, y + 1, w - 2, h - 2, rgb(240, 240, 232));
     f.rect_outline(x + 1, y + 3, 5, h - 6, rgb(240, 240, 232));
-    // the little goal on the left
-    f.rect(x - 1, y + 3, 2, h - 6, rgb(248, 248, 248));
-    f.rect(x - 2, y + 3, 1, h - 6, OUTLINE);
+    // the little goal on the left, with a net
+    f.rect(x - 4, y + 3, 4, h - 6, OUTLINE);
+    for yy in y + 4..y + h - 4 {
+        for xx in x - 3..x {
+            f.set(xx, yy, if (xx + yy) % 2 == 0 { rgb(232, 232, 240) } else { rgb(96, 96, 120) });
+        }
+    }
+    f.rect(x, y + 3, 1, h - 6, rgb(248, 248, 248));
 }
 
 pub const MILL: (i32, i32) = (146, 120);

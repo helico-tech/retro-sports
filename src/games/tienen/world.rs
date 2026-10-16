@@ -627,11 +627,11 @@ impl World {
     // ------------------------------------------------------------ play
 
     fn update_play(&mut self, intents: &[Intent; 4]) {
-        for k in 0..self.kids.len() {
+        for (k, &it) in intents.iter().enumerate().take(self.kids.len()) {
             if k == self.keeper {
-                self.control_keeper(k, intents[k]);
+                self.control_keeper(k, it);
             } else {
-                self.control_field(k, intents[k]);
+                self.control_field(k, it);
             }
             self.kid_physics(k);
         }
@@ -1192,11 +1192,10 @@ impl World {
             }
             Act::Hold => false,
             _ => {
+                // the ball hits the keeper's body
                 if sp > 1.4 && !matches!(kid.act, Act::Down) {
                     self.parry(kp, -0.4);
                     true
-                } else if sp <= 1.4 && b.z < 3.0 && area && kid.ctrl == Ctrl::Cpu {
-                    false
                 } else {
                     false
                 }
@@ -1224,10 +1223,11 @@ impl World {
         b.land = None;
         b.spin = 0.5;
         self.sfx.push(Sfx::Punch);
+        let (px, py) = (self.kids[kp].x + 34.0, self.kids[kp].y - 30.0);
         if power > 0.5 {
-            self.popup(self.kids[kp].x, self.kids[kp].y - 34.0, "WEGGESTOMPT!", 0xF8E840);
+            self.popup(px, py, "WEGGESTOMPT!", 0xF8E840);
         } else {
-            self.popup(self.kids[kp].x, self.kids[kp].y - 34.0, "GEKEERD!", 0xF8E840);
+            self.popup(px, py, "GEKEERD!", 0xF8E840);
         }
     }
 
@@ -1360,7 +1360,7 @@ impl World {
         if !b.in_net && px > GOAL_X && b.x <= GOAL_X && b.y > G_Y0 + 1.0 && b.y < G_Y1 - 1.0 && b.z < BAR - 1.0 {
             self.ball.in_net = true;
             self.sfx.push(Sfx::Net);
-            self.into_goal();
+            self.ball_in_goal();
             return;
         }
         if ground {
@@ -1432,7 +1432,7 @@ impl World {
     }
 
     /// The ball crossed the line between the posts.
-    fn into_goal(&mut self) {
+    fn ball_in_goal(&mut self) {
         let shot = self.ball.shot;
         let lf = self.ball.last_field;
         match shot {
@@ -1464,12 +1464,11 @@ impl World {
         self.kids[by].stats.goals[kind.index()] += 1;
         let had = self.kids[by].stats.scored;
         self.kids[by].stats.scored += v;
-        if let Some(q) = self.quota {
-            if self.kids[by].human().is_some() && had < q && had + v >= q {
+        if let Some(q) = self.quota
+            && self.kids[by].human().is_some() && had < q && had + v >= q {
                 let (x, y) = (self.kids[by].x, self.kids[by].y);
                 self.popup(x, y - 52.0, "RESPECT!", 0x60E0F8);
             }
-        }
         self.kids[kp].stats.conceded += v;
         self.kids[by].set(Act::Cheer);
         self.kids[kp].set(Act::Sulk);

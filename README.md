@@ -1,6 +1,6 @@
 # RETRO SPORTS
 
-*Greetings from Helico Island! Six totally radical sports, 1992 style.*
+*Greetings from Helico Island! Seven totally radical sports, 1992 style.*
 
 A collection of 16-bit style sports games in Rust, in the spirit of
 California Games, Ski or Die and Super Dodge Ball. Everything you see and
@@ -38,6 +38,15 @@ fine. 2P: one steals, the other is the BOA.
 |---|---|
 | ![Krul](docs/screenshots/zenuwen-krul.png) | ![Koningsdag](docs/screenshots/zenuwen-koningsdag.png) |
 
+**TIENEN!** (street football). One goal, one keeper, and everybody
+starts with ten points. Cross it, shoot it out of the air (a header takes
+two, a bicycle kick five), never let it bounce into the goal, and whoever
+hits exactly zero gets the billenbrand. Mind the cars and the poodle.
+
+| | |
+|---|---|
+| ![Header](docs/screenshots/tienen-header.png) | ![Billenbrand](docs/screenshots/tienen-billenbrand.png) |
+
 **TEGENWIND!** (Dutch cycling). Holland's toughest bike race, against the
 wind. Pedal in rhythm, tuck, draft, ring your bell at tourists, and try to
 deliver the cheese. Oma Riek never stops pedalling.
@@ -68,9 +77,9 @@ Every game has a 1P ladder against the CPU (with continues) and a 2P mode.
 | | Player 1 | Player 2 |
 |---|---|---|
 | Move | Arrows | W A S D |
-| A (throw, ring, grab) | Z or `,` | F |
+| A (throw, ring, grab, shoot) | Z or `,` | F |
 | B (jump, hop, flare) | X or `.` | G |
-| C (pass, tuck, floater) | C or `/` | H |
+| C (pass, tuck, floater, cross) | C or `/` | H |
 | Start / pause | Enter | Tab |
 
 - On the island: arrows walk, Z or Enter plays.
@@ -109,7 +118,7 @@ Developer tools, no window needed:
 - `cargo run --release -- --sim <game> [n]` prints CPU-vs-CPU balance
   stats; `--probe <game> [n]` plays scripted "human" bots against the CPU
   ladder to find exploits. Games: `dodgeball`, `discdogs`, `zenuwen`,
-  `tegenwind`, `trailmix`, `hangtime`.
+  `tienen`, `tegenwind`, `trailmix`, `hangtime`.
 
 See [AGENTS.md](AGENTS.md), [docs/architecture.md](docs/architecture.md)
 and [docs/house-style.md](docs/house-style.md) for how it is built.

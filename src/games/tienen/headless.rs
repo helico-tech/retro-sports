@@ -281,7 +281,7 @@ pub fn shots(out: &str) {
 fn sheet(dir: &Path) {
     let art = Art::new();
     for id in PICKS {
-        let p = art.style(kid(id).style);
+        let p = art.kid(id);
         let pal = kid_palette(id);
         let poses = [
             &p.stand, &p.run[0], &p.run[1], &p.jump, &p.kick[0], &p.kick[1], &p.heel, &p.chest, &p.header, &p.header_jump, &p.bike[0], &p.bike[1], &p.ready, &p.high, &p.dive,

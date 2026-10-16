@@ -35,7 +35,7 @@ pub fn bubble(f: &mut Frame, x: i32, y: i32, text: &str) {
 
 /// The sprite for a kid right now, and whether it is flipped.
 pub fn kid_sprite<'a>(art: &'a Art, k: &Kid, keeper: bool, t: u32) -> (&'a Sprite, bool) {
-    let ppl = art.style(kid(k.id).style);
+    let ppl = art.kid(k.id);
     let flip = k.face == -1;
     let moving = k.vx.abs() + k.vy.abs() > 0.25;
     let s = match k.act {
@@ -118,8 +118,8 @@ fn draw_ball(f: &mut Frame, art: &Art, b: &Ball, t: u32) {
 /// The goal: the back net, the far side, the bar (behind everything) and
 /// the near post with its side net (in depth order).
 pub fn goal_back(f: &mut Frame) {
-    let net = rgb(232, 232, 240);
-    let net_d = rgb(176, 176, 192);
+    let net = rgb(216, 216, 232);
+    let net_d = rgb(112, 112, 136);
     let bz = BAR * 0.7;
     // the inside of the goal: a dark stipple, so the mouth reads
     let quad = [proj(NET_X, G_Y0, bz), proj(NET_X, G_Y1, bz), proj(NET_X, G_Y1, 0.0), proj(NET_X, G_Y0, 0.0)];
@@ -135,7 +135,7 @@ pub fn goal_back(f: &mut Frame) {
     }
     for (x, y) in tmp {
         let c = f.get(x, y);
-        f.set(x, y, shade(c, 3, 5));
+        f.set(x, y, shade(c, 2, 5));
     }
     // the back of the net: a grid
     for k in 0..=6 {
@@ -164,7 +164,7 @@ pub fn goal_back(f: &mut Frame) {
     post(f, G_Y0);
     let (x0, y0) = proj(GOAL_X, G_Y0, BAR);
     let (x1, y1) = proj(GOAL_X, G_Y1, BAR);
-    f.thick_line(x0, y0 - 1, x1, y1 - 1, 3, OUTLINE);
+    f.thick_line(x0, y0 - 1, x1, y1 - 1, 4, OUTLINE);
     f.line(x0, y0 - 1, x1, y1 - 1, white());
     f.line(x0, y0, x1, y1, rgb(200, 200, 216));
 }
@@ -194,7 +194,7 @@ fn post(f: &mut Frame, y: f32) {
 }
 
 pub fn goal_near(f: &mut Frame) {
-    let net_d = rgb(200, 200, 216);
+    let net_d = rgb(136, 136, 160);
     let bz = BAR * 0.7;
     for k in 0..=3 {
         let x = NET_X + (GOAL_X - NET_X) * k as f32 / 3.0;
@@ -244,8 +244,8 @@ pub fn draw_world(f: &mut Frame, w: &World, sc: &Scenery, art: &Art, t: u32) {
     }
     ents.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
     // the landing marker goes under everybody
-    if let (Some((lx, ly)), Some(to)) = (w.ball.land, w.ball.cross_to) {
-        if w.ball.air && w.phase == Phase::Play {
+    if let (Some((lx, ly)), Some(to)) = (w.ball.land, w.ball.cross_to)
+        && w.ball.air && w.phase == Phase::Play {
             let (x, y) = proj(lx, ly, 0.0);
             let human = w.kids[to].human();
             let col = match human {
@@ -261,7 +261,6 @@ pub fn draw_world(f: &mut Frame, w: &World, sc: &Scenery, art: &Art, t: u32) {
                 }
             }
         }
-    }
     for (_, e) in &ents {
         match *e {
             Ent::Kid(i) => draw_kid(f, art, w, i, t),
@@ -274,8 +273,8 @@ pub fn draw_world(f: &mut Frame, w: &World, sc: &Scenery, art: &Art, t: u32) {
                     let flip = d.tx < d.x;
                     art.dog[((t / 5) % 2) as usize].draw_foot(f, x, y, &PROPS, flip);
                     if d.has {
-                        let bx = if flip { x - 9 } else { x + 9 };
-                        art.ball[0].draw(f, bx - 4, y - 12, &PROPS, false);
+                        let bx = if flip { x - 11 } else { x + 11 };
+                        art.ball[0].draw(f, bx - 4, y - 14, &PROPS, false);
                     }
                 }
             }
@@ -284,7 +283,7 @@ pub fn draw_world(f: &mut Frame, w: &World, sc: &Scenery, art: &Art, t: u32) {
                 let (x, y) = proj(p.x, p.y, p.z);
                 let fr = if p.fly {
                     2 + ((t / 4) % 2) as usize
-                } else if ((t + p.peck * 7) / 30) % 3 == 0 {
+                } else if ((t + p.peck * 7) / 30).is_multiple_of(3) {
                     1
                 } else {
                     0
@@ -292,7 +291,7 @@ pub fn draw_world(f: &mut Frame, w: &World, sc: &Scenery, art: &Art, t: u32) {
                 if !p.fly {
                     f.set(x, y, shade(f.get(x, y), 2, 3));
                 }
-                art.pigeon[fr].draw_foot(f, x, y, &PROPS, p.vx < 0.0 && p.fly || (!p.fly && (p.peck % 2 == 0)));
+                art.pigeon[fr].draw_foot(f, x, y, &PROPS, p.vx < 0.0 && p.fly || (!p.fly && p.peck.is_multiple_of(2)));
             }
             Ent::Car => {
                 if let Some(c) = &w.car {
@@ -321,6 +320,7 @@ fn draw_tags(f: &mut Frame, w: &World, t: u32) {
             continue;
         }
         let (x, y) = proj(k.x, k.y, k.z);
+        let x = if k.x < GOAL_X + 20.0 { x + 14 } else { x };
         let col = if p == 0 { P1_COL } else { P2_COL };
         let ty = y - 40 - ((t / 10) % 2) as i32;
         let tag = if p == 0 { "1P" } else { "2P" };
@@ -333,6 +333,9 @@ fn draw_tags(f: &mut Frame, w: &World, t: u32) {
 }
 
 fn draw_popups(f: &mut Frame, w: &World) {
+    if w.banner.is_some() {
+        return;
+    }
     for p in &w.popups {
         let (x, y) = proj(p.x, p.y, 0.0);
         let tw = text_width(&p.text, true);
@@ -352,7 +355,7 @@ fn draw_bubbles(f: &mut Frame, w: &World) {
         while used.iter().any(|&(ux, uy)| (ux - x).abs() < 50 && (uy - by).abs() < 13) {
             by -= 13;
         }
-        if banner && by < 104 {
+        if banner && (by < 104 || !used.is_empty()) {
             continue;
         }
         used.push((x, by));
@@ -368,7 +371,7 @@ fn draw_life(f: &mut Frame, w: &World, art: &Art, t: u32) {
         Place::Flat => {
             // Timmy's mum on the gallery, now and then
             let cycle = t % 1800;
-            if (600..900).contains(&cycle) {
+            if (600..900).contains(&cycle) && w.banner.is_none() {
                 let ppl = art.style(1);
                 let s = if (t / 20).is_multiple_of(2) { &ppl.cheer } else { &ppl.stand };
                 blit_person_clip(f, s, 96, 72, false, &adult_palette(0), 70);
@@ -393,7 +396,7 @@ fn draw_life(f: &mut Frame, w: &World, art: &Art, t: u32) {
         }
         Place::Kooi => {
             // the lamps hum; the ice cream van drives past now and then
-            if (t / 3) % 40 == 0 {
+            if (t / 3).is_multiple_of(40) {
                 f.rect(15, 5, 17, 4, rgb(255, 255, 255));
             }
             let cycle = t % 2400;
@@ -420,30 +423,22 @@ pub fn draw_hud(f: &mut Frame, w: &World, art: &Art, t: u32) {
         f.rect(x0 + 1, 1, 3, 24, d.color);
         if keeper {
             f.rect_outline(x0 + 1, 1, 62, 24, if (t / 10).is_multiple_of(2) { rgb(248, 136, 24) } else { rgb(200, 96, 24) });
-            art.glove.draw(f, x0 + 52, 3, &PROPS, false);
+            art.glove.draw(f, x0 + 23, 14, &PROPS, false);
         }
         let name = if d.name.len() > 7 { &d.name[..7] } else { d.name };
         f.text_sh(x0 + 6, 3, name, rgb(216, 216, 240), OUTLINE, false);
         if let Some(p) = k.human() {
             let col = if p == 0 { P1_COL } else { P2_COL };
-            let tx = if keeper { x0 + 40 } else { x0 + 52 };
+            let tx = x0 + 53;
             f.rect(tx, 2, 9, 7, col);
             f.text(tx + 2, 2, if p == 0 { "1" } else { "2" }, rgb(16, 16, 48));
         }
         let pts = format!("{}", k.pts);
         let col = if k.pts <= 2 { rgb(248, 96, 80) } else if k.pts <= 5 { rgb(248, 200, 64) } else { white() };
         f.text_grad(x0 + 6, 13, &pts, &grad7(col), OUTLINE, true);
-        // the exact shot that finishes a keeper
-        if keeper && k.pts <= 5 && w.phase == Phase::Play {
-            let hint = match k.pts {
-                1 => "VOLLEY",
-                2 => "KOP/HAK",
-                5 => "OMHAAL",
-                _ => "PRECIES",
-            };
-            f.text(x0 + 26, 15, hint, rgb(248, 200, 64));
-        } else if keeper {
-            f.text(x0 + 26, 15, "KEEPT", rgb(160, 168, 216));
+        if keeper {
+            let c = if k.pts <= 5 { rgb(248, 200, 64) } else { rgb(160, 168, 216) };
+            f.text(x0 + 33, 15, "KEEPT", c);
         } else if let (Some(q), Some(_)) = (w.quota, k.human()) {
             // the respect target
             let s = k.stats.scored;
@@ -452,6 +447,26 @@ pub fn draw_hud(f: &mut Frame, w: &World, art: &Art, t: u32) {
             f.text(x0 + 40, 15, &format!("{}/{}", s.min(q), q), col);
         }
     }
+}
+
+/// The shot that finishes a keeper who is nearly out, on the kerb.
+pub fn draw_finish_hint(f: &mut Frame, w: &World) {
+    let k = &w.kids[w.keeper];
+    if w.phase != Phase::Play || k.pts > 5 {
+        return;
+    }
+    let what = match k.pts {
+        1 => "A VOLLEY FINISHES",
+        2 => "A HEADER OR HEEL FINISHES",
+        5 => "A BICYCLE KICK FINISHES",
+        3 => "EXACTLY 3 FINISHES",
+        _ => "EXACTLY 4 FINISHES",
+    };
+    let s = format!("{} ON {}: {} HIM", kid(k.id).name, k.pts, what);
+    let s = if text_width(&s, false) > 244 { format!("{} ON {}: {}", kid(k.id).name, k.pts, what) } else { s };
+    let tw = text_width(&s, false);
+    f.rect(128 - tw / 2 - 4, 211, tw + 8, 11, rgb(16, 16, 48));
+    f.text_center(128, 213, &s, rgb(248, 200, 64), OUTLINE, false);
 }
 
 pub fn draw_banner(f: &mut Frame, b: &Banner, cy: i32) {
@@ -512,8 +527,8 @@ pub fn draw_count_out(f: &mut Frame, w: &World, t: u32) {
     let line = words.join(" ");
     let tail = if line.len() > 40 { &line[line.len() - 40..] } else { &line[..] };
     f.text_sh(8, 33, tail, P1_COL, OUTLINE, false);
-    if let Some(&k) = l.left.get(l.point) {
-        if l.word > 0 {
+    if let Some(&k) = l.left.get(l.point)
+        && l.word > 0 {
             let kd = &w.kids[k];
             let (x, y) = proj(kd.x, kd.y, kd.z);
             let bob = ((t / 6) % 2) as i32;
@@ -522,7 +537,6 @@ pub fn draw_count_out(f: &mut Frame, w: &World, t: u32) {
                 bubble(f, x, y - 50, word);
             }
         }
-    }
 }
 
 pub fn draw_brand(f: &mut Frame, w: &World, t: u32) {

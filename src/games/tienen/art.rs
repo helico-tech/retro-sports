@@ -219,52 +219,68 @@ pub const BALL: [[&str; 6]; 2] = [
     [".WKWW.", "WWWWKW", "KKWWWW", "WWWKKW", "WKWWWW", ".WWKW."],
 ];
 
-/// A small hatchback, facing right (C/c = body, swapped).
-pub const CAR: [&str; 15] = [
-    "..........CCCCCCCCCCCCC.............",
-    ".........CLLLLLcLLLLLLLC............",
-    "........CLLLLLLcLLLLLLLLC...........",
-    ".......CLLLLLLLcLLLLLLLLLC..........",
-    "......CLLLLLLLLcLLLLLLLLLLC.........",
-    ".CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC..",
-    "CCCCCCCCCCcCCCCCCCcCCCCCCCCCCCCCCCC.",
-    "CCCCCCCCCCcCCCCCCCcCCCCCCCCCCCCCCYY.",
-    "RCCCCCCCCCcCCCCCCCcCCCCCCCCCCCCCCYYw",
-    "RCCCCCCCCCcCCCCCCCcCCCCCCCCCCCCCCCCw",
-    "wwccKKKKKcccccccccccccccccKKKKKcccww",
-    ".wcKKwwwKKcccccccccccccccKKwwwKKccw.",
-    "...KwgggwK...............KwgggwK....",
-    "...KKwwwKK...............KKwwwKK....",
-    "....KKKKK.................KKKKK.....",
+/// A small hatchback with a grumpy driver, facing right (C/c = body).
+pub const CAR: [&str; 24] = [
+    "..................CCCCCCCCCCCCCCCCCC..........................",
+    ".................CLLLLLLLLLcLLLLLLLLLC........................",
+    "................CLLLLLLLLLLcLLLLLLLLLLC.......................",
+    "...............CLLLLLLLLLLLcLLLLLHHLLLLC......................",
+    "..............CLLLLLLLLLLLLcLLLLHHHHLLLLC.....................",
+    ".............CLLLLLLLLLLLLLcLLLLSSKSLLLLLC....................",
+    "............CLLLLLLLLLLLLLLcLLLLSSSSLLLLLLC...................",
+    "...........CLLLLLLLLLLLLLLLcLLLLATAALLLLLLLC..................",
+    "..CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC........",
+    ".CCCCCCCCCCCCCCCCCCCCCCCCCCcCCCCCCCCCCCCCCCCCCCCCCCCCCCC......",
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCcCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC....",
+    "CCCCCCCCCCCCCCCCCCCCCCCCCCCcCCCCCCCCCCCCCCCCCCCCCCCCCCCCYYY...",
+    "RCCCCCCCCCCCCCCCKKCCCCCCCCCcCCCCCCCCKKCCCCCCCCCCCCCCCCCCYYYw..",
+    "RCCCCCCCCCCCCCCCCCCCCCCCCCCcCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCw..",
+    "RCCCCCCCCCCCCCCCCCCCCCCCCCCcCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCw.",
+    "wCCCCCCCCCCCCCCCCCCCCCCCCCCcCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCw.",
+    "wwcccccKKKKKKKccccccccccccccccccccccccccccKKKKKKKcccccccccwwww",
+    ".wcccKKKwwwwwKKKcccccccccccccccccccccccccKKKwwwwwKKKcccccccww.",
+    "....KKwwgggggwwKK.......................KKwwgggggwwKK.........",
+    "....KwwgggKgggwwK.......................KwwgggKgggwwK.........",
+    "....KwwggKKKggwwK.......................KwwggKKKggwwK.........",
+    "....KwwgggKgggwwK.......................KwwgggKgggwwK.........",
+    "....KKwwgggggwwKK.......................KKwwgggggwwKK.........",
+    "......KKKKKKKKK...........................KKKKKKKKK...........",
 ];
 
-/// FIFI the poodle, facing right: two run frames.
-pub const DOG: [[&str; 11]; 2] = [
+/// FIFI the poodle, facing right: two run frames. A pink bow (P) and
+/// collar, pom-poms on the tail and legs.
+pub const DOG: [[&str; 14]; 2] = [
     [
-        "..........WWW...",
-        ".........WWWWW..",
-        "........WWKWWPw.",
-        "........WWWWWW..",
-        "..WW.....WPPW...",
-        ".WWWW..WWWWW....",
-        "..WWWWWWWWWWW...",
-        "...WWWWWWWWWW...",
-        "...WwWWWWWwWW...",
-        "...w..W...w.W...",
-        "..ww..WW..ww.WW.",
+        "............PP.....",
+        "...........PWWW....",
+        "..........WWWWWW...",
+        "..........WWKWWWWw.",
+        "..........WWWWWWW..",
+        "...WW......PPPWW...",
+        "..WWWW....WWWWW....",
+        "...WW.WWWWWWWWWW...",
+        "......WWWWWWWWWW...",
+        "......WWWWWWWWWW...",
+        ".......WW....WW....",
+        ".......w......w....",
+        "......WWW....WWW...",
+        "...................",
     ],
     [
-        "..........WWW...",
-        ".........WWWWW..",
-        "........WWKWWPw.",
-        "........WWWWWW..",
-        ".WW......WPPW...",
-        "WWWW...WWWWW....",
-        ".WWWWWWWWWWWW...",
-        "..WWWWWWWWWWW...",
-        "..WWwWWWWWWwW...",
-        "....w.W..W.w....",
-        "...ww.WW.WW.ww..",
+        "............PP.....",
+        "...........PWWW....",
+        "..........WWWWWW...",
+        "..........WWKWWWWw.",
+        "..........WWWWWWW..",
+        "..WW.......PPPWW...",
+        ".WWWW.....WWWWW....",
+        "..WW..WWWWWWWWWW...",
+        "......WWWWWWWWWW...",
+        "......WWWWWWWWWW...",
+        "......WW......WW...",
+        ".....w.........w...",
+        "....WWW.......WWW..",
+        "...................",
     ],
 ];
 
@@ -373,9 +389,19 @@ pub struct People {
     pub sit: Sprite,
 }
 
+/// A bigger kid: the skeleton stretched up from the feet and widened.
+fn big(k: &Skel) -> Skel {
+    k.map(|(x, y)| (12 + ((x - 12) as f32 * 1.1).round() as i32, 30 - ((30 - y) as f32 * 1.12).round() as i32))
+}
+
 impl People {
     fn new(style: usize) -> Self {
-        let p = |k: &Skel| person(k, style, false, false);
+        People::build(style, false)
+    }
+
+    fn build(style: usize, large: bool) -> Self {
+        let p = |k: &Skel| person(&if large { big(k) } else { *k }, style, false, false);
+        let pf = |k: &Skel, flat: bool, side: bool| person(&if large { big(k) } else { *k }, style, flat, side);
         People {
             stand: p(&STAND),
             run: RUN.map(|k| p(&k)),
@@ -387,14 +413,14 @@ impl People {
             hold: p(&HOLD),
             punch: p(&PUNCH),
             roll: p(&ROLL),
-            down: person(&DOWN, style, true, true),
-            dive: person(&DIVE, style, true, false),
+            down: pf(&DOWN, true, true),
+            dive: pf(&DIVE, true, false),
             kick: KICK.map(|k| p(&k)),
             heel: p(&HEEL),
             header: p(&HEADER),
             header_jump: p(&HEADER_JUMP),
             chest: p(&CHEST),
-            bike: [p(&BIKE[0]), person(&BIKE[1], style, true, true)],
+            bike: [p(&BIKE[0]), pf(&BIKE[1], true, true)],
             sulk: p(&SULK),
             bent: p(&BENT),
             ouch: p(&OUCH),
@@ -494,6 +520,8 @@ pub fn blit_person_clip(f: &mut Frame, s: &Sprite, x: i32, y: i32, flip: bool, p
 pub struct Art {
     /// one set of poses per head style
     pub people: Vec<People>,
+    /// Gijs, too big for the goal
+    pub gijs: People,
     pub ball: [Bmp; 2],
     pub car: Bmp,
     pub dog: [Bmp; 2],
@@ -508,6 +536,7 @@ impl Art {
     pub fn new() -> Self {
         Art {
             people: (0..sp::HAIR_STYLES).map(People::new).collect(),
+            gijs: People::build(kid(2).style, true),
             ball: [Bmp::art(&BALL[0]), Bmp::art(&BALL[1])],
             car: Bmp::art(&CAR),
             dog: [Bmp::art(&DOG[0]), Bmp::art(&DOG[1])],
@@ -521,6 +550,15 @@ impl Art {
 
     pub fn style(&self, s: usize) -> &People {
         &self.people[s % self.people.len()]
+    }
+
+    /// The poses of one kid (Gijs is bigger than the rest).
+    pub fn kid(&self, id: usize) -> &People {
+        if id == 2 {
+            &self.gijs
+        } else {
+            self.style(kid(id).style)
+        }
     }
 }
 

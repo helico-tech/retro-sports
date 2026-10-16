@@ -107,7 +107,7 @@ fn latje(w: &World, k: usize, b: &mut Brain) -> Intent {
         return Intent::default();
     }
     let me = &w.kids[k];
-    let id = (l.round * 8 + l.turn) as usize;
+    let id = l.round * 8 + l.turn;
     if b.turn != id {
         b.turn = id;
         let sd = 0.03 + 0.09 * (1.0 - me.skill) + 0.01 * (5 - schot(me.id)) as f32;
@@ -304,8 +304,8 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
     }
 
     // 3. a rebound in the air near me: shoot it first time
-    if ball.air && ball.loose() && ball.from == Some(w.keeper) && ball.cross_to.is_none() && ball.shot.is_some() {
-        if let Some((cx, cy, t)) = ball.when_at(6.0) {
+    if ball.air && ball.loose() && ball.from == Some(w.keeper) && ball.cross_to.is_none() && ball.shot.is_some()
+        && let Some((cx, cy, t)) = ball.when_at(6.0) {
             let d = ((cx - me.x).powi(2) + (cy - me.y).powi(2)).sqrt();
             let closest = w.field().all(|m| {
                 let o = &w.kids[m];
@@ -321,7 +321,6 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
                 return it;
             }
         }
-    }
 
     // 4. a loose ball: the closest kid fetches it, unless the keeper will
     let (rx, ry) = if ball.air {
@@ -360,8 +359,8 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
         }
     }
     // the poodle has it: chase
-    if let Some(d) = &w.dog {
-        if d.has {
+    if let Some(d) = &w.dog
+        && d.has {
             let closest = w.field().min_by(|&a, &c| {
                 let da = (w.kids[a].x - d.x).abs() + (w.kids[a].y - d.y).abs();
                 let dc = (w.kids[c].x - d.x).abs() + (w.kids[c].y - d.y).abs();
@@ -375,7 +374,6 @@ fn field(w: &World, k: usize, b: &mut Brain) -> Intent {
                 return it;
             }
         }
-    }
 
     // 5. otherwise: get open in front of the goal, spread out
     let order: Vec<usize> = w.field().filter(|&m| ball.owner != Some(m)).collect();
@@ -434,8 +432,8 @@ fn keeper(w: &World, k: usize, b: &mut Brain) -> Intent {
         return it;
     }
     // a cross that comes down in the area: claim it
-    if ball.loose() && ball.air && ball.cross_to.is_some() && ball.shot.is_none() {
-        if let Some((cx, cy, t)) = ball.when_at(18.0) {
+    if ball.loose() && ball.air && ball.cross_to.is_some() && ball.shot.is_none()
+        && let Some((cx, cy, t)) = ball.when_at(18.0) {
             let reach = ((cx - me.x).powi(2) + (cy - me.y).powi(2)).sqrt() < 1.4 * t + 6.0;
             if in_area(cx, cy) && reach && skill + 0.2 > (b.err.abs() as f32) * 0.1 && b.react > b.delay {
                 let (mx, my) = go(me, cx - 3.0, cy);
@@ -448,10 +446,9 @@ fn keeper(w: &World, k: usize, b: &mut Brain) -> Intent {
                 return it;
             }
         }
-    }
     // a shot on its way
-    if let Some(_s) = ball.shot {
-        if ball.loose() && ball.vx < -0.4 && !ball.in_net {
+    if let Some(_s) = ball.shot
+        && ball.loose() && ball.vx < -0.4 && !ball.in_net {
             let plane = me.x + 3.0;
             let t = (plane - ball.x) / ball.vx;
             if t > 0.0 {
@@ -484,7 +481,6 @@ fn keeper(w: &World, k: usize, b: &mut Brain) -> Intent {
                 }
             }
         }
-    }
     let (mx, my) = go(me, tx, ty);
     it.mx = mx;
     it.my = my;

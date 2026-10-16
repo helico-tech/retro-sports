@@ -27,6 +27,7 @@ src/
     dodgeball/   DODGE OR DIE!
     discdogs/    DISC DOGS!     (frisbee)
     zenuwen/     STALEN ZENUWEN! (bike lifting)
+    tienen/      TIENEN!        (street football)
     tegenwind/   TEGENWIND!     (Dutch cycling)
     trailmix/    TRAIL MIX!     (trail running)
     hangtime/    HANG TIME!     (hang gliding)

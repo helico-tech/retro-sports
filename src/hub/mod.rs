@@ -357,7 +357,7 @@ impl Hub {
         f.rect(bx as i32 - 1, by as i32 - 1, 3, 3, OUTLINE);
         f.set(bx as i32, by as i32, rgb(248, 248, 248));
         if k > 0.7 && (t / 8).is_multiple_of(2) {
-            f.text(px + 3, py - 9, "GOAL!", rgb(248, 216, 48));
+            f.text(px + 3, py + ph + 2, "GOAL!", rgb(248, 216, 48));
         }
 
         // tegenwind: windmill sails and a cyclist on the dike road

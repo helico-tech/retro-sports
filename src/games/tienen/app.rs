@@ -520,8 +520,9 @@ impl App {
             Phase::Brand => draw_brand(f, w, t),
             _ => {}
         }
+        draw_finish_hint(f, w);
         if let Some(b) = &w.banner {
-            draw_banner(f, b, 62);
+            draw_banner(f, b, 52);
         }
         if self.mode != Mode::Demo {
             self.draw_tips(f, w);
@@ -567,7 +568,7 @@ impl App {
         goal_back(f);
         // Kevin keeps it up; Gijs waits in goal
         let kp = kid_palette(0);
-        let ppl = self.art.style(kid(0).style);
+        let ppl = self.art.kid(0);
         let phase = t % 40;
         let bz = 6.0 + (20.0 - (phase as f32 - 20.0).abs()) * 1.6;
         let (kx, ky) = proj(150.0, 46.0, 0.0);
@@ -579,7 +580,7 @@ impl App {
         f.shade_ellipse(gx, gy, 3, 1, 1, 2);
         self.art.ball[((t / 4) % 2) as usize].draw(f, bx - 4, by - 7, &PROPS, false);
         let gp = kid_palette(2);
-        let g = self.art.style(kid(2).style);
+        let g = self.art.kid(2);
         let (gkx, gky) = proj(GOAL_X + 8.0, goal_mid(), 0.0);
         f.shade_ellipse(gkx, gky, 7, 2, 5, 8);
         blit_person(f, &g.ready, gkx, gky, false, &gp);
@@ -642,9 +643,8 @@ impl App {
         stripes(f, t, rgb(16, 48, 32), rgb(24, 64, 40));
         f.text_grad_center(128, 4, "WIE DOET ER MEE?", &grad7(rgb(248, 176, 48)), OUTLINE, true);
         f.text_center(128, 14, "PICK YOUR KID", rgb(160, 216, 168), OUTLINE, false);
-        for k in 0..4 {
+        for (k, &id) in PICKS.iter().enumerate() {
             let (cx, cy) = (6 + (k % 2) as i32 * 124, 24 + (k / 2) as i32 * 88);
-            let id = PICKS[k];
             let d = kid(id);
             let hover: Vec<usize> = (0..2).filter(|&p| (p == 0 || self.mode == Mode::Two) && self.cursor[p] == k).collect();
             let accent = d.color;
@@ -750,7 +750,7 @@ impl App {
         f.text_center(128, 70, "TEGEN", rgb(248, 176, 48), OUTLINE, true);
         for (k, &id) in locals.iter().enumerate() {
             let x = 128 + (k as i32 - (locals.len() as i32 - 1) / 2) * 56 - if locals.len() == 2 { 28 } else { 0 };
-            let ppl = self.art.style(kid(id).style);
+            let ppl = self.art.kid(id);
             f.shade_ellipse(x, gy, 8, 2, 5, 8);
             let s = if kid(id).name == d.rival && (t / 30).is_multiple_of(2) { &ppl.cheer } else { &ppl.stand };
             blit_person(f, s, x, gy, k == 0, &kid_palette(id));
@@ -830,7 +830,7 @@ impl App {
             f.text_sh(x0 + 5, y0 + 117, "TOTAAL", col, OUTLINE, false);
             f.text_grad(x0 + w - 5 - text_width(&s, true), y0 + 116, &s, &grad7(col), OUTLINE, true);
             if done {
-                let s = format!("SCORE {}", self.score[p]);
+                let s = if self.mode == Mode::One && !self.cleared { "NOT ADDED TO THE RUN".to_string() } else { format!("RUN SCORE {}", self.score[p]) };
                 f.text_sh(x0 + 5, y0 + 129, &s, rgb(184, 184, 216), OUTLINE, false);
             }
         }
@@ -857,7 +857,7 @@ impl App {
         f.rect(0, gy, W, H - gy, rgb(88, 88, 96));
         f.rect(0, gy - 3, W, 3, rgb(208, 200, 192));
         let id = PICKS[self.cursor[0]];
-        let ppl = self.art.style(kid(id).style);
+        let ppl = self.art.kid(id);
         f.shade_ellipse(112, gy + 2, 9, 2, 5, 8);
         let s = if (t / 30).is_multiple_of(2) { &ppl.sit } else { &ppl.ouch };
         blit_person(f, s, 112, gy + if (t / 30).is_multiple_of(2) { 2 } else { -2 }, false, &kid_palette(id));
@@ -878,12 +878,12 @@ impl App {
         stripes(f, t, rgb(16, 8, 32), rgb(24, 16, 48));
         f.logo(128, 50, "GAME", 4, &grad6(rgb(216, 48, 64)), OUTLINE, rgb(0, 0, 0));
         f.logo(128, 88, "OVER", 4, &grad6(rgb(216, 48, 64)), OUTLINE, rgb(0, 0, 0));
-        f.text_center(128, 140, "MUM CALLED. DINNER IS READY.", rgb(200, 200, 232), OUTLINE, false);
+        f.text_center(128, 128, "MUM CALLED. DINNER IS READY.", rgb(200, 200, 232), OUTLINE, false);
         // walking home with the ball under the arm
         let x = (t as i32) % 360 - 60;
         let gy = 192;
         let id = PICKS[self.cursor[0]];
-        let ppl = self.art.style(kid(id).style);
+        let ppl = self.art.kid(id);
         f.shade_ellipse(x, gy, 7, 2, 5, 8);
         blit_person(f, &ppl.hold, x, gy, false, &kid_palette(id));
         self.art.ball[0].draw(f, x + 2, gy - 18, &PROPS, false);
@@ -903,11 +903,11 @@ impl App {
         let others: Vec<usize> = if self.mode == Mode::Two { vec![PICKS[self.cursor[1 - winner]], 9] } else { vec![4, 5, 6] };
         for (k, &o) in others.iter().enumerate() {
             let x = cx - 20 + k as i32 * 20 - if others.len() == 2 { -10 } else { 0 };
-            let ppl = self.art.style(kid(o).style);
+            let ppl = self.art.kid(o);
             f.shade_ellipse(x, gy, 7, 2, 5, 8);
             blit_person(f, &ppl.victory, x, gy, k % 2 == 1, &kid_palette(o));
         }
-        let ppl = self.art.style(kid(id).style);
+        let ppl = self.art.kid(id);
         let hop = (((t as i32) % 30) - 15).abs() / 5;
         blit_person(f, &ppl.victory, cx, gy - 26 - hop, false, &kid_palette(id));
         self.art.ball[0].draw(f, cx + 6, gy - 62 - hop, &PROPS, false);
