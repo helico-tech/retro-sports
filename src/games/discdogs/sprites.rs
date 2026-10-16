@@ -602,7 +602,7 @@ fn build_dog(b: Breed, fr: DogFrame) -> RSprite {
     leg(&mut s, joint_f, pose.legs[0], true, true);
     if sh.ruff {
         let r = (sho.0 + 0.5, sho.1 - 1.0);
-        s.ellipse(r.0, r.1, 2.5, sh.thick * 0.5 + 0.5, -pitch, if b == Breed::Keeshond { LIGHT } else { LIGHT });
+        s.ellipse(r.0, r.1, 2.5, sh.thick * 0.5 + 0.5, -pitch, LIGHT);
     }
     // collar
     let neck = (sho.0 + 1.0, sho.1 - sh.thick * 0.3);

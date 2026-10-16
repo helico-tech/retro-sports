@@ -55,5 +55,51 @@ Module `src/games/discdogs/`, split like dodgeball:
   moved with up/down, so `tests/carts.rs` (which presses right) hung as
   soon as a second cart was registered. The island hub fixes that; no
   hub or test file edited by this story.
+- 2026-10-16: balance pass with `--sim` and `--probe` (see the spec's
+  Balance results). Found with the numbers: a tall dog caught the disc
+  straight out of its owner's hand (Sir Woofington's 4-yard "catches";
+  now no catch in the first 24 frames of flight); the pond turned the
+  park into a swim meet (pond 30 px, swimming 1.8 px/f, more air control
+  so a hop can brake); squirrel stares lost a third of the flight
+  (shorter stares; tapping C now gives a burst of zoomies); always
+  flipping was as good as playing safe (flip 44 frames, now clearly
+  worse). Ladder skills 0.0 / 0.5 / 0.88; the easy CPU throws short and
+  safe and fumbles, rather than missing everything.
+- 2026-10-16: ART REVIEW (screens at 1x and 3x, sprite sheets 48/49):
+  - MUST: flip frames read as a rotated standing dog -> built a curled
+    ball that spins (done). Tumble drew the dog upright (vflip bug) ->
+    on its back, legs kicking (done). HUD score overlapped tags and pips,
+    windsock overlapped the wind number -> new HUD layout (done). Hedge
+    sign text ran off the sign; pier yard numbers painted twice; bowl
+    yard signs on top of the ad boards (all done).
+  - SHOULD: gull and squirrel too small to read at 1x -> redrawn larger
+    (done). Big empty park sky -> Helico blimp, birds, cow cloud (done).
+    Afghan fringe drew stripes across the body (done). Continue / game
+    over dog too small -> 2x (done). "ZOOMIES!" popup spammed (done).
+    Bowl crowd is a flat dot pattern -> issue 0011 (not done).
+  - COULD: disc wobble frames are crude; results ranking platforms plain;
+    the sleeper is small (left as is).
+- 2026-10-16: GAMEPLAY REVIEW (sim, probe, and playing the scripted toss):
+  - MUST: free 4-yard catches (fixed); CPU leap re-plan slid forever and
+    leapt facing the wrong way (fixed); park pond and squirrel made stage
+    1 the hardest (fixed); greedy flipping not worse than safe (fixed);
+    an idle human must not stall a match (auto throw after 10 s, test).
+  - SHOULD: every action has feedback (bark on leap, whoosh on flip,
+    chomp, tick on aim and meter, ding on PERFECT, popups for zoomies,
+    sausage, gust, snag, squirrel) - checked. Readable timing: disc
+    shadow, wobble when slow, off-screen height arrow - checked. CPU
+    mid-skill per-dog spread is wide (Biscuit 74% vs Woofington 37% at
+    skill 0.5) -> issue 0010. A on the ground does nothing (no flip
+    hint) - left, the intro card explains it.
+  - COULD: a landing marker; over-the-shoulder catches are rare (2-9%),
+    which suits a bonus.
+- 2026-10-16: done. `cargo test` and `cargo test --release` pass (whole
+  crate), wasm build ok, no clippy warnings in `src/games/discdogs/`.
+  Not checked: how it sounds and feels with real hands and speakers
+  (only headless; samples checked for clipping).
+- 2026-10-16: no engine changes. Clippy clean in the module, wasm build
+  ok, update+draw ~60 us per frame natively, `App::new` ~0.5 ms.
 
 ## Follow-ups
+- [Issue 0010](../../issues/0010-discdogs-cpu-dog-spread.md): CPU per-dog spread at mid skill.
+- [Issue 0011](../../issues/0011-discdogs-bowl-crowd-art.md): richer Grand Bowl crowd.

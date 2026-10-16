@@ -200,6 +200,7 @@ impl App {
             }
             Scene::Select => {
                 let players = if self.mode == Mode::Two { 2 } else { 1 };
+                #[allow(clippy::needless_range_loop)]
                 for pi in 0..players {
                     let p = e[pi];
                     if !self.locked[pi] {
@@ -290,7 +291,7 @@ impl App {
             }
             Scene::Results => self.update_results(e),
             Scene::Continue => {
-                if self.t % 60 == 0 {
+                if self.t.is_multiple_of(60) {
                     self.count -= 1;
                     self.sfx.push(Sfx::Tick);
                 }
@@ -340,11 +341,11 @@ impl App {
         let ok = |p: Pad| p.a || p.start;
         let n = self.last.as_ref().map(|m| m.sides[0].results.len().max(m.sides[1].results.len())).unwrap_or(5) as u32;
         let t = self.t;
-        if t >= 30 && t < 30 + n * 16 && (t - 30) % 16 == 0 {
+        if t >= 30 && t < 30 + n * 16 && (t - 30).is_multiple_of(16) {
             self.sfx.push(Sfx::Tick);
         }
         let end = self.tally_len();
-        if t > 30 + n * 16 && t < end && t % 4 == 0 {
+        if t > 30 + n * 16 && t < end && t.is_multiple_of(4) {
             self.sfx.push(Sfx::Blip);
         }
         if t == end {
@@ -410,7 +411,7 @@ impl App {
                     if self.mode == Mode::Demo {
                         f.rect(0, 200, W, 24, rgb(16, 16, 48));
                         f.hline(0, W - 1, 199, rgb(248, 176, 32));
-                        if (t / 30) % 2 == 0 {
+                        if (t / 30).is_multiple_of(2) {
                             f.text_center(128, 203, "DEMO PLAY - PUSH START", rgb(248, 232, 64), OUTLINE, true);
                         }
                         f.text_center(128, 214, DEMO_TIPS[self.demo_tip], rgb(184, 200, 248), OUTLINE, false);
@@ -458,7 +459,7 @@ impl App {
             f.text_grad_center(128, 101, "THE GOODEST FRISBEE CHAMPIONSHIP", &grad7(rgb(248, 216, 96)), OUTLINE, false);
         }
         if !self.menu_open {
-            if (t / 24) % 2 == 0 && st > 36 {
+            if (t / 24).is_multiple_of(2) && st > 36 {
                 f.text_grad_center(128, 120, "PUSH START", &grad7(rgb(248, 248, 248)), OUTLINE, true);
             }
         } else {
@@ -502,11 +503,11 @@ impl App {
             f.rect(cx + 2, cy + 60, 52, 6, rgb(56, 136, 56));
             f.dither_rect(cx + 2, cy + 60, 52, 1, rgb(88, 176, 72), rgb(56, 136, 56));
             let active = !hover.is_empty();
-            let opose = if active && (t / 16) % 2 == 0 { OwnerPose::Cheer } else { OwnerPose::Stand };
+            let opose = if active && (t / 16).is_multiple_of(2) { OwnerPose::Cheer } else { OwnerPose::Stand };
             blit(f, self.art.owners.get(k, opose), cx + 13, cy + 62, false, &owner_pal(k));
             let dfr = if active {
                 [DogFrame::Run0, DogFrame::Run1, DogFrame::Run2, DogFrame::Run3][((t / 5) as usize + k) % 4]
-            } else if (t / 12 + k as u32) % 2 == 0 {
+            } else if (t / 12 + k as u32).is_multiple_of(2) {
                 DogFrame::SitWag
             } else {
                 DogFrame::Sit
@@ -529,7 +530,7 @@ impl App {
             for &p in &hover {
                 let hc = if p == 0 { rgb(248, 232, 64) } else { rgb(96, 224, 248) };
                 let locked = self.locked[p];
-                if locked || (t / 8) % 2 == 0 {
+                if locked || (t / 8).is_multiple_of(2) {
                     f.rect_outline(cx - 1, cy - 1, 123, 90, hc);
                     f.rect_outline(cx, cy, 121, 88, hc);
                 }
@@ -570,7 +571,7 @@ impl App {
         }
         let slide = (36 - self.t as i32).max(0) * 7;
         // the pairs, big
-        let ca = if self.mode == Mode::Two { rgb(248, 216, 48) } else { rgb(248, 216, 48) };
+        let ca = rgb(248, 216, 48);
         let cb = if self.mode == Mode::Two { rgb(64, 208, 248) } else { rgb(232, 64, 72) };
         owner_big(f, &self.art, a, 34 - slide, 150, false);
         draw_scaled(f, self.art.dogs.get(a, DogFrame::Sit), 84 - slide, 150, false, &dog_pal(a, ca), 2);
@@ -606,7 +607,7 @@ impl App {
         // the stage
         f.rect(0, 176, W, 48, rgb(8, 8, 32));
         f.hline(0, W - 1, 176, rgb(248, 176, 32));
-        let sname = if self.mode == Mode::Two && (t / 20) % 2 == 0 { format!("< {} >", stage.name()) } else { stage.name().to_string() };
+        let sname = if self.mode == Mode::Two && (t / 20).is_multiple_of(2) { format!("< {} >", stage.name()) } else { stage.name().to_string() };
         f.text_grad_center(128, 179, &sname, &grad7(rgb(248, 232, 200)), OUTLINE, true);
         let sub = match self.mode {
             Mode::One => format!("STAGE {} OF 3 - {}", self.stage + 1, stage.tagline()),
@@ -687,7 +688,7 @@ impl App {
             let wn = PAIRS[m.sides[w].pair].dog.name;
             let s = if m.coin_toss { format!("{} WINS THE COIN TOSS!", wn) } else { format!("{} WINS!", wn) };
             f.text_grad_center(128, 164, &s, &grad7(rgb(248, 216, 64)), OUTLINE, true);
-            if self.t > end + 30 && (t / 20) % 2 == 0 {
+            if self.t > end + 30 && (t / 20).is_multiple_of(2) {
                 f.text_center(128, 212, "PUSH Z", rgb(248, 248, 248), OUTLINE, false);
             }
         }
@@ -708,7 +709,7 @@ impl App {
         f.text(155, 121, "PLEASE?", rgb(16, 16, 48));
         f.fill_poly(&[(152, 129), (160, 129), (149, 136)], OUTLINE);
         f.fill_poly(&[(153, 129), (158, 129), (151, 134)], rgb(248, 248, 248));
-        if (t / 20) % 2 == 0 {
+        if (t / 20).is_multiple_of(2) {
             f.text_center(128, 188, "PUSH Z TO TRY AGAIN", rgb(248, 248, 248), OUTLINE, true);
         }
     }
@@ -748,7 +749,7 @@ impl App {
         let (mx, mz) = d.mouth();
         draw_disc(f, cx + mx as i32, ground - mz as i32 + 1, rgb(248, 200, 48), 0, t as f32);
         // owner cheering beside
-        let op = if (t / 12) % 2 == 0 { OwnerPose::Cheer } else { OwnerPose::Stand };
+        let op = if (t / 12).is_multiple_of(2) { OwnerPose::Cheer } else { OwnerPose::Stand };
         f.shade_ellipse(cx - 46, 191, 7, 2, 5, 8);
         blit(f, self.art.owners.get(me, op), cx - 46, 191, false, &owner_pal(me));
         // the trophy
@@ -831,7 +832,7 @@ fn trophy(f: &mut Frame, cx: i32, base: i32, t: u32) {
     f.rect(cx - 2, cy - 3, 4, 6, gold_d);
     // a golden disc on top
     draw_disc(f, cx, cy - 25, gold, 0, t as f32 * 0.3);
-    if (t / 4) % 8 == 0 {
+    if (t / 4).is_multiple_of(8) {
         f.set(cx - 6, cy - 18, rgb(248, 248, 248));
         f.set(cx - 5, cy - 18, rgb(248, 248, 248));
         f.set(cx - 6, cy - 17, rgb(248, 248, 248));
@@ -903,7 +904,7 @@ fn title_show(f: &mut Frame, art: &Art, t: u32) {
     } else if k < 34.0 {
         draw_disc(f, ox + 9, gy - 16, col, 0, 0.0);
     }
-    if (150.0..200.0).contains(&k) && (t / 4) % 2 == 0 {
+    if (150.0..200.0).contains(&k) && (t / 4).is_multiple_of(2) {
         f.text_grad_center(d.x as i32, 140, "FLIP CATCH!", &grad7(rgb(248, 96, 200)), OUTLINE, true);
     }
 }

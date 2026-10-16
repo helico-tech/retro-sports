@@ -1303,7 +1303,7 @@ impl Match {
             }
             // dust puffs when running fast
             let d = self.dog;
-            if d.state == DogState::Run && d.vx.abs() > 1.6 && self.frame % 6 == 0 {
+            if d.state == DogState::Run && d.vx.abs() > 1.6 && self.frame.is_multiple_of(6) {
                 self.fx(d.x - d.face * 8.0, 0.0, -d.face * 0.3, 0.3, 12, FxKind::Dust);
             }
         }
@@ -1330,8 +1330,8 @@ impl Match {
 
     fn update_squirrel(&mut self, e: Pad) {
         let _ = e;
-        if let Some(due) = self.squirrel_due {
-            if self.phase_t >= due && self.disc.state == DiscState::Flying {
+        if let Some(due) = self.squirrel_due
+            && self.phase_t >= due && self.disc.state == DiscState::Flying {
                 self.squirrel_due = None;
                 // across the dog's path, ahead of it but before the landing spot
                 let mut pts = Vec::new();
@@ -1344,7 +1344,6 @@ impl Match {
                     self.sfx.push(Sfx::Chitter);
                 }
             }
-        }
         let Some(mut s) = self.squirrel else { return };
         s.t += 1;
         if s.gone {
@@ -1618,11 +1617,10 @@ impl Match {
                     self.dog.state = DogState::Happy;
                 }
             }
-            DogState::Bark => {
-                if t % 30 == 10 && t < 100 {
+            DogState::Bark
+                if t % 30 == 10 && t < 100 => {
                     self.sfx.push(Sfx::Bark);
                 }
-            }
             _ => {}
         }
         if self.dog.has_disc {

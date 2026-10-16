@@ -49,7 +49,7 @@ pub fn dog_frame(d: &Dog, t: u32) -> DogFrame {
     let run = [DogFrame::Run0, DogFrame::Run1, DogFrame::Run2, DogFrame::Run3];
     match d.state {
         DogState::Sit => {
-            if (t / 10) % 2 == 0 {
+            if (t / 10).is_multiple_of(2) {
                 DogFrame::SitWag
             } else {
                 DogFrame::Sit
@@ -68,7 +68,7 @@ pub fn dog_frame(d: &Dog, t: u32) -> DogFrame {
         }
         // on its back, legs kicking
         DogState::Tumble => {
-            if (t / 6) % 2 == 0 {
+            if (t / 6).is_multiple_of(2) {
                 DogFrame::Stand
             } else {
                 DogFrame::Run1
@@ -76,7 +76,7 @@ pub fn dog_frame(d: &Dog, t: u32) -> DogFrame {
         }
         DogState::Stare => DogFrame::Stare,
         DogState::Happy => {
-            if d.z > 0.0 || (t / 8) % 2 == 0 {
+            if d.z > 0.0 || (t / 8).is_multiple_of(2) {
                 DogFrame::Happy
             } else {
                 DogFrame::Stand
@@ -85,14 +85,14 @@ pub fn dog_frame(d: &Dog, t: u32) -> DogFrame {
         DogState::Guilty => DogFrame::Guilty,
         DogState::Lie => DogFrame::Lie,
         DogState::Shake => {
-            if (t / 3) % 2 == 0 {
+            if (t / 3).is_multiple_of(2) {
                 DogFrame::Shake0
             } else {
                 DogFrame::Shake1
             }
         }
         DogState::Bark => {
-            if (t / 10) % 2 == 0 {
+            if (t / 10).is_multiple_of(2) {
                 DogFrame::Bark
             } else {
                 DogFrame::Stand
@@ -102,6 +102,7 @@ pub fn dog_frame(d: &Dog, t: u32) -> DogFrame {
 }
 
 /// Draw a dog at world position, with the disc in its mouth if it has it.
+#[allow(clippy::too_many_arguments)]
 pub fn draw_dog(f: &mut Frame, art: &Art, d: &Dog, cam: f32, t: u32, collar: u32, disc_col: u32, carried: bool, wet: bool) {
     draw_dog_at(f, art, d, sx(d.x, cam), GROUND_Y, t, collar, disc_col, carried, wet);
 }
@@ -208,7 +209,7 @@ fn draw_waiting(f: &mut Frame, m: &Match, art: &Art, cam: f32, t: u32) {
     blit(f, art.owners.get(pair, OwnerPose::Sit), ox, y - 2, false, &owner_pal(pair));
     let mut d = Dog::new(pair);
     d.state = DogState::Lie;
-    let s = art.dogs.get(pair, if (t / 90) % 4 == 0 { DogFrame::Sit } else { DogFrame::Lie });
+    let s = art.dogs.get(pair, if (t / 90).is_multiple_of(4) { DogFrame::Sit } else { DogFrame::Lie });
     let pal = dog_pal(pair, side_color(m, side));
     f.shade_ellipse(ox + 20, y + 1, 9, 2, 5, 8);
     draw(f, s, ox + 20, y, false, &pal);
@@ -279,15 +280,14 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, art: &Art, t: u32) {
         // it runs "into" the screen, so it faces the dog when taunting
         let flip = s.taunt > 0 && !s.gone && m.dog.x < s.x;
         draw(f, &art.props.squirrel[fr], x, y, flip || (s.gone && s.t % 2 == 3), &prop_pal("squirrel"));
-        if s.taunt > 0 && !s.gone && (t / 8) % 2 == 0 {
+        if s.taunt > 0 && !s.gone && (t / 8).is_multiple_of(2) {
             f.text_sh(x + 6, y - 16, "NYA!", rgb(248, 248, 248), OUTLINE, false);
         }
     };
-    if let Some(s) = &m.squirrel {
-        if s.d < 0.0 {
+    if let Some(s) = &m.squirrel
+        && s.d < 0.0 {
             sq_draw(f, s);
         }
-    }
 
     // ---- the line: owners
     draw_waiting(f, m, art, cam, t);
@@ -314,8 +314,8 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, art: &Art, t: u32) {
     draw_dog(f, art, &m.dog, cam, t, side_color(m, side), dcol, carried, wet);
     if m.dog.state == DogState::Stare {
         let x = sx(m.dog.x, cam);
-        bubble(f, x + 2, GROUND_Y - 38, if (t / 12) % 2 == 0 { "!" } else { "?!" });
-        if m.human(side).is_some() && (t / 10) % 2 == 0 {
+        bubble(f, x + 2, GROUND_Y - 38, if (t / 12).is_multiple_of(2) { "!" } else { "?!" });
+        if m.human(side).is_some() && (t / 10).is_multiple_of(2) {
             f.text_center(x, GROUND_Y + 8, "TAP C!", rgb(248, 232, 64), OUTLINE, true);
         }
     }
@@ -349,18 +349,17 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, art: &Art, t: u32) {
         _ => {}
     }
 
-    if let Some(s) = &m.squirrel {
-        if s.d >= 0.0 {
+    if let Some(s) = &m.squirrel
+        && s.d >= 0.0 {
             sq_draw(f, s);
         }
-    }
 
     // ---- the gull
     if let Some(g) = &m.gull {
-        let fr = if g.has_disc || g.leaving { ((t / 5) % 3) as usize } else if (t / 8) % 2 == 0 { 1 } else { 0 };
+        let fr = if g.has_disc || g.leaving { ((t / 5) % 3) as usize } else if (t / 8).is_multiple_of(2) { 1 } else { 0 };
         let (gx, gy) = (sx(g.x, cam), sy(g.z));
         draw(f, &art.props.gull[fr], gx, gy, g.vx > 0.0, &prop_pal("gull"));
-        if !g.has_disc && !g.leaving && g.t < 40 && (t / 6) % 2 == 0 {
+        if !g.has_disc && !g.leaving && g.t < 40 && (t / 6).is_multiple_of(2) {
             bubble(f, gx, gy - 14, "!");
         }
     }
@@ -425,7 +424,7 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, art: &Art, t: u32) {
         let y = sy(m.disc.z);
         if y < 38 {
             let x = dx.clamp(8, W - 8);
-            let blink = (t / 6) % 2 == 0;
+            let blink = (t / 6).is_multiple_of(2);
             f.fill_poly(&[(x - 4, 42), (x + 4, 42), (x, 37)], if blink { rgb(248, 232, 64) } else { WHITE_C });
             let h = format!("{}", (m.disc.z / YD) as i32);
             f.text_center(x, 44, &h, rgb(248, 248, 248), OUTLINE, false);
@@ -502,13 +501,13 @@ fn rain_cloud(f: &mut Frame, x: i32, y: i32, t: u32) {
 }
 
 fn arrow_left(f: &mut Frame, x: i32, y: i32, t: u32) {
-    let c = if (t / 6) % 2 == 0 { rgb(248, 232, 64) } else { WHITE_C };
+    let c = if (t / 6).is_multiple_of(2) { rgb(248, 232, 64) } else { WHITE_C };
     f.fill_poly(&[(x - 1, y), (x + 7, y - 6), (x + 7, y + 6)], OUTLINE);
     f.fill_poly(&[(x + 1, y), (x + 6, y - 4), (x + 6, y + 4)], c);
 }
 
 fn arrow_right(f: &mut Frame, x: i32, y: i32, t: u32) {
-    let c = if (t / 6) % 2 == 0 { rgb(248, 232, 64) } else { WHITE_C };
+    let c = if (t / 6).is_multiple_of(2) { rgb(248, 232, 64) } else { WHITE_C };
     f.fill_poly(&[(x + 1, y), (x - 7, y - 6), (x - 7, y + 6)], OUTLINE);
     f.fill_poly(&[(x - 1, y), (x - 6, y - 4), (x - 6, y + 4)], c);
 }
@@ -522,7 +521,7 @@ fn draw_aim(f: &mut Frame, m: &Match, ox: i32, t: u32) {
     for k in 1..9 {
         let d = k as f32 * 5.0;
         let x = hx + (a.cos() * d) as i32;
-        let y = hy - (a.sin() * d) as i32 + (k * k) as i32 / 12;
+        let y = hy - (a.sin() * d) as i32 + (k * k) / 12;
         let c = if (k + (t / 4) as i32) % 3 == 0 { rgb(248, 232, 64) } else { WHITE_C };
         f.rect(x - 1, y - 1, 3, 3, OUTLINE);
         f.set(x, y, c);
@@ -540,7 +539,7 @@ fn draw_aim(f: &mut Frame, m: &Match, ox: i32, t: u32) {
         let y = my + mh - 1 - k;
         let u = k as f32 / mh as f32;
         let c = if u >= PERFECT_FROM {
-            if (t / 3) % 2 == 0 { rgb(248, 248, 200) } else { rgb(248, 216, 48) }
+            if (t / 3).is_multiple_of(2) { rgb(248, 248, 200) } else { rgb(248, 216, 48) }
         } else if u > 0.66 {
             rgb(248, 120, 48)
         } else if u > 0.33 {
@@ -552,13 +551,13 @@ fn draw_aim(f: &mut Frame, m: &Match, ox: i32, t: u32) {
     }
     // the perfect band
     f.rect_outline(mx - 1, my - 1, 9, top + 1, rgb(248, 216, 48));
-    if v >= PERFECT_FROM && (t / 4) % 2 == 0 {
+    if v >= PERFECT_FROM && (t / 4).is_multiple_of(2) {
         f.text_sh(mx - 8, my - 12, "PERFECT", rgb(248, 248, 200), OUTLINE, false);
     }
     if m.c_held {
         f.text_sh(mx - 10, my + mh + 4, "FLOATER", rgb(160, 224, 248), OUTLINE, false);
     }
-    if human && m.hint && (t / 20) % 2 == 0 {
+    if human && m.hint && (t / 20).is_multiple_of(2) {
         let msg = if m.phase == Phase::Aim { "UP/DOWN: AIM  HOLD Z: THROW" } else { "LET GO AT THE TOP!" };
         f.text_center(128, GROUND_Y + 12, msg, rgb(248, 248, 248), OUTLINE, false);
     }
@@ -610,7 +609,7 @@ fn pip(f: &mut Frame, x: i32, y: i32, r: Option<&TossResult>, now: bool, t: u32)
             f.line(x + 5, y, x + 1, y + 5, rgb(248, 72, 72));
         }
         None => {
-            let c = if now && (t / 8) % 2 == 0 { rgb(248, 232, 64) } else { rgb(48, 48, 88) };
+            let c = if now && (t / 8).is_multiple_of(2) { rgb(248, 232, 64) } else { rgb(48, 48, 88) };
             f.rect(x, y, 7, 6, c);
         }
     }
@@ -629,7 +628,7 @@ pub fn draw_hud(f: &mut Frame, m: &Match, art: &Art, t: u32) {
         let x0 = if left { 1 } else { 150 };
         let pw = 105;
         // the active side's panel glows
-        if active == side && m.phase != Phase::Over && (t / 10) % 2 == 0 {
+        if active == side && m.phase != Phase::Over && (t / 10).is_multiple_of(2) {
             f.rect_outline(x0, 1, pw, 31, col);
         }
         let ix = if left { x0 + 3 } else { x0 + pw - 17 };
@@ -660,7 +659,7 @@ pub fn draw_hud(f: &mut Frame, m: &Match, art: &Art, t: u32) {
             f.text_grad(x, 17, &txt, &grad7(rgb(248, 232, 96)), OUTLINE, true);
         }
         // toss pips, at the inner end of the panel
-        let total_pips = (m.turns / 2).max(TOSSES).min(8);
+        let total_pips = (m.turns / 2).clamp(TOSSES, 8);
         let pitch = if total_pips > 5 { 6 } else { 8 };
         for k in 0..total_pips {
             let r = m.sides[side].results.get(k);
@@ -694,7 +693,7 @@ pub fn draw_hud(f: &mut Frame, m: &Match, art: &Art, t: u32) {
         let k = (d.zoom / d.body.zoom_cap * 30.0) as i32;
         let (zx, zy) = (113, 27);
         f.rect(zx - 1, zy - 1, 32, 4, OUTLINE);
-        let c = if d.zooming && (t / 3) % 2 == 0 { rgb(248, 248, 200) } else { rgb(248, 152, 32) };
+        let c = if d.zooming && (t / 3).is_multiple_of(2) { rgb(248, 248, 200) } else { rgb(248, 152, 32) };
         f.rect(zx, zy, k, 2, c);
     } else {
         f.text_center(128, 24, "MPH", rgb(120, 128, 176), OUTLINE, false);

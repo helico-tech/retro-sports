@@ -33,6 +33,7 @@ pub enum Track {
 pub const ALL_TRACKS: [Track; 4] = [Track::Title, Track::Play, Track::Results, Track::Champion];
 
 /// A tone with vibrato (for whistles, squawks and the sad trombone).
+#[allow(clippy::too_many_arguments)]
 fn vib(b: &mut Buf, start: f32, dur: f32, f0: f32, f1: f32, depth: f32, rate: f32, w: Wave, vol: f32) {
     let i0 = (start * SR) as usize;
     let n = (dur * SR) as usize;
@@ -103,7 +104,7 @@ pub fn sfx_samples(s: Sfx) -> Vec<f32> {
         Sfx::Chitter => {
             for k in 0..7 {
                 let f0 = 1800.0 + (k % 3) as f32 * 260.0;
-                b.tone(k as f32 * 0.035, 0.022, f0, f0 * 1.2, Wave::Square(0.25), 0.1, 0.001, 0.8);
+                b.tone(k as f32 * 0.035, 0.022, f0, f0 * 1.2, Wave::Square(0.25), 0.18, 0.001, 0.8);
             }
         }
         Sfx::Gust => {
@@ -157,9 +158,9 @@ pub fn sfx_samples(s: Sfx) -> Vec<f32> {
         Sfx::WahWah => {
             // the sad trombone
             for (k, n) in [62.0f32, 61.0, 60.0].iter().enumerate() {
-                vib(&mut b, k as f32 * 0.2, 0.19, midi_hz(*n), midi_hz(*n), 0.006, 6.0, Wave::Square(0.4), 0.12);
+                vib(&mut b, k as f32 * 0.2, 0.19, midi_hz(*n), midi_hz(*n), 0.006, 6.0, Wave::Square(0.4), 0.2);
             }
-            vib(&mut b, 0.6, 0.38, midi_hz(59.0), midi_hz(57.5), 0.03, 7.0, Wave::Square(0.4), 0.12);
+            vib(&mut b, 0.6, 0.38, midi_hz(59.0), midi_hz(57.5), 0.03, 7.0, Wave::Square(0.4), 0.2);
         }
     }
     b.s

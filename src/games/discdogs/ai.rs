@@ -382,15 +382,14 @@ impl Brain {
             }
         }
         // leap
-        if let Some(l) = self.leap_in {
-            if l <= self.jump_err && d.grounded() && d.state != DogState::Swim {
+        if let Some(l) = self.leap_in
+            && l <= self.jump_err && d.grounded() && d.state != DogState::Swim {
                 pad.b = true;
                 self.leap_in = None;
                 // turn to face where the disc will be
                 pad.left = self.leap_face < 0.0;
                 pad.right = self.leap_face > 0.0;
             }
-        }
     }
 
     /// Frames until the predicted disc comes down to mouth height.

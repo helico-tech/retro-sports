@@ -226,7 +226,7 @@ pub fn shots(out: &str) {
                 fire("over", 0, &mut pending);
             }
             prev = st;
-            if flip_seq && sheet.len() < 16 && t % 3 == 0 {
+            if flip_seq && sheet.len() < 16 && t.is_multiple_of(3) {
                 let mut f = Frame::new();
                 draw_match(&mut f, &m, &sc, &art, t);
                 sheet.push(f);
@@ -525,13 +525,14 @@ pub fn sim(n: usize) {
             .collect();
         println!("           catch/win per dog: {}", line.join(" | "));
         println!(
-            "           pts/toss by stage: park {:.1} pier {:.1} bowl {:.1}   stares/match {:.2} sausages/match {:.2} snags/match {:.2} sudden dog {}",
+            "           pts/toss by stage: park {:.1} pier {:.1} bowl {:.1}   stares/match {:.2} sausages/match {:.2} snags/match {:.2} over-the-shoulder {:.1}% sudden dog {}",
             stage_pts[0].0 as f32 / stage_pts[0].1.max(1) as f32,
             stage_pts[1].0 as f32 / stage_pts[1].1.max(1) as f32,
             stage_pts[2].0 as f32 / stage_pts[2].1.max(1) as f32,
             st.stares as f32 / n as f32,
             st.sausages as f32 / n as f32,
             st.snags as f32 / n as f32,
+            100.0 * st.shoulders as f32 / st.catches.max(1) as f32,
             st.sudden
         );
     }
@@ -544,10 +545,11 @@ fn short(pair: usize) -> &'static str {
 }
 
 /// Scripted "human" bots against each step of the 1P ladder.
+#[allow(clippy::needless_range_loop)]
 pub fn probe(per: u32) {
     let per = per.max(1);
     println!("bot vs CPU ladder, {} matches per dog per stage", per);
-    println!("{:<8} {:>5} {:>6} {:>6} {:>8} {:>8} {:>8} {:>6}  {}", "bot", "stage", "win%", "catch%", "pts/toss", "cpu pts", "flips", "oof%", "misses: drop/gull/out/sunk, catches: G/R/S/J/F");
+    println!("{:<8} {:>5} {:>6} {:>6} {:>8} {:>8} {:>8} {:>6}  misses: drop/gull/out/sunk, catches: G/R/S/J/F", "bot", "stage", "win%", "catch%", "pts/toss", "cpu pts", "flips", "oof%");
     for style in ["lazy", "safe", "greedy", "decent"] {
         for stage in 0..3 {
             let (mut wins, mut games) = (0u32, 0u32);

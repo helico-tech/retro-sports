@@ -236,7 +236,7 @@ impl Scenery {
                     sailboat(f, x, by, c);
                 }
                 // the lighthouse beam
-                if (t / 30) % 2 == 0 {
+                if (t / 30).is_multiple_of(2) {
                     let (lx, ly) = (34 - off, 106);
                     f.fill_ellipse(lx, ly, 3, 2, rgb(248, 248, 200));
                     for k in 1..18 {
@@ -251,7 +251,7 @@ impl Scenery {
                 // floodlights flicker a little
                 for k in 0..3 {
                     let x = 40 + k * 150 - off;
-                    let on = (t / 3 + k as u32 * 7) % 97 != 0;
+                    let on = !(t / 3 + k as u32 * 7).is_multiple_of(97);
                     if on {
                         for dx in -7..=7 {
                             f.set(x + dx, 64, rgb(248, 248, 224));
@@ -281,8 +281,8 @@ impl Scenery {
                 // gulls perched on the posts, bobbing
                 for k in 0..5 {
                     let x = 40 + k * 96 - off;
-                    let bob = ((t / 20 + k as u32) % 6 == 0) as i32;
-                    perched_gull(f, x, 150 - bob, (t / 40 + k as u32) % 9 == 0);
+                    let bob = (t / 20 + k as u32).is_multiple_of(6) as i32;
+                    perched_gull(f, x, 150 - bob, (t / 40 + k as u32).is_multiple_of(9));
                 }
             }
             Stage::Bowl => {
@@ -311,7 +311,7 @@ impl Scenery {
                     for k in 0..6 {
                         let x = x0 + 4 + ((k * 13 + t as i32 / 9) % (x1 - x0 - 8).max(1));
                         let y = 184 + (k * 5) % 14;
-                        if (t / 10 + k as u32) % 3 != 0 {
+                        if !(t / 10 + k as u32).is_multiple_of(3) {
                             f.hline(x, x + 2, y, rgb(200, 232, 248));
                         }
                     }
@@ -842,7 +842,7 @@ fn crowd(f: &mut Frame, off: i32, t: u32, excite: f32) {
     if excite > 0.3 {
         for y in (99..150).step_by(7) {
             for x in (0..W).step_by(5) {
-                if ((x as u32 + y as u32 + t / 4) % 3) == 0 {
+                if (x as u32 + y as u32 + t / 4).is_multiple_of(3) {
                     f.set(x, y - 2, rgb(200, 160, 136));
                 }
             }
@@ -937,7 +937,7 @@ fn bowl_props() -> Layer {
         // goal post-ish disc target at the throw line
         let tx = col(0.0) - ox;
         f.rect(tx, 128, 2, 38, OUTLINE);
-        f.rect(tx + 0, 129, 1, 36, rgb(248, 216, 48));
+        f.rect(tx, 129, 1, 36, rgb(248, 216, 48));
     })
 }
 
@@ -975,7 +975,7 @@ fn ufo(f: &mut Frame, x: i32, y: i32, t: u32) {
     f.fill_ellipse(x, y - 3, 4, 3, OUTLINE);
     f.fill_ellipse(x, y - 3, 3, 2, rgb(120, 232, 184));
     for k in 0..4 {
-        let on = (t / 4 + k) % 4 == 0;
+        let on = (t / 4 + k).is_multiple_of(4);
         f.set(x - 6 + k as i32 * 4, y + 1, if on { rgb(248, 248, 96) } else { rgb(248, 96, 96) });
     }
 }
@@ -991,7 +991,7 @@ fn blimp(f: &mut Frame, x: i32, y: i32, t: u32) {
     f.rect(x - 4, y + 6, 9, 4, OUTLINE);
     f.rect(x - 3, y + 7, 7, 2, rgb(232, 64, 72));
     f.text(x - 14, y - 3, "HELICO", rgb(232, 64, 72));
-    if (t / 20) % 2 == 0 {
+    if (t / 20).is_multiple_of(2) {
         f.set(x - 18, y, rgb(248, 248, 96));
     }
 }
