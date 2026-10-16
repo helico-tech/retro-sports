@@ -451,8 +451,9 @@ impl Builder {
             for s in 0..stones {
                 let sx = x0 + w * (s as f32 + 1.0) / (stones as f32 + 1.0);
                 let si = (sx / CELL) as usize;
-                for k in si.saturating_sub(1)..=(si + 1).min(i1 - 1) {
-                    h[k] = base - 1.0;
+                let (a, b) = (si.saturating_sub(1), (si + 1).min(i1 - 1));
+                for (k, hk) in h.iter_mut().enumerate().take(b + 1).skip(a) {
+                    *hk = base - 1.0;
                     self.c.g[k] = Ground::Rock;
                 }
             }

@@ -16,9 +16,9 @@ fn run(race: &mut Race) {
 
 #[test]
 fn cpu_races_always_finish() {
-    for stage in 0..3 {
+    for (stage, &fac) in GOAT_FAC.iter().enumerate() {
         for seed in 1..=4u64 {
-            let mut racers = vec![(GERALD, Ctrl::Goat(GOAT_FAC[stage]))];
+            let mut racers = vec![(GERALD, Ctrl::Goat(fac))];
             for k in 0..3 {
                 racers.push(((seed as usize + k) % 4, Ctrl::Cpu(Strategy::Smart, 0.3 + 0.2 * k as f32)));
             }

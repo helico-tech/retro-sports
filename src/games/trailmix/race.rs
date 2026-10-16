@@ -624,7 +624,7 @@ impl Race {
         let s = c.slope(r.x);
         let g = c.ground(r.x);
         let up = s.max(0.0);
-        let down = (-s).max(0.0).min(0.45);
+        let down = (-s).clamp(0.0, 0.45);
         if r.goat() {
             let fac = match r.ctrl {
                 Ctrl::Goat(f) => f,
@@ -669,7 +669,7 @@ impl Race {
         let r = &self.runners[i];
         let s = self.course.slope(r.x);
         let up = s.max(0.0);
-        let down = (-s).max(0.0).min(0.4);
+        let down = (-s).clamp(0.0, 0.4);
         let d = &RUNNERS[r.def];
         let p = if r.bonk { 0 } else { r.pace.idx() };
         let mut use_ = if r.hiking(s) {
@@ -1060,7 +1060,7 @@ impl Race {
             self.cue(Sfx::Splash, x);
             self.runners[i].stats.combo = 0;
         }
-        if mud && self.runners[i].v > 0.6 && (self.t % 9 == 0) {
+        if mud && self.runners[i].v > 0.6 && self.t.is_multiple_of(9) {
             self.puff(x, alt, FxKind::Mud, 1, 0.6);
         }
         if grounded && g == Ground::Snow && self.runners[i].state == RState::Glissade && self.t.is_multiple_of(3) {
@@ -1155,12 +1155,11 @@ impl Race {
                     r.st_t = 0;
                 }
             }
-            RState::Stun => {
-                if r.st_t > 32 {
+            RState::Stun
+                if r.st_t > 32 => {
                     r.state = RState::Run;
                     r.st_t = 0;
                 }
-            }
             _ => {}
         }
     }
@@ -1699,7 +1698,7 @@ impl Race {
             let f = if lead > 300.0 { 0.995 } else if lead < -300.0 { 1.004 } else { 1.0 };
             self.runners[i].v *= f;
         }
-        if self.runners[i].shortcut && self.t % 240 == 0 {
+        if self.runners[i].shortcut && self.t.is_multiple_of(240) {
             self.goat_say(6, 90);
         }
         it

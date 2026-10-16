@@ -231,7 +231,7 @@ impl Scenery {
                 self.far.set(xx, y, c);
             }
             // snow line streaks
-            if top < 40 && hash(xx, 1, 5) % 3 == 0 {
+            if top < 40 && hash(xx, 1, 5).is_multiple_of(3) {
                 self.far.vline(xx, top + 10, top + 13 + (hash(xx, 2, 5) % 5) as i32, if left { snow_d } else { snow });
             }
         }
@@ -449,7 +449,7 @@ impl Scenery {
                             }
                         }
                         Ground::Rock => {
-                            let crack = (x + y * 3) % 13 == 0 || hsh % 23 == 0;
+                            let crack = (x + y * 3) % 13 == 0 || hsh.is_multiple_of(23);
                             if crack { rgb(112, 112, 128) } else if r < 3 { rgb(192, 192, 200) } else { rgb(160, 160, 176) }
                         }
                         Ground::Mud => {
@@ -529,6 +529,7 @@ impl Scenery {
     // ------------------------------------------------------------ per frame
 
     /// Sky, clouds and the three parallax strips for one view.
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_back(&self, f: &mut Frame, cam_x: f32, cam_alt: f32, y0: i32, h: i32, t: u32, ground_y: i32) {
         let y1 = y0 + h;
         // sky rows: scale the gradient to the view height
@@ -588,7 +589,7 @@ impl Scenery {
                     // meadow: mown stripes and flowers
                     1 => {
                         let h = hash(wx, y, 7);
-                        if h % 97 == 0 {
+                        if h.is_multiple_of(97) {
                             [rgb(248, 248, 248), rgb(248, 216, 48), rgb(232, 96, 168)][(h / 97 % 3) as usize]
                         } else if (d / 5) % 2 == 0 && (wx + y) & 1 == 0 {
                             rgb(104, 176, 80)
@@ -599,9 +600,9 @@ impl Scenery {
                     // scree slopes
                     _ => {
                         let h = hash(wx, y, 9);
-                        if h % 13 == 0 {
+                        if h.is_multiple_of(13) {
                             rgb(144, 144, 168)
-                        } else if h % 17 == 0 {
+                        } else if h.is_multiple_of(17) {
                             rgb(96, 96, 120)
                         } else {
                             back

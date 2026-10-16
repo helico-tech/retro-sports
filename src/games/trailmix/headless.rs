@@ -117,7 +117,7 @@ fn bot_race(app: &mut App, dir: &Path, prefix: &str, max_shots: usize) {
             if start && !sh.1 && sh.0.is_empty() {
                 sh.1 = true;
             }
-            if sh.1 && frame % 3 == 0 {
+            if sh.1 && frame.is_multiple_of(3) {
                 let mut f = Frame::new();
                 app.draw(&mut f);
                 sh.0.push(f);
@@ -128,13 +128,12 @@ fn bot_race(app: &mut App, dir: &Path, prefix: &str, max_shots: usize) {
                 }
             }
         }
-        if let Some(e) = event {
-            if !seen.contains(&e) && n < max_shots {
+        if let Some(e) = event
+            && !seen.contains(&e) && n < max_shots {
                 seen.push(e);
                 n += 1;
                 snap(app, dir, &format!("{}_{}.png", prefix, e));
             }
-        }
         if frame % 1500 == 700 && periodic < 3 {
             periodic += 1;
             snap(app, dir, &format!("{}_play_{}.png", prefix, periodic));
@@ -270,14 +269,6 @@ pub fn sprite_sheet(dir: &std::path::Path) {
     let bg = rgb(112, 144, 104);
     // 15 poses per sheet, one row per runner
     for (part, chunk) in ALL_TPOSES.chunks(15).enumerate() {
-        let mut f = Frame::new();
-        f.clear(bg);
-        for d in 0..4 {
-            for (k, &p) in chunk.iter().enumerate() {
-                blit(&mut f, art.runner(d, p), 9 + k as i32 * 16 + (k as i32 % 2) * 0, 34 + d as i32 * 36, false, &super::runners::palette(d));
-            }
-        }
-        // the poses overlap a little at 16 px spacing: draw again at 2x spacing below? keep a clean 2nd sheet
         let mut g = Frame::new();
         g.clear(bg);
         for d in 0..4 {
@@ -334,7 +325,7 @@ fn run_race(race: &mut Race) {
 pub fn sim(n: usize) {
     let mut rng = Rng(4242);
     println!("CPU races, {} per stage (Gerald + 3 smart CPUs of random skill 0.4-0.9):", n);
-    for stage in 0..3 {
+    for (stage, &fac) in GOAT_FAC.iter().enumerate() {
         let mut win_t = 0u64;
         let mut all_t = 0u64;
         let mut cnt = 0u64;
@@ -342,7 +333,7 @@ pub fn sim(n: usize) {
         let mut goat_place = [0u32; 4];
         let mut capped = 0;
         for k in 0..n {
-            let mut racers = vec![(GERALD, Ctrl::Goat(GOAT_FAC[stage]))];
+            let mut racers = vec![(GERALD, Ctrl::Goat(fac))];
             for j in 0..3 {
                 racers.push(((k + j) % 4, Ctrl::Cpu(Strategy::Smart, rng.range(0.4, 0.9))));
             }
@@ -511,7 +502,7 @@ impl Bot {
         }
         // obstacles, with human reaction noise
         let obs = &c.obs;
-        let mut k = 0usize.max(c.first_ob(x - 20.0));
+        let mut k = c.first_ob(x - 20.0);
         while k < obs.len() && obs[k].x + obs[k].kind.width() / 2.0 + 3.0 < x {
             k += 1;
         }
@@ -574,7 +565,7 @@ impl Bot {
                     p.a = true;
                 }
             }
-            if self.t % 120 == 0 {
+            if self.t.is_multiple_of(120) {
                 self.grab_off = self.rng.range(-12.0, 12.0);
             }
         }
@@ -660,7 +651,7 @@ pub fn trace(stage: usize) {
         race.update(&[pad, Pad::default()]);
         race.sfx.clear();
         let r = &race.runners[3];
-        if (race.t % 300 == 0 && race.phase == Phase::Race) || r.bonk != last_bonk {
+        if (race.t.is_multiple_of(300) && race.phase == Phase::Race) || r.bonk != last_bonk {
             let s = race.course.slope(r.x);
             println!("t {:>5.1}s x {:>6.0} slope {:>5.2} {:?} pace {:?} v {:.2} stam {:>5.1} hike {:.2} bonk {} state {:?} zone {}", race.t as f32 / 60.0, r.x, s, race.course.ground(r.x), r.pace, r.v, r.stamina, r.hike, r.bonk, r.state, race.course.zone(r.x, super::course::ZoneKind::Switchback).is_some());
         }

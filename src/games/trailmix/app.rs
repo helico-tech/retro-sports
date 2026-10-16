@@ -243,8 +243,7 @@ impl App {
             }
             Scene::Select => {
                 let players = if self.mode == Mode::Two { 2 } else { 1 };
-                for pi in 0..players {
-                    let p = e[pi];
+                for (pi, &p) in e.iter().enumerate().take(players) {
                     if !self.locked[pi] {
                         let c = self.cursor[pi];
                         if p.left || p.right {
@@ -323,12 +322,12 @@ impl App {
                         return;
                     }
                     self.after_results();
-                } else if self.t < 330 && self.t % 30 == 0 && self.t <= 240 {
+                } else if self.t < 330 && self.t.is_multiple_of(30) && self.t <= 240 {
                     self.sfx.push(Sfx::Blip);
                 }
             }
             Scene::Continue => {
-                if self.t % 60 == 0 {
+                if self.t.is_multiple_of(60) {
                     self.count -= 1;
                     self.sfx.push(Sfx::Blip);
                 }
@@ -486,7 +485,7 @@ impl App {
         }
         if self.mode == Mode::Demo {
             f.rect(0, 212, W, 12, rgb(16, 16, 48));
-            if (t / 30) % 2 == 0 {
+            if (t / 30).is_multiple_of(2) {
                 f.text_center(128, 214, "DEMO PLAY - PUSH START", YELLOW, OUTLINE, true);
             }
         }
@@ -561,7 +560,7 @@ impl App {
             f.text_grad_center(128, 91, "THE ULTRA TRAIL OF MT HELICO", &grad7(rgb(160, 232, 248)), OUTLINE, true);
         }
         if !self.menu_open {
-            if (t / 24) % 2 == 0 && st > 36 {
+            if (t / 24).is_multiple_of(2) && st > 36 {
                 f.text_grad_center(128, 184, "PUSH START", &grad7(WHITE), OUTLINE, true);
             }
         } else {
@@ -602,7 +601,7 @@ impl App {
             f.text_grad(cx + 29 - text_width(d.short, false) / 2, cy + 4, d.short, &grad7(d.shirt.0), OUTLINE, false);
             // a little mountain view behind them
             for yy in cy + 14..cy + 62 {
-                let c = if yy < cy + 30 { rgb(88, 152, 216) } else if yy < cy + 31 && yy % 2 == 0 { rgb(136, 184, 232) } else { rgb(136, 184, 232) };
+                let c = if yy < cy + 30 || (yy == cy + 30 && (yy & 1) == 0) { rgb(88, 152, 216) } else { rgb(136, 184, 232) };
                 f.hline(cx + 2, cx + 55, yy, c);
             }
             let (mx, my) = (cx + 22 + (k as i32 * 7) % 16, cy + 24);
@@ -623,7 +622,7 @@ impl App {
             for &p in &hover {
                 let col = if p == 0 { YELLOW } else { CYAN };
                 let locked = self.locked[p];
-                if locked || (t / 8) % 2 == 0 {
+                if locked || (t / 8).is_multiple_of(2) {
                     f.rect_outline(cx - 1, cy - 1, 60, 80, col);
                     f.rect_outline(cx, cy, 58, 78, col);
                 }
@@ -671,7 +670,7 @@ impl App {
                 // Gerald peeks in
                 let gx = x + w - 22;
                 self.art.goat[3].draw(f, gx, y + 46, true, &self.art.goat_pal);
-                if (t / 60) % 2 == 0 {
+                if (t / 60).is_multiple_of(2) {
                     bubble(f, gx - 30, y + 18, "NOT ME?");
                 }
             }
@@ -733,7 +732,7 @@ impl App {
             f.rect(x - 16, y, 32, 30, rgb(16, 16, 48));
             f.rect_outline(x - 16, y, 32, 30, if you { YELLOW } else { rgb(96, 104, 160) });
             if *def == GERALD {
-                let fr = if (t / 20) % 2 == 0 { 3 } else { 0 };
+                let fr = if (t / 20).is_multiple_of(2) { 3 } else { 0 };
                 self.art.goat[fr].draw(f, x, y + 26, true, &self.art.goat_pal);
             } else {
                 blit(f, self.art.runner(*def, TPose::Ready), x, y + 28, false, &runners::palette(*def));
@@ -834,7 +833,7 @@ impl App {
                 } else if self.mode == Mode::One && ((self.stage < 2 && k < 2) || (self.stage == 2 && k == 0)) {
                     f.text_sh(210, y, "Q", rgb(120, 232, 96), OUTLINE, true);
                 }
-                if you && (t / 10) % 2 == 0 {
+                if you && (t / 10).is_multiple_of(2) {
                     f.text_sh(16, y, ">", col, OUTLINE, true);
                 }
             }
@@ -861,7 +860,7 @@ impl App {
                 ["GERALD: I WAS EATING. IT DOESN'T COUNT.", "GERALD: A COW WAS IN MY WAY. BAAH.", "GERALD: REMATCH. TOMORROW. 5 AM."][k]
             };
             f.text_center(128, 198, quip, rgb(200, 200, 232), OUTLINE, false);
-            if (t / 20) % 2 == 0 {
+            if (t / 20).is_multiple_of(2) {
                 f.text_center(128, 212, "PUSH Z", WHITE, OUTLINE, true);
             }
         }
@@ -875,12 +874,12 @@ impl App {
         let me = self.cursor[0];
         f.rect(0, 170, W, 3, rgb(96, 56, 40));
         blit(f, self.art.runner(me, TPose::Faceplant), 120, 170, false, &runners::muddy(&runners::palette(me)));
-        let fr = if (t / 15) % 2 == 0 { 3 } else { 1 };
+        let fr = if (t / 15).is_multiple_of(2) { 3 } else { 1 };
         self.art.goat[fr].draw(f, 160, 171, true, &self.art.goat_pal);
-        if (t / 40) % 2 == 0 {
+        if (t / 40).is_multiple_of(2) {
             bubble(f, 150, 136, "GET UP! BAAAH!");
         }
-        if (t / 20) % 2 == 0 {
+        if (t / 20).is_multiple_of(2) {
             f.text_center(128, 192, "PUSH Z TO TRY AGAIN", WHITE, OUTLINE, false);
         }
     }
@@ -893,7 +892,7 @@ impl App {
         f.fill_poly(&[(96, 190), (128, 150), (160, 190)], rgb(120, 120, 144));
         f.fill_poly(&[(128, 150), (160, 190), (136, 190)], rgb(96, 96, 120));
         f.fill_poly(&[(122, 158), (128, 150), (134, 158)], WHITE);
-        let fr = if (t / 20) % 2 == 0 { 3 } else { 1 };
+        let fr = if (t / 20).is_multiple_of(2) { 3 } else { 1 };
         self.art.goat[fr].draw(f, 128, 152, false, &self.art.goat_pal);
         f.text_center(128, 196, "GERALD KEEPS THE MOUNTAIN.", rgb(200, 200, 232), OUTLINE, false);
         f.text_center(128, 208, "FOR NOW.", rgb(144, 144, 184), OUTLINE, false);
@@ -917,13 +916,13 @@ impl App {
         for (k, (def, x, step)) in [(winner, px, 30), (second, px - 30, 20), (third, px + 30, 12)].iter().enumerate() {
             let y = py - step;
             if *def == GERALD {
-                let fr = if (t / 12) % 2 == 0 { 3 } else { 1 };
+                let fr = if (t / 12).is_multiple_of(2) { 3 } else { 1 };
                 self.art.goat[fr].draw(f, *x, y + 1, k > 0, &self.art.goat_pal);
             } else if *def < 4 {
                 let h = if k == 0 { (15 - hop(0)).max(0) / 2 } else { 0 };
                 let pose = if k == 0 {
                     if hop(0) < 8 { TPose::Victory } else { TPose::Stand }
-                } else if (t / 30 + k as u32) % 2 == 0 {
+                } else if (t / 30 + k as u32).is_multiple_of(2) {
                     TPose::Cheer1
                 } else {
                     TPose::Stand

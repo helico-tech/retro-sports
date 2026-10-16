@@ -208,7 +208,7 @@ fn draw_terrain(f: &mut Frame, cx: &Ctx, cam: &Cam, t: u32) {
         }
         // grass hanging over the edge, and a dangling root now and then
         let grassy = matches!(g, Ground::Grass | Ground::Dirt) && cx.sc.stage < 2;
-        if grassy && hsh % 3 == 0 {
+        if grassy && hsh.is_multiple_of(3) {
             let n = 1 + (hsh / 3 % 3) as i32;
             for k in 1..=n {
                 let y = lip + k;
@@ -217,7 +217,7 @@ fn draw_terrain(f: &mut Frame, cx: &Ctx, cam: &Cam, t: u32) {
                 }
             }
         }
-        if matches!(g, Ground::Grass | Ground::Dirt | Ground::Mud) && hsh % 29 == 0 {
+        if matches!(g, Ground::Grass | Ground::Dirt | Ground::Mud) && hsh.is_multiple_of(29) {
             for k in 1..(4 + (hsh / 29 % 6) as i32) {
                 let y = lip + k;
                 let x = sx + (k / 3) % 2;
@@ -232,7 +232,7 @@ fn draw_terrain(f: &mut Frame, cx: &Ctx, cam: &Cam, t: u32) {
     let first = (cam.x as i32).div_euclid(cell) - 1;
     for k in first..first + W / cell + 3 {
         let h = hash(k * 977 + 13);
-        if h % 3 != 0 {
+        if !h.is_multiple_of(3) {
             continue;
         }
         let wx = (k * cell + (h / 3 % 40) as i32) as f32;
@@ -411,7 +411,7 @@ fn draw_animal(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32) {
             if a.rang > 0 {
                 // the bell clanks
                 let k = (a.rang / 3) % 2;
-                f.text(sx + 12 + k as i32, sy - 26, "*", YELLOW);
+                f.text(sx + 12 + k, sy - 26, "*", YELLOW);
                 if a.rang > 10 {
                     f.text(sx + 16, sy - 32, "!", WHITE);
                 }
@@ -442,7 +442,7 @@ fn draw_animal(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32) {
                             }
                         }
                     }
-                    if a.t > 6 && (t / 6) % 2 == 0 {
+                    if a.t > 6 && (t / 6).is_multiple_of(2) {
                         // whistle!
                         f.text(sx + 5, sy - 14, "!", WHITE);
                         f.set(sx + 4, sy - 6, WHITE);
@@ -478,10 +478,10 @@ fn draw_deer(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32) {
     };
     if show {
         let sx = cam.sx(x);
-        let leaping = k >= DEER_CROSS.0 && (t / 6) % 2 == 0;
+        let leaping = k >= DEER_CROSS.0 && (t / 6).is_multiple_of(2);
         let bm = if leaping { &cx.art.deer2 } else { &cx.art.deer };
         bm.draw(f, sx, y, false, &cx.art.deer_pal);
-        if k < DEER_CROSS.0 && (t / 6) % 2 == 0 {
+        if k < DEER_CROSS.0 && (t / 6).is_multiple_of(2) {
             f.text_sh(sx + 8, y - 30, "!", rgb(248, 72, 72), OUTLINE, true);
         }
     }
@@ -498,8 +498,8 @@ fn draw_fan(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, k: u32, t: u32) {
     let cheer = ((t / 8 + seed) % 2) as usize;
     let s = cx.art.crowd(style, cheer);
     let pal = runners::crowd_palette(seed % 97);
-    let flip = seed % 3 == 0;
-    let hop = if (t / 8 + seed) % 4 == 0 { 1 } else { 0 };
+    let flip = seed.is_multiple_of(3);
+    let hop = if (t / 8 + seed).is_multiple_of(4) { 1 } else { 0 };
     blit(f, s, sx, sy - hop, flip, &pal);
     // cowbell in the raised hand
     let pose = CROWD_POSES[cheer];
@@ -533,7 +533,7 @@ fn draw_volunteer(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32, v: &View
     let (bx, by) = canvas_to_screen(hx, hy, sx, sy, false);
     let me = &race.runners[v.runner];
     let near = (me.x - a.x).abs() < 30.0;
-    let bob = if (t / 16) % 2 == 0 { 0 } else { 1 };
+    let bob = if (t / 16).is_multiple_of(2) { 0 } else { 1 };
     let idx = match a.item {
         Item::TrailMix => 0,
         Item::Banana => 1,
@@ -576,11 +576,11 @@ pub fn runner_pose(race: &Race, i: usize) -> TPose {
             } else if r.five_t > 0 {
                 TPose::HighFive
             } else if r.bonk {
-                if f4 % 2 == 0 { TPose::Bonk1 } else { TPose::Bonk2 }
+                if f4.is_multiple_of(2) { TPose::Bonk1 } else { TPose::Bonk2 }
             } else if r.duck {
-                if f4 % 2 == 0 { TPose::Duck1 } else { TPose::Duck2 }
+                if f4.is_multiple_of(2) { TPose::Duck1 } else { TPose::Duck2 }
             } else if r.hiking(s) {
-                if f4 % 2 == 0 { TPose::Hike1 } else { TPose::Hike2 }
+                if f4.is_multiple_of(2) { TPose::Hike1 } else { TPose::Hike2 }
             } else if r.v < 0.15 {
                 TPose::Stand
             } else if r.pace == Pace::Walk || r.v < 0.6 {
@@ -617,11 +617,11 @@ fn goat_frame(r: &Runner, t: u32) -> usize {
         RState::Air => 2,
         RState::Ready => 3,
         RState::Finished if r.v < 0.05 => {
-            if (t / 12) % 2 == 0 { 3 } else { 1 }
+            if (t / 12).is_multiple_of(2) { 3 } else { 1 }
         }
         _ => {
             if r.v < 0.2 {
-                if r.say.is_some() && (t / 8) % 2 == 0 { 3 } else { 1 }
+                if r.say.is_some() && (t / 8).is_multiple_of(2) { 3 } else { 1 }
             } else {
                 (r.anim as usize / 2) % 2
             }
@@ -648,7 +648,7 @@ fn draw_runner(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32, v: &View) {
     let pose = runner_pose(race, i);
     let s = cx.art.runner(r.def, pose);
     let pal = runner_palette(r);
-    let wob = if r.wobble > 0.3 && (t / 3) % 2 == 0 { 1 } else { 0 };
+    let wob = if r.wobble > 0.3 && (t / 3).is_multiple_of(2) { 1 } else { 0 };
     // power hiking: poles
     if matches!(pose, TPose::Hike1 | TPose::Hike2) {
         let gy = cam.sy(c.height(r.x)) + r.lane;
@@ -676,7 +676,7 @@ fn draw_runner(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32, v: &View) {
         f.set(px + 2, py, OUTLINE);
         f.set(px + 3, py, OUTLINE);
         f.hline(px + 1, px + 3, py + 3, OUTLINE);
-        if (t / 10) % 2 == 0 {
+        if (t / 10).is_multiple_of(2) {
             f.text(px + 6, py - 9, "!", rgb(120, 232, 96));
         }
     }
@@ -689,12 +689,12 @@ fn draw_runner(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32, v: &View) {
             f.set(x + 1, y, rgb(248, 248, 96));
         }
     }
-    if r.bonk && (t / 20) % 2 == 0 {
+    if r.bonk && (t / 20).is_multiple_of(2) {
         f.text_sh(sx - 2, sy - 36, "?", rgb(200, 200, 232), OUTLINE, false);
     }
     // player tag
-    if let Some(p) = r.human() {
-        if race.phase != Phase::Done || r.state != RState::Finished {
+    if let Some(p) = r.human()
+        && (race.phase != Phase::Done || r.state != RState::Finished) {
             let col = if p == 0 { YELLOW } else { CYAN };
             let label = if p == 0 { "1P" } else { "2P" };
             let bob = ((t / 8) % 2) as i32;
@@ -711,7 +711,6 @@ fn draw_runner(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32, v: &View) {
                 }
             }
         }
-    }
     let _ = v;
 }
 
@@ -770,7 +769,7 @@ fn draw_foreground(f: &mut Frame, cx: &Ctx, cam: &Cam, _t: u32) {
     let first = (px as i32).div_euclid(step) - 1;
     for k in first..first + 4 {
         let h = hash(k * 31 + stage as i32);
-        if h % 3 != 0 {
+        if !h.is_multiple_of(3) {
             continue;
         }
         let sx = k * step + (h % 60) as i32 - px as i32;
@@ -792,7 +791,7 @@ const FOG: u32 = rgb(216, 224, 240);
 
 #[inline]
 fn half(a: u32, b: u32) -> u32 {
-    ((((a >> 1) & 0x7F7F7F) + ((b >> 1) & 0x7F7F7F)) & 0xF8F8F8) | 0
+    (((a >> 1) & 0x7F7F7F) + ((b >> 1) & 0x7F7F7F)) & 0xF8F8F8
 }
 
 /// The cloud on the summit: the background fades away behind the trail.
@@ -870,8 +869,8 @@ fn draw_bubbles(f: &mut Frame, cx: &Ctx, cam: &Cam, v: &View) {
     let Some(g) = race.runners.iter().find(|r| r.goat()) else { return };
     let sx = cam.sx(g.x);
     let sy = cam.sy(g.alt) + g.lane;
-    if let Some((text, life)) = g.say {
-        if (-10..W + 10).contains(&sx) && life > 0 {
+    if let Some((text, life)) = g.say
+        && (-10..W + 10).contains(&sx) && life > 0 {
             let w = text_width(text, false) + 8;
             let bx = (sx - w / 2 + 8).clamp(2, W - w - 2);
             let by = (sy - 44).max(cam.y0 + 3);
@@ -884,7 +883,6 @@ fn draw_bubbles(f: &mut Frame, cx: &Ctx, cam: &Cam, v: &View) {
             }
             f.text(bx + 4, by + 2, text, rgb(16, 16, 48));
         }
-    }
     let me = &race.runners[v.runner];
     if !me.goat() && race.phase == Phase::Race {
         let ahead = sx > W + 6;
@@ -1047,7 +1045,7 @@ fn pace_pips(f: &mut Frame, r: &Runner, x: i32, y: i32, t: u32) {
         f.rect(x + k * 6 + 1, y + 7 - h, 3, h - 1, col);
     }
     let label = if r.bonk {
-        if (t / 10) % 2 == 0 { "BONK" } else { "" }
+        if (t / 10).is_multiple_of(2) { "BONK" } else { "" }
     } else {
         PACE_NAMES[r.pace.idx()]
     };
@@ -1062,7 +1060,7 @@ fn legs_bar(f: &mut Frame, r: &Runner, x: i32, y: i32, w: i32, t: u32) {
         rgb(96, 216, 88)
     } else if r.stamina > 22.0 {
         rgb(248, 200, 48)
-    } else if (t / 6) % 2 == 0 {
+    } else if (t / 6).is_multiple_of(2) {
         rgb(248, 56, 56)
     } else {
         rgb(176, 32, 48)
@@ -1072,7 +1070,7 @@ fn legs_bar(f: &mut Frame, r: &Runner, x: i32, y: i32, w: i32, t: u32) {
     for k in (8..w).step_by(8) {
         f.set(x + k, y + 4, rgb(24, 24, 48));
     }
-    if r.hype > 0 && (t / 4) % 2 == 0 {
+    if r.hype > 0 && (t / 4).is_multiple_of(2) {
         f.rect_outline(x - 1, y - 1, w + 2, 7, rgb(248, 120, 200));
     }
 }
@@ -1114,7 +1112,7 @@ fn minimap(f: &mut Frame, cx: &Ctx, x: i32, y: i32, w: i32, h: i32, t: u32) {
             None if r.def == GERALD => WHITE,
             None => RUNNERS[r.def].shirt.0,
         };
-        let blink = r.human().is_some() && (t / 8) % 2 == 0;
+        let blink = r.human().is_some() && (t / 8).is_multiple_of(2);
         f.rect(px - 1, py - 2, 3, 3, OUTLINE);
         f.set(px, py - 1, if blink { WHITE } else { col });
         if r.def == GERALD {
