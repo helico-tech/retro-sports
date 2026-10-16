@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 type: bug
 created: 2026-10-16
 ---
@@ -26,3 +26,7 @@ passes (checked locally, not committed).
 - Fix in the test (wait until `!walking`, or 240 frames) or let the hub
   accept start while walking. Both are outside the game modules, so left
   for the integration story (epic 0002 story 04).
+
+## Resolution
+Fixed on feat/retro-sports: the hub has `ready()`, and the test waits for
+the hiker to arrive instead of a fixed 120 frames.
