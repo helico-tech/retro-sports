@@ -957,8 +957,11 @@ impl App {
             let (a, b) = (self.cursor[0], self.cursor[1]);
             let (w, l) = if self.points[0] >= self.points[1] { (a, b) } else { (b, a) };
             order = vec![w, GERALD, l];
-        } else if order.is_empty() {
-            order = vec![self.cursor[0], GERALD, (self.cursor[0] + 1) % 4];
+        } else {
+            // 1P: you won the last stage, so you stand on top
+            let me = self.cursor[0];
+            order.retain(|&d| d != me);
+            order.insert(0, me);
         }
         while order.len() < 3 {
             order.push(GERALD);

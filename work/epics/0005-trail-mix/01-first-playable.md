@@ -61,5 +61,81 @@ Order: core loop (course, race) + sim first, then screens, then art and
 sound, then CPU and balance, then reviews.
 
 ## Progress log
+- 2026-10-16: Core loop first: `course.rs` (three scripted stages, height
+  profile in 4 px cells, ground per cell, obstacles, aid, crowds, zones,
+  props), `race.rs` (pace, stamina, bonk, jump, duck/brake, poles, trip,
+  glissade, mud, water, aid grabs, high fives, cows, marmots, deer, Gerald,
+  CPU AI) and a `sim`. First numbers: Gerald won every race by a minute,
+  CPUs fell 5-9 times per race, Smart pacing lost to Steady on stage 2.
+- 2026-10-16: Fixes from the first sims: hike power decays smoothly and the
+  poles set the speed (no SPRINT+poles exploit); bonks recover slowly to 50
+  legs; at hiking speed rocks were impossible to clear, so a jump always
+  carries you forward at least 1.1 px/frame; CPU jump timing aims the top of
+  the arc at the obstacle. CPU falls dropped to 1-2.5 per race.
+- 2026-10-16: Art and screens: `sprites.rs` (45 poses from new skeletons,
+  beard/vest/socks/apron painted on and re-outlined, tumble by rotating a
+  curled bitmap; goat, cows, marmots, deer, items as string bitmaps with
+  role palettes), `scenery.rs` (sky, three 512 px parallax strips, ground
+  textures, all props cut from a scratch frame with outline), `render.rs`
+  (terrain columns: bank, top face, lip, textured front face; lanes;
+  fog; tips; HUD with pace pips, legs bar, POLES meter, course profile),
+  `app.rs` (all scenes), `audio.rs` (3 songs, 16 sfx), `headless.rs`
+  (shots, sim, probe with Lazy/Sprinter/Steady/Hopper/Decent bots).
+- 2026-10-16: Rebased `feat/trailmix` onto `feat/retro-sports` (ea2aba7):
+  the old placeholder hub could not scroll to a second cart, so the
+  contract test hung. The new island hub fixes that, but see issue 0030:
+  on this branch alone the walk from the beach to Mount Helico takes
+  longer than the contract test waits.
+- 2026-10-16: Balance: home-sprint budget was 10x too optimistic (CPU and
+  bot bonked just before the line); Gerald's rubber band was +-25% speed,
+  now about +-9%; Gerald per stage 0.86 / 0.9 / 0.93, CPU skill per stage
+  0.5-0.6 / 0.6-0.7 / 0.75-0.85. Results in the spec.
+- 2026-10-16: No engine changes. Everything new lives in the module
+  (own outline pass, color sprites, wrapping strips, crop sheets).
+
+### Art review (2026-10-16)
+Looked at every shot at 3x, the pose sheets and two 12-frame animation
+sheets (jump, tumble), next to dodgeball's shots.
+- MUST: 1P champion podium took its order from the raw results and could
+  crown Gerald. Fixed: the player stands on top.
+- MUST: at the start all four racers stood on one spot. Fixed: a queue
+  behind the line.
+- MUST: intro card: distance and goal text overlapped the tagline. Fixed.
+- MUST: rock ground looked like a brick wall. Fixed: natural stones
+  (cells around random points, dark cracks, lit top-left edges).
+- SHOULD: fog was a flat dither curtain over the trail. Fixed: it washes
+  out the background and only thickens on the far right.
+- SHOULD: the front of the ground was a big plain brown area. Fixed: lower
+  ground line, grass hanging over the lip, roots, buried bones, a fossil,
+  a lost pink shoe, ice crystals.
+- SHOULD: the deer had one frame. Fixed: two-frame leap.
+- SHOULD: the faceplant read as a lump. Fixed: flat on the belly, feet
+  kicking in the air.
+- SHOULD: the aid station disappeared behind runners. Fixed: tall AID
+  banner with bunting.
+- SHOULD: pickle juice flashed the whole sprite white. Fixed: green face.
+- SHOULD: flat color under the tree line. Fixed: forest trunks, mown
+  meadow stripes with flowers, scree dots.
+- SHOULD: the results quip never changed. Fixed: six quips.
+- COULD (not done): big bust portraits on the intro card (same as
+  dodgeball's open art issue 0002); a third cow frame (tail swish); more
+  foreground plants.
+
+### Gameplay review (2026-10-16)
+Played through `probe` bots and traces (`trace` dev tool), read the sim.
+- MUST: bunny hopping (B held) cleared every low obstacle. Fixed: 9-frame
+  landing lag and 7% speed loss per landing; the Hopper bot now loses badly.
+- MUST: poles at SPRINT pace gave sprint speed at hiking cost. Fixed.
+- MUST: rocks on steep climbs could not be jumped at hiking speed. Fixed.
+- MUST: the "sprint home" budget made CPUs bonk at the line. Fixed.
+- SHOULD: Gerald's rubber band mirrored the player's time. Fixed (milder).
+- SHOULD: no feedback for pole plants. Fixed: a tick per alternate plant,
+  POLES meter in the HUD on steep ground.
+- SHOULD: controls were hard to discover. Fixed: context tips at the
+  bottom of the view (steep, cows, deer, snow, aid, fans, low legs, bonk,
+  too fast) and a pace hint during the countdown.
+- SHOULD: stage 3 should be won about a third of the time. Tuned to 26-28%.
+- COULD (not done): rubber band in 2P towards the trailing player; a
+  ghost of your best time.
 
 ## Follow-ups

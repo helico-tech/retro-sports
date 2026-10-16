@@ -10,7 +10,7 @@ use super::race::*;
 use super::runners::GERALD;
 
 /// Gerald's speed and the two CPU runners' skill, per stage.
-pub const GOAT_FAC: [f32; 3] = [0.86, 0.9, 0.93];
+pub const GOAT_FAC: [f32; 3] = [0.92, 0.9, 0.93];
 pub const CPU_SKILL: [[f32; 2]; 3] = [[0.5, 0.6], [0.6, 0.7], [0.75, 0.85]];
 
 fn snap(app: &App, dir: &Path, name: &str) {
