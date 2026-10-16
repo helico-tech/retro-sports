@@ -15,13 +15,14 @@ use std::f32::consts::TAU;
 pub use audio::sounds;
 
 /// Each game's venue: cart id, place name, index of its stop in `PATH_PTS`.
-const VENUES: [(&str, &str, usize); 6] = [
+const VENUES: [(&str, &str, usize); 7] = [
     ("dodgeball", "BEACH COURT", 0),
     ("discdogs", "SUNNY HILL PARK", 3),
     ("zenuwen", "HELICODAM", 6),
-    ("tegenwind", "THE POLDER", 9),
-    ("trailmix", "MOUNT HELICO", 12),
-    ("hangtime", "HELICO CLIFFS", 15),
+    ("tienen", "HET TRAPVELDJE", 8),
+    ("tegenwind", "THE POLDER", 10),
+    ("trailmix", "MOUNT HELICO", 13),
+    ("hangtime", "HELICO CLIFFS", 16),
 ];
 
 const WALK: f32 = 1.3;
@@ -335,6 +336,30 @@ impl Hub {
         f.set(sx - 1, cy - 1, rgb(248, 216, 48));
         f.set(sx + 1, cy - 1, rgb(232, 64, 48));
 
+        // tienen: a cross, a header, the keeper dives the wrong way
+        let (px, py, pw, ph) = PITCH;
+        let k = (t % 180) as f32 / 180.0;
+        let (kx, ky) = (px + pw - 4, py + ph - 2);
+        let (hx, hy) = (px + 9, py + 5);
+        let (bx, by) = if k < 0.5 {
+            let u = k / 0.5;
+            (kx as f32 + (hx - kx) as f32 * u, ky as f32 - 3.0 + (hy - ky) as f32 * u - (u * TAU / 2.0).sin() * 9.0)
+        } else if k < 0.7 {
+            let u = (k - 0.5) / 0.2;
+            (hx as f32 + (px - hx) as f32 * u, (hy - 4) as f32 + 3.0 * u)
+        } else {
+            (px as f32 + 1.0, (py + ph / 2) as f32)
+        };
+        tiny_person(f, kx, ky, rgb(232, 64, 48), k < 0.1);
+        tiny_person(f, hx, hy, rgb(248, 136, 24), (0.45..0.7).contains(&k));
+        let dive = if k > 0.55 { 2 } else { 0 };
+        tiny_person(f, px + 3, py + ph / 2 + 2 + dive, rgb(96, 176, 88), k > 0.55);
+        f.rect(bx as i32 - 1, by as i32 - 1, 3, 3, OUTLINE);
+        f.set(bx as i32, by as i32, rgb(248, 248, 248));
+        if k > 0.7 && (t / 8).is_multiple_of(2) {
+            f.text(px + 3, py - 9, "GOAL!", rgb(248, 216, 48));
+        }
+
         // tegenwind: windmill sails and a cyclist on the dike road
         let (mx, my) = MILL;
         let (hx, hy) = (mx, my - 2);
@@ -528,6 +553,7 @@ fn venue_grad(id: &str) -> [u32; 6] {
         "trailmix" => grad6(rgb(120, 216, 88)),
         "hangtime" => grad6(rgb(96, 200, 248)),
         "zenuwen" => grad6(rgb(232, 88, 104)),
+        "tienen" => grad6(rgb(248, 248, 248)),
         _ => SUNSET,
     }
 }
