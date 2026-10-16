@@ -33,6 +33,8 @@ pub struct Brain {
     /// how close to the dog's limit it throws (0 safe .. 1 greedy)
     pub greed: f32,
     pub use_zoomies: bool,
+    /// frames before the dog sets off (a clumsy CPU sniffs the grass first)
+    pub start_delay: i32,
     /// px of error in judging where the disc comes down (per toss)
     pub spot_err: f32,
     rng: Rng,
@@ -71,6 +73,7 @@ impl Brain {
             judge_err: 4.0,
             greed: 0.5,
             use_zoomies: true,
+            start_delay: 0,
             spot_err: 0.0,
             bias: 0.0,
             rng: Rng(seed.wrapping_mul(2_654_435_761) | 1),
@@ -106,7 +109,8 @@ impl Brain {
         b.react = 8 + ((1.0 - s) * 50.0) as i32;
         b.judge_err = 1.0 + (1.0 - s) * 12.0;
         b.greed = s;
-        b.spot_err = (1.0 - s) * 26.0;
+        b.spot_err = (1.0 - s) * 28.0;
+        b.start_delay = ((1.0 - s) * 34.0) as i32;
         b
     }
 
@@ -119,7 +123,7 @@ impl Brain {
         b.react = 24;
         b.judge_err = 5.0;
         b.spot_err = 8.0;
-        b.greed = 0.6;
+        b.greed = 0.75;
         match style {
             "safe" => {
                 b.flip = FlipPolicy::Never;
@@ -173,7 +177,7 @@ impl Brain {
         let slow = PAIRS[pair].dog.speed <= 3;
         self.floater = self.rng.f() < if m.wind > 0.35 { 0.5 } else if slow { 0.3 } else { 0.1 };
         let (mdx, mz) = body.mouth;
-        let margin = 6.0 + (1.0 - self.greed) * 30.0;
+        let margin = 6.0 + (1.0 - self.greed) * 70.0;
         // try angles and powers; keep the longest throw the dog can still reach
         let mut best = (0.3f32, 30.0f32, -1.0f32);
         let mut a = 15.0f32;
@@ -253,8 +257,14 @@ impl Brain {
     fn fetch(&mut self, m: &Match, pad: &mut Pad) {
         let d = &m.dog;
         let disc = &m.disc;
+        if m.phase_t < self.start_delay {
+            return;
+        }
         // snap out of a squirrel stare
         if d.state == DogState::Stare {
+            // whatever was planned is stale after this
+            self.leap_in = None;
+            self.replan = 0;
             self.tap += 1;
             if self.tap > self.react && self.tap % 6 < 3 {
                 pad.c = true;
@@ -279,16 +289,28 @@ impl Brain {
         if matches!(d.state, DogState::Tumble) {
             return;
         }
-        // in the air: steer the mouth toward the disc
+        // in the air: steer the mouth to the disc when it is close, else
+        // steer for the landing spot (brake after a hop over the pond)
         if d.state == DogState::Air {
-            if self.skill > 0.4 && disc.state == DiscState::Flying {
-                let (mx, _) = d.mouth();
-                if disc.x > mx + 2.0 {
+            if self.skill > 0.4 {
+                let (mx, mz) = d.mouth();
+                let close = disc.state == DiscState::Flying && (disc.x - mx).abs() < 40.0 && (disc.z - mz).abs() < 30.0;
+                let aim = if close { disc.x - (mx - d.x) } else { self.target_x };
+                // where the dog ends up if it keeps this speed until it lands
+                let land = d.x + d.vx * d.time_to_land().min(30.0);
+                let goal = if close { aim - d.x } else { aim - land };
+                if goal > 3.0 {
                     pad.right = true;
-                } else if disc.x < mx - 2.0 {
+                } else if goal < -3.0 {
                     pad.left = true;
                 }
             }
+            if disc.state == DiscState::Flying && self.replan <= 0 {
+                self.replan = 5;
+                predict(disc, m.wind, &mut self.traj);
+                self.choose_target(m);
+            }
+            self.replan -= 1;
             return;
         }
         let body = d.body;
@@ -351,8 +373,9 @@ impl Brain {
         // hop over the pond on the way
         if let Some((a, b)) = m.pond {
             let ahead = if d.vx > 0.0 { a - d.x } else { d.x - b };
-            let beyond = if d.vx > 0.0 { self.target_x > b } else { self.target_x < a };
-            if d.grounded() && beyond && d.vx.abs() > 1.4 && (4.0..14.0).contains(&ahead) && self.skill > 0.35 {
+            // hop it when the target is past the far bank (air control brakes the landing)
+            let beyond = if d.vx > 0.0 { self.target_x > b + 12.0 } else { self.target_x < a - 12.0 };
+            if d.grounded() && beyond && d.vx.abs() > 1.0 && (3.0..14.0).contains(&ahead) && self.skill > 0.35 {
                 pad.b = true;
                 self.leap_in = None;
                 self.replan = 0;

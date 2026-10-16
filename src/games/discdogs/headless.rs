@@ -92,7 +92,7 @@ pub fn shots(out: &str) {
     // run the dog after it, leap near the end
     for k in 0..200 {
         let g = app.game.as_ref().unwrap();
-        if g.phase != Phase::Flight {
+        if !matches!(g.phase, Phase::Release | Phase::Flight) {
             break;
         }
         let near = (g.disc.x - g.dog.x).abs() < 16.0 && g.disc.z < 40.0 && g.disc.z > 20.0;
@@ -415,9 +415,9 @@ fn play_out(m: &mut Match, human: Option<&mut Brain>) {
 pub fn sim(n: usize) {
     let n = n.max(4) as u32;
     println!("CPU vs CPU, {} matches per skill (both sides the same skill)", n);
-    for &skill in &[0.3f32, 0.5, 0.7, 0.9] {
+    for &skill in &[CPU_SKILL[0], CPU_SKILL[1], 0.7, CPU_SKILL[2], 1.0] {
         let mut st = Stats::default();
-        let mut per = [(0u32, 0u32, 0i32, 0u32, 0u32); 4];
+        let mut per = [(0u32, 0u32, 0i32, 0u32, 0u32, 0i32, 0i32); 4];
         let mut stage_pts = [(0i32, 0u32); 3];
         for k in 0..n {
             let a = (k % 4) as usize;
@@ -437,6 +437,10 @@ pub fn sim(n: usize) {
                     p.0 += 1;
                     if r.caught() {
                         p.1 += 1;
+                        p.5 += r.yards;
+                        if let Outcome::Catch(k) = r.outcome {
+                            p.6 += k.mult();
+                        }
                     }
                     p.2 += r.points();
                     stage_pts[stage.index()].0 += r.points();
@@ -450,11 +454,13 @@ pub fn sim(n: usize) {
             .enumerate()
             .map(|(k, p)| {
                 format!(
-                    "{} {:.0}% win {:.0}% {:.0}pt",
+                    "{} {:.0}% win {:.0}% {:.0}pt {:.0}yd x{:.1}",
                     PAIRS[k].dog.name.split(' ').next_back().unwrap_or(""),
                     100.0 * p.1 as f32 / p.0.max(1) as f32,
                     100.0 * p.3 as f32 / p.4.max(1) as f32,
-                    p.2 as f32 / p.0.max(1) as f32
+                    p.2 as f32 / p.0.max(1) as f32,
+                    p.5 as f32 / p.1.max(1) as f32,
+                    p.6 as f32 / p.1.max(1) as f32
                 )
             })
             .collect();
@@ -474,14 +480,19 @@ pub fn sim(n: usize) {
 
 // ------------------------------------------------------------------ probe
 
+fn short(pair: usize) -> &'static str {
+    PAIRS[pair].dog.name.split(' ').next_back().unwrap_or("")
+}
+
 /// Scripted "human" bots against each step of the 1P ladder.
 pub fn probe(per: u32) {
     let per = per.max(1);
     println!("bot vs CPU ladder, {} matches per dog per stage", per);
-    println!("{:<8} {:>5} {:>6} {:>6} {:>8} {:>8} {:>10} {:>6}", "bot", "stage", "win%", "catch%", "pts/toss", "cpu pts", "flips ok", "oof%");
+    println!("{:<8} {:>5} {:>6} {:>6} {:>8} {:>8} {:>8} {:>6}  {}", "bot", "stage", "win%", "catch%", "pts/toss", "cpu pts", "flips", "oof%", "misses: drop/gull/out/sunk, catches: G/R/S/J/F");
     for style in ["lazy", "safe", "greedy", "decent"] {
         for stage in 0..3 {
             let (mut wins, mut games) = (0u32, 0u32);
+            let mut dog_wins = [0u32; 4];
             let mut me = Stats::default();
             let (mut my_pts, mut my_n, mut cpu_pts, mut cpu_n) = (0i32, 0u32, 0i32, 0u32);
             for my in 0..4 {
@@ -496,6 +507,7 @@ pub fn probe(per: u32) {
                     games += 1;
                     if m.winner == Some(0) {
                         wins += 1;
+                        dog_wins[my] += 1;
                     }
                     for r in &m.sides[0].results {
                         my_pts += r.points();
@@ -504,11 +516,17 @@ pub fn probe(per: u32) {
                         if r.caught() {
                             me.catches += 1;
                         }
-                        if r.outcome == Outcome::Miss(MissKind::Oof) {
-                            me.oofs += 1;
-                        }
-                        if r.outcome == Outcome::Catch(CatchKind::Flip) {
-                            me.flips += 1;
+                        match r.outcome {
+                            Outcome::Miss(MissKind::Oof) => me.oofs += 1,
+                            Outcome::Miss(MissKind::Dropped) => me.dropped += 1,
+                            Outcome::Miss(MissKind::Seagull) => me.gulls += 1,
+                            Outcome::Miss(MissKind::Sunk) => me.sunk += 1,
+                            Outcome::Miss(_) => me.out += 1,
+                            Outcome::Catch(CatchKind::Flip) => me.flips += 1,
+                            Outcome::Catch(CatchKind::Jump) => me.jumps += 1,
+                            Outcome::Catch(CatchKind::Ground) => me.ground += 1,
+                            Outcome::Catch(CatchKind::Rolling) => me.rolling += 1,
+                            Outcome::Catch(CatchKind::Soggy) => me.soggy += 1,
                         }
                     }
                     for r in &m.sides[1].results {
@@ -518,7 +536,7 @@ pub fn probe(per: u32) {
                 }
             }
             println!(
-                "{:<8} {:>5} {:>6.0} {:>6.0} {:>8.1} {:>8.1} {:>10} {:>6.1}",
+                "{:<8} {:>5} {:>6.0} {:>6.0} {:>8.1} {:>8.1} {:>8} {:>6.1}  {}/{}/{}/{}  {}/{}/{}/{}/{}",
                 style,
                 stage + 1,
                 100.0 * wins as f32 / games as f32,
@@ -526,8 +544,21 @@ pub fn probe(per: u32) {
                 my_pts as f32 / my_n.max(1) as f32,
                 cpu_pts as f32 / cpu_n.max(1) as f32,
                 format!("{}", me.flips),
-                100.0 * me.oofs as f32 / me.tosses.max(1) as f32
+                100.0 * me.oofs as f32 / me.tosses.max(1) as f32,
+                me.dropped,
+                me.gulls,
+                me.out,
+                me.sunk,
+                me.ground,
+                me.rolling,
+                me.soggy,
+                me.jumps,
+                me.flips
             );
+            if style == "decent" {
+                let per_dog: Vec<String> = (0..4).map(|k| format!("{} {:.0}%", short(k), 100.0 * dog_wins[k] as f32 / per as f32)).collect();
+                println!("{:<14} wins by dog: {}", "", per_dog.join("  "));
+            }
         }
     }
 }

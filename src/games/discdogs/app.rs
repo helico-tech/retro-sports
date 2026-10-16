@@ -32,7 +32,7 @@ pub enum Scene {
 }
 
 /// CPU skill per ladder step.
-pub const CPU_SKILL: [f32; 3] = [0.4, 0.62, 0.84];
+pub const CPU_SKILL: [f32; 3] = [0.0, 0.5, 0.88];
 
 pub struct App {
     pub scene: Scene,
@@ -544,13 +544,14 @@ impl App {
         }
         f.rect(0, 199, W, 25, rgb(8, 16, 24));
         f.hline(0, W - 1, 199, rgb(248, 176, 32));
-        let bio = |k: usize, alt: bool| -> &'static str { if alt { PAIRS[k].owner.bio } else { PAIRS[k].dog.bio } };
-        let alt = (t / 180) % 2 == 1;
+        // the bios: the dog's, then the owner's
+        let alt = (t / 200) % 2 == 1;
+        let bio = |k: usize| -> &'static str { if alt { PAIRS[k].owner.bio } else { PAIRS[k].dog.bio } };
         if self.mode == Mode::Two {
-            f.text_center(128, 202, bio(self.cursor[0], alt), rgb(248, 232, 64), OUTLINE, false);
-            f.text_center(128, 212, bio(self.cursor[1], alt), rgb(96, 224, 248), OUTLINE, false);
+            f.text_center(128, 202, bio(self.cursor[0]), rgb(248, 232, 64), OUTLINE, false);
+            f.text_center(128, 212, bio(self.cursor[1]), rgb(96, 224, 248), OUTLINE, false);
         } else {
-            f.text_center(128, 202, bio(self.cursor[0], alt), rgb(248, 248, 248), OUTLINE, false);
+            f.text_center(128, 202, bio(self.cursor[0]), if alt { rgb(200, 216, 248) } else { rgb(248, 248, 248) }, OUTLINE, false);
             f.text_center(128, 213, "ARROWS: PICK   Z: OK   X: BACK", rgb(160, 176, 200), OUTLINE, false);
         }
     }
@@ -615,8 +616,8 @@ impl App {
         // the controls, in the game's own words
         let tip = self.mode == Mode::Two || self.stage == 0;
         if tip {
-            f.text_center(128, 201, "THROW: UP/DOWN AIM, HOLD Z, LET GO (+C: FLOATER)", rgb(248, 232, 96), OUTLINE, false);
-            f.text_center(128, 211, "DOG: ARROWS RUN (TAP TWICE: ZOOMIES) X LEAP Z FLIP", rgb(96, 224, 248), OUTLINE, false);
+            f.text_center(128, 201, "THROW: UP/DOWN AIM, HOLD Z, LET GO", rgb(248, 232, 96), OUTLINE, false);
+            f.text_center(128, 211, "DOG: X LEAP  Z FLIP  TAP TWICE: ZOOM", rgb(96, 224, 248), OUTLINE, false);
         } else {
             f.text_center(128, 205, "ONE THROW AT A TIME. GOOD LUCK, HUMAN.", rgb(200, 200, 232), OUTLINE, false);
         }
@@ -741,7 +742,7 @@ impl App {
         let ground = cy - 14;
         let pal = dog_pal(me, rgb(248, 216, 48));
         f.shade_ellipse(cx, ground + 1, 9, 2, 5, 8);
-        draw(f, self.art.dogs.get(me, if d.z > 0.0 { DogFrame::Leap } else { DogFrame::Happy }), cx, ground - d.z as i32, false, &pal);
+        draw(f, self.art.dogs.get(me, DogFrame::Happy), cx, ground - d.z as i32, false, &pal);
         // the golden disc in its mouth
         let (mx, mz) = d.mouth();
         draw_disc(f, cx + mx as i32, ground - mz as i32 + 1, rgb(248, 200, 48), 0, t as f32);

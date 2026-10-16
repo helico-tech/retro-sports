@@ -16,10 +16,10 @@ pub const YD: f32 = 4.0;
 pub const FIELD_END: f32 = 400.0;
 pub const TOSSES: usize = 5;
 pub const OWNER_X: f32 = -10.0;
-pub const DOG_START: f32 = 8.0;
+pub const DOG_START: f32 = 14.0;
 pub const HAND_Z: f32 = 20.0;
 /// frames of a full flip
-pub const FLIP_LEN: i32 = 40;
+pub const FLIP_LEN: i32 = 44;
 /// frames for the power meter to go from empty to full
 pub const METER_HALF: i32 = 32;
 pub const PERFECT_FROM: f32 = 0.93;
@@ -215,7 +215,7 @@ pub fn dog_body(pair: usize) -> DogBody {
         top: 1.75 + 0.2 * d.speed as f32,
         jump_v: 2.15 + 0.3 * d.jump as f32,
         zoom_cap: 40.0 + 18.0 * d.zoomies as f32,
-        stare: 24 + (5 - d.focus) * 22,
+        stare: 18 + (5 - d.focus) * 16,
     }
 }
 
@@ -243,6 +243,10 @@ pub struct Dog {
     pub air_t: i32,
     /// blanket index the dog is on (sausage grabbed once per visit)
     pub on_blanket: Option<usize>,
+    /// frames of free zoomies after being called back from a squirrel
+    pub boost: i32,
+    /// the owner whistled during this stare
+    pub called: bool,
 }
 
 impl Dog {
@@ -268,6 +272,8 @@ impl Dog {
             tumble_t: 0,
             air_t: 0,
             on_blanket: None,
+            boost: 0,
+            called: false,
         }
     }
 
@@ -643,7 +649,7 @@ impl Match {
         let mut kite = Kite { kid_x: 0.0, here: false };
         if stage == Stage::Park {
             let px = 150.0 + rng.range(0.0, 70.0);
-            pond = Some((px, px + 44.0));
+            pond = Some((px, px + 30.0));
             // two picnic blankets, not in the pond
             let cols = [rgb(232, 56, 64), rgb(64, 120, 232), rgb(248, 200, 48)];
             let mut tries = 0;
@@ -651,7 +657,7 @@ impl Match {
                 tries += 1;
                 let x = 70.0 + rng.range(0.0, 260.0);
                 let w = 30.0;
-                let clear_pond = x + w < px - 6.0 || x > px + 50.0;
+                let clear_pond = x + w < px - 6.0 || x > px + 36.0;
                 let clear = blankets.iter().all(|b: &Blanket| (b.x - x).abs() > 60.0);
                 if clear_pond && clear {
                     let n = blankets.len();
@@ -690,7 +696,7 @@ impl Match {
             sleeper_awake: 0,
             sausages_now: 0,
             shoulder_now: false,
-            cam: -72.0,
+            cam: AIM_CAM,
             frame: 0,
             rng,
             sfx: Vec::new(),
@@ -771,7 +777,7 @@ impl Match {
         self.stared = false;
         self.gull = None;
         let p_squirrel = match self.stage {
-            Stage::Park => 0.45,
+            Stage::Park => 0.35,
             Stage::Bowl => 0.1,
             Stage::Pier => 0.0,
         };
@@ -787,7 +793,7 @@ impl Match {
         self.result = None;
         self.throw_anim = -1;
         self.owner_mood = 0;
-        self.cam = -72.0;
+        self.cam = AIM_CAM;
         self.popups.clear();
         self.fx.clear();
         self.quip = None;
@@ -1120,7 +1126,8 @@ impl Match {
         if d.state == DogState::Stare {
             d.vx = 0.0;
             if e.c {
-                d.stare_t -= 45;
+                d.stare_t -= 50;
+                d.called = true;
                 self.sfx.push(Sfx::Whistle);
             }
             d.stare_t -= 1;
@@ -1128,8 +1135,14 @@ impl Match {
                 d.state = DogState::Stand;
                 let pair = self.sides[side].pair;
                 let (x, z) = (d.x, d.z + 30.0);
-                let good = PAIRS[pair].dog.good;
-                self.popup(x, z, good.to_string(), rgb(248, 232, 64));
+                if d.called {
+                    // called back: a burst of zoomies to make up for it
+                    d.boost = 30;
+                    let good = PAIRS[pair].dog.good;
+                    self.popup(x, z, good.to_string(), rgb(248, 232, 64));
+                } else {
+                    self.popup(x, z, "...FINE.".to_string(), rgb(200, 200, 216));
+                }
                 self.sfx.push(Sfx::Bark);
             }
             return;
@@ -1156,16 +1169,19 @@ impl Match {
         if d.zooming {
             top *= 1.4;
             d.zoom -= 1.0;
+        } else if d.boost > 0 {
+            top *= 1.3;
+            d.boost -= 1;
         }
         if swimming {
-            top = 0.75;
+            top = 1.8;
         } else if blanket.is_some() {
             top *= 0.55;
         }
         let in_air = d.state == DogState::Air;
         if in_air {
             // a little air control
-            d.vx = (d.vx + dir * 0.03).clamp(-top * 1.4, top * 1.4);
+            d.vx = (d.vx + dir * 0.07).clamp(-top * 1.4, top * 1.4);
         } else if dir != 0.0 {
             let acc = 0.14;
             if d.vx * dir < 0.0 {
@@ -1352,7 +1368,7 @@ impl Match {
         }
         // the dog spots it
         let d = &self.dog;
-        if !self.stared && !s.gone && s.d.abs() < 12.0 && (d.x - s.x).abs() < 34.0 && d.z <= 0.0 && !d.has_disc {
+        if !self.stared && !s.gone && s.d.abs() < 12.0 && (d.x - s.x).abs() < 24.0 && d.z <= 0.0 && !d.has_disc {
             self.stared = true;
             self.stats.stares += 1;
             let st = d.body.stare;
@@ -1427,6 +1443,8 @@ impl Match {
         let (mx, mz) = d.mouth();
         let ds = self.disc;
         let caught = match ds.state {
+            // not straight out of the owner's hand
+            DiscState::Flying if ds.t < 24 => false,
             DiscState::Flying => {
                 let (rx, rz) = if d.flip_t >= 0 { (6.0, 6.0) } else { (6.0, 5.0) };
                 (ds.x - mx).abs() <= rx && (ds.z - mz).abs() <= rz
@@ -1714,7 +1732,7 @@ impl Match {
 
     fn update_camera(&mut self) {
         let target = match self.phase {
-            Phase::Ready | Phase::Aim | Phase::Power | Phase::Release => -72.0,
+            Phase::Ready | Phase::Aim | Phase::Power | Phase::Release => AIM_CAM,
             Phase::Flight => {
                 let (dx, gx) = (self.disc.x, self.dog.x);
                 let mid = (dx + gx) * 0.5 - 128.0;
@@ -1733,6 +1751,8 @@ impl Match {
 }
 
 pub const CAM_MIN: f32 = -96.0;
+/// The camera while aiming: the waiting pair, the owner and the meter in view.
+pub const AIM_CAM: f32 = -86.0;
 pub const CAM_MAX: f32 = 288.0;
 
 /// Do segments ab and pq cross?

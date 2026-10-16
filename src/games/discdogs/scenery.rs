@@ -708,8 +708,6 @@ fn pier_ground(seed: u64) -> Layer {
             for y in (FIELD_TOP..206).step_by(2) {
                 f.set(x, y, rgb(232, 224, 208));
             }
-            let s = format!("{}", yd);
-            f.text(x - text_width(&s, false) / 2, 197, &s, rgb(232, 224, 208));
         }
         let tx = col(0.0) - ox;
         f.rect(tx - 1, FIELD_TOP - 2, 3, 208 - FIELD_TOP + 2, WHITE_C);
@@ -918,7 +916,6 @@ fn bowl_props() -> Layer {
         f.hline(e + 1, e + 158, 139, rgb(72, 96, 176));
         f.text(e + 8, 143, "INTO THE CROWD", rgb(248, 216, 48));
         f.text(e + 8, 153, "= NO POINTS", rgb(248, 248, 248));
-        yard_signs(f, ox, FIELD_TOP - 6, rgb(24, 24, 56), rgb(248, 248, 248));
         // goal post-ish disc target at the throw line
         let tx = col(0.0) - ox;
         f.rect(tx, 128, 2, 38, OUTLINE);

@@ -492,12 +492,13 @@ fn build_dog(b: Breed, fr: DogFrame) -> RSprite {
             s.thick(ip(tb), ip((tb.0 - 2.0, tb.1 - 1.0 - ta.sin() * 1.5)), 3, FUR);
         }
         Tail::Long => {
-            // hangs low and sweeps up at the tip
-            let mid = (tb.0 - 4.0, tb.1 + 3.0 - ta.sin() * 3.0);
-            let tip = (mid.0 - 4.0, mid.1 - 1.0 - ta.sin() * 4.0);
+            // hangs low and sweeps up at the white tip
+            let mid = (tb.0 - 3.0, tb.1 + 4.0 - ta.sin() * 4.0);
+            let tip = (mid.0 - 3.0, mid.1 - 1.0 - ta.sin() * 3.0);
             s.thick(ip(tb), ip(mid), 3, FUR);
             s.thick(ip(mid), ip(tip), 2, FUR);
-            s.thick(ip((tip.0 + 1.0, tip.1)), ip(tip), 2, LIGHT);
+            s.set(ip(tip).0, ip(tip).1, LIGHT);
+            s.set(ip(tip).0 - 1, ip(tip).1, LIGHT);
         }
         Tail::Curl => {
             let a = (tb.0 - 2.0, tb.1 - 4.0 - ta.sin() * 2.0);
@@ -532,14 +533,16 @@ fn build_dog(b: Breed, fr: DogFrame) -> RSprite {
         let top = (cx - 2.0, cy - sh.thick * 0.35);
         s.thick(ip((top.0 - 2.0, top.1 + 0.0)), ip((top.0 + 3.0, top.1 - 0.0)), 1, LIGHT_D);
     }
-    if sh.fringe {
+    if sh.fringe && !pose.sit && !pose.lie {
         // long silky hair hanging from the belly
-        for k in 0..7 {
-            let x = hip.0 + 1.0 + k as f32 * (sho.0 - hip.0 - 2.0) / 6.0;
-            let y0 = cy + sh.thick * 0.3 + (cx - x) * pitch.sin() * 0.0;
-            let len = 3.0 + ((k * 7) % 3) as f32;
+        for k in 0..9 {
+            let u = k as f32 / 8.0;
+            let x = hip.0 + 1.0 + u * (sho.0 - hip.0 - 1.0);
+            // the underside of the (pitched) body at this x
+            let y0 = cy + (cx - x) * pitch.tan() + sh.thick * 0.5 - 1.0;
+            let len = 2.0 + ((k * 5) % 3) as f32;
             let bend = if pose.lift > 1.0 { -1.0 } else { 0.0 };
-            s.thick(ip((x, y0)), ip((x + bend, y0 + len)), 1, if k % 2 == 0 { FUR } else { FUR_D });
+            s.thick(ip((x, y0)), ip((x + bend, y0 + len)), 1, if k % 3 == 1 { FUR_D } else { FUR });
         }
     }
     // near legs
@@ -672,30 +675,93 @@ pub fn gold_pal() -> DogPal {
 
 pub const GULL: [&[&str]; 3] = [
     // wings up
-    &["..W.......W...", "..WW.....WW...", "...WW...WW....", "....WWWWW.....", "...LWWWWWK....", "........WWGG..", "..............", ".............."],
+    &[
+        "........DD..........",
+        ".......DLl..........",
+        "......DLLl..........",
+        ".....LLLl...........",
+        "....LLLl.......WW...",
+        "WW.WLLWWWWWWWWWWKWGG",
+        ".WWWWWWWWWWWWWWWW...",
+        "...lWWWWWWWWWWl.....",
+        "......P....P........",
+    ],
     // gliding
-    &["..............", "..............", "..............", "LLWWWWWWWWLL..", "...LWWWWWK....", "........WWGG..", "..............", ".............."],
+    &[
+        "....................",
+        "....................",
+        "....................",
+        "..DDLLLLLLLl....WW..",
+        "WW.WLLLLLLLWWWWWWKGG",
+        ".WWWWWWWWWWWWWWWW...",
+        "...lWWWWWWWWWWl.....",
+        "......P....P........",
+        "....................",
+    ],
     // wings down
-    &["..............", "..............", "..............", "....WWWWWK....", "...LWWWWWWGG..", "...WW...WW....", "..WW.....WW...", ".L.........L.."],
+    &[
+        "....................",
+        "...............WW...",
+        "WW..WWWWWWWWWWWWWKGG",
+        ".WWWLLLLLLWWWWWWW...",
+        "...lLLLLLlWWWWl.....",
+        "....LLLLl...........",
+        ".....LLl............",
+        "......Dl............",
+        ".......D............",
+    ],
 ];
 
 pub const SQUIRREL: [&[&str]; 3] = [
-    // run 1
-    &["..FFF......", ".FFFFF.....", "FFfFFF..FF.", "FFfFF..FFKF", ".FfF.FFFFFL", "..FFFFFFFL.", "...F.F..F..", "..F.....F.."],
-    // run 2
-    &["...........", ".FFF.......", "FFFFF...FF.", "FFfFF..FFKF", "FFfF.FFFFFL", ".FFFFFFFFL.", "....FF.F...", "...F...F..."],
-    // sitting up, nibbling (taunt)
-    &["FFF........", "FFFF..FF...", "FfFF.FFKF..", "FfFF.FFFFL.", ".FfFFFLLLG.", ".FFFFFLL...", "..FFFFFL...", "..FF..FF..."],
+    // run 1: tail up
+    &[
+        ".FFF..........",
+        "FFfFF.........",
+        "FffFFF........",
+        "FfFFFF....F...",
+        ".FfFFF...FFF..",
+        "..FfFF..FFFFF.",
+        "...FFFFFFFKFFL",
+        "...FFFFFFFFFL.",
+        "....FFFLLLF...",
+        "....FF...FF...",
+    ],
+    // run 2: stretched
+    &[
+        "..............",
+        "FFF...........",
+        "FfFF..........",
+        "FffFF.....F...",
+        ".FfFFF...FFF..",
+        "..FFFFFFFFFFF.",
+        "...FFFFFFFKFFL",
+        "...FFFFFFFFFL.",
+        "..FF.FLLLF.FF.",
+        ".F.........F..",
+    ],
+    // sitting up, nibbling an acorn (taunt)
+    &[
+        "FFF...........",
+        "FfFF.....F....",
+        "FffFF...FFF...",
+        "FfFFF..FFKFF..",
+        ".FfFF..FFFFL..",
+        ".FFfF.FFLLGG..",
+        "..FFFFFFLLGG..",
+        "...FFFFFLL....",
+        "...FFFFFL.....",
+        "...FF..FF.....",
+    ],
 ];
 
-pub const SAUSAGE: &[&str] = &["..PPPPP..", ".PFFFFFP.", "PFFFFFFFP", ".PPPPPPP."];
+pub const SAUSAGE: &[&str] = &[".PPPPP.", "PFFFFFP", ".PPPPP."];
 
 pub const SLEEPER: &[&str] = &[
-    "......WWWWWWW....",
-    ".SS..WlWlWlWW....",
-    "SHHS.WWWWWWWWLL..",
-    "SSSSTTTTTTTTTPPDD",
-    ".SS.TTTTTTTTTPPDD",
+    "...WWWWWWW............",
+    "..WlWlWlWWW...........",
+    ".SWWWWWWWWWTTTTTTTPPPPDD",
+    "SSWWWWWWWTTTTTTTTTPPPPDD",
+    ".S...TTTTTTTTTTT.PPPP...",
 ];
 
 pub const KID: &[&str] = &[
@@ -711,8 +777,11 @@ pub fn prop_pal(kind: &str) -> DogPal {
     p[WHITE as usize] = rgb(248, 248, 248);
     match kind {
         "gull" => {
-            p[LIGHT as usize] = rgb(144, 152, 176);
+            p[LIGHT as usize] = rgb(168, 176, 200);
+            p[LIGHT_D as usize] = rgb(120, 128, 160);
+            p[DARK as usize] = rgb(40, 40, 56);
             p[GOLD as usize] = rgb(248, 184, 48);
+            p[PINK as usize] = rgb(248, 136, 64);
         }
         "squirrel" => {
             p[FUR as usize] = rgb(200, 104, 48);
@@ -722,8 +791,8 @@ pub fn prop_pal(kind: &str) -> DogPal {
             p[GOLD as usize] = rgb(176, 120, 64);
         }
         "sausage" => {
-            p[PINK as usize] = rgb(144, 56, 40);
-            p[FUR as usize] = rgb(216, 104, 72);
+            p[PINK as usize] = rgb(168, 64, 48);
+            p[FUR as usize] = rgb(232, 120, 88);
         }
         _ => {
             // people props: S skin is not a role here, so map letters by hand below
@@ -804,8 +873,8 @@ pub struct Props {
 
 impl Props {
     pub fn new() -> Self {
-        let gull = GULL.iter().map(|r| RSprite::from_rows(r, 7, 5)).collect();
-        let squirrel = SQUIRREL.iter().map(|r| RSprite::from_rows(r, 5, 7)).collect();
+        let gull = GULL.iter().map(|r| RSprite::from_rows(r, 10, 5)).collect();
+        let squirrel = SQUIRREL.iter().map(|r| RSprite::from_rows(r, 7, 9)).collect();
         let people = [
             (b'S', rgb(248, 192, 152)),
             (b'H', rgb(120, 72, 40)),
@@ -817,15 +886,16 @@ impl Props {
             (b'L', rgb(248, 200, 48)),
             (b'K', rgb(16, 16, 32)),
         ];
-        let sleeper = Pix::from_people(SLEEPER, &people, 8, 4);
+        let sleeper = Pix::from_people(SLEEPER, &people, 11, 4);
         let up_rows: &[&str] = &[
-            "SSS..............",
-            "HHHS.WWWWWWW.....",
-            "SSKS.WlWlWlWW....",
-            ".SS.TTTTTTTTTPPDD",
-            ".TTTTTTTTTTTTPPDD",
+            ".HHH..................",
+            "HHHSS..WWWWWWW........",
+            "HSSKS.WlWlWlWWW.......",
+            ".SSSS.WWWWWWWWW.......",
+            "..TTTTTTTTTTTTTTTPPPPDD",
+            "..TTTTTTTTTTTTTTTPPPPDD",
         ];
-        let sleeper_up = Pix::from_people(up_rows, &people, 8, 4);
+        let sleeper_up = Pix::from_people(up_rows, &people, 11, 5);
         let kid_pal = [
             (b'S', rgb(232, 168, 112)),
             (b'H', rgb(56, 40, 32)),

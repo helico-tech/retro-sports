@@ -169,3 +169,105 @@ fn all_text_fits_the_font() {
         assert!(!s.chars().any(|c| c.is_ascii_lowercase()), "lower case in '{s}'");
     }
 }
+
+#[test]
+#[ignore]
+fn debug_park_misses() {
+    use retro_sports::games::discdogs::ai::Brain;
+    let mut causes = std::collections::HashMap::new();
+    for seed in 0..80u64 {
+        let my = (seed % 4) as usize;
+        let mut m = Match::new([my, (my + 1) % 4], [Ctrl::Human(0), Ctrl::Cpu], [0.5, 0.4], Stage::Park, 1000 + seed);
+        let mut bot = Brain::human("decent", seed ^ 0xBEEF);
+        let mut swam = false;
+        let mut stared = false;
+        let mut blanket = false;
+        let mut leapt = false;
+        while !m.finished() {
+            let p = if m.thrower() == 0 { bot.pad(&m, 0) } else { Pad::default() };
+            let before = m.sides[0].results.len();
+            m.update(&[p, Pad::default()]);
+            m.sfx.clear();
+            if m.thrower() == 0 && m.phase == Phase::Flight {
+                swam |= m.dog.state == DogState::Swim;
+                stared |= m.dog.state == DogState::Stare;
+                blanket |= m.dog.on_blanket.is_some();
+                leapt |= m.dog.state == DogState::Air;
+            }
+            if m.sides[0].results.len() > before {
+                let r = m.sides[0].results[before];
+                if let Outcome::Miss(k) = r.outcome {
+                    let key = format!("{:?} swam={} stared={} blanket={} dog={} land={:.0} dogx={:.0} air={}", k, swam, stared, blanket, my, m.disc.x, m.dog.x, m.dog.caught_air);
+                    let short = format!("{:?} swam={} stared={} leapt={} over={}", k, swam, stared, leapt, m.dog.x > m.disc.x + 10.0);
+                    *causes.entry(short).or_insert(0) += 1;
+                    if seed < 6 { println!("{}", key); }
+                }
+                swam = false;
+                stared = false;
+                blanket = false;
+                leapt = false;
+            }
+        }
+    }
+    let mut v: Vec<_> = causes.into_iter().collect();
+    v.sort();
+    for (k, n) in v { println!("{n:>4} {k}"); }
+}
+
+#[test]
+#[ignore]
+fn debug_plan() {
+    for pair in 0..4 {
+        let mut m = Match::new([pair, (pair + 1) % 4], [Ctrl::Cpu, Ctrl::Cpu], [0.9, 0.9], Stage::Bowl, 5);
+        for _ in 0..3 {
+            m.update(&[Pad::default(); 2]);
+        }
+    }
+}
+
+#[test]
+#[ignore]
+fn debug_sirw() {
+    let mut m = Match::new([2, 0], [Ctrl::Cpu, Ctrl::Cpu], [0.9, 0.9], Stage::Bowl, 5);
+    let mut last = Phase::Ready;
+    while !m.finished() {
+        m.update(&[Pad::default(); 2]);
+        m.sfx.clear();
+        if m.thrower() == 0 && m.phase != last {
+            println!("{:?} t{} angle {} power {:.2} floater {} disc ({:.0},{:.0}) v({:.2},{:.2}) dog ({:.0},{:.0}) {:?} res {:?}", m.phase, m.phase_t, m.angle, m.power, m.floater, m.disc.x, m.disc.z, m.disc.vx, m.disc.vz, m.dog.x, m.dog.z, m.dog.state, m.result.map(|r| (r.outcome, r.yards)));
+        }
+        last = m.phase;
+    }
+}
+
+#[test]
+#[ignore]
+fn debug_stare_overshoot() {
+    use retro_sports::games::discdogs::ai::Brain;
+    for seed in 0..80u64 {
+        let my = (seed % 4) as usize;
+        let mut m = Match::new([my, (my + 1) % 4], [Ctrl::Human(0), Ctrl::Cpu], [0.5, 0.4], Stage::Park, 1000 + seed);
+        let mut bot = Brain::human("decent", seed ^ 0xBEEF);
+        let mut log: Vec<String> = Vec::new();
+        let mut stared = false;
+        while !m.finished() {
+            let p = if m.thrower() == 0 { bot.pad(&m, 0) } else { Pad::default() };
+            let before = m.sides[0].results.len();
+            m.update(&[p, Pad::default()]);
+            m.sfx.clear();
+            if m.thrower() == 0 && m.phase == Phase::Flight {
+                stared |= m.dog.state == DogState::Stare;
+                log.push(format!("t{} pad{}{}{}{} dog {:?} x{:.0} z{:.0} vx{:.2} face{} | disc x{:.0} z{:.0} | {:?} sq {:?}", m.phase_t, if p.left {"L"} else {"."}, if p.right {"R"} else {"."}, if p.b {"B"} else {"."}, if p.c {"C"} else {"."}, m.dog.state, m.dog.x, m.dog.z, m.dog.vx, m.dog.face, m.disc.x, m.disc.z, bot.debug(), m.squirrel.map(|s| (s.x as i32, s.d as i32))));
+            }
+            if m.sides[0].results.len() > before {
+                let r = m.sides[0].results[before];
+                if matches!(r.outcome, Outcome::Miss(_)) && stared && m.dog.x > m.disc.x + 10.0 {
+                    for l in &log { println!("{l}"); }
+                    return;
+                }
+                log.clear();
+                stared = false;
+            }
+        }
+    }
+}

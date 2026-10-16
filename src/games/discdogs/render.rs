@@ -189,7 +189,7 @@ fn owner_pose(m: &Match, active: bool) -> OwnerPose {
 fn draw_waiting(f: &mut Frame, m: &Match, art: &Art, cam: f32, t: u32) {
     let side = 1 - m.thrower();
     let pair = m.sides[side].pair;
-    let ox = sx(-62.0, cam);
+    let ox = sx(-76.0, cam);
     if ox < -40 {
         return;
     }
@@ -585,30 +585,26 @@ pub fn dog_icon(f: &mut Frame, art: &Art, pair: usize, x: i32, y: i32, collar: u
 }
 
 fn pip(f: &mut Frame, x: i32, y: i32, r: Option<&TossResult>, now: bool, t: u32) {
-    f.rect(x - 1, y - 1, 9, 9, OUTLINE);
+    f.rect(x - 1, y - 1, 9, 8, OUTLINE);
     match r {
         Some(r) if r.caught() => {
             let flip = matches!(r.outcome, Outcome::Catch(CatchKind::Flip));
             let jump = matches!(r.outcome, Outcome::Catch(CatchKind::Jump));
             let c = if flip { rgb(248, 96, 200) } else if jump { rgb(96, 224, 248) } else { rgb(96, 216, 72) };
-            f.rect(x, y, 7, 7, c);
-            f.rect(x, y, 7, 2, mix(c, 0xFFFFFF, 0.5));
-            let n = match r.outcome {
-                Outcome::Catch(k) => k.mult(),
-                _ => 1,
-            };
-            if n > 1 {
-                f.text(x + 1, y, &format!("{}", n), OUTLINE);
-            }
+            f.rect(x, y, 7, 6, c);
+            f.hline(x, x + 6, y, mix(c, 0xFFFFFF, 0.5));
+            // a little disc icon
+            f.hline(x + 1, x + 5, y + 2, OUTLINE);
+            f.hline(x + 2, x + 4, y + 3, OUTLINE);
         }
         Some(_) => {
-            f.rect(x, y, 7, 7, rgb(72, 32, 48));
-            f.line(x + 1, y + 1, x + 5, y + 5, rgb(248, 72, 72));
-            f.line(x + 5, y + 1, x + 1, y + 5, rgb(248, 72, 72));
+            f.rect(x, y, 7, 6, rgb(72, 32, 48));
+            f.line(x + 1, y, x + 5, y + 5, rgb(248, 72, 72));
+            f.line(x + 5, y, x + 1, y + 5, rgb(248, 72, 72));
         }
         None => {
             let c = if now && (t / 8) % 2 == 0 { rgb(248, 232, 64) } else { rgb(48, 48, 88) };
-            f.rect(x, y, 7, 7, c);
+            f.rect(x, y, 7, 6, c);
         }
     }
 }
@@ -621,66 +617,89 @@ pub fn draw_hud(f: &mut Frame, m: &Match, art: &Art, t: u32) {
     for side in 0..2 {
         let pair = m.sides[side].pair;
         let col = side_color(m, side);
-        let name = PAIRS[pair].dog.name;
-        let short = if name.len() > 8 { &name[name.len() - 10..].trim_start() } else { name };
-        let short = if pair == 2 { "SIR W." } else { short };
+        let short = short_name(pair);
         let left = side == 0;
-        let x0 = if left { 2 } else { 156 };
+        let x0 = if left { 1 } else { 150 };
+        let pw = 105;
         // the active side's panel glows
         if active == side && m.phase != Phase::Over && (t / 10) % 2 == 0 {
-            f.rect_outline(x0 - 1, 1, 100, 31, col);
+            f.rect_outline(x0, 1, pw, 31, col);
         }
-        let ix = if left { x0 + 2 } else { x0 + 82 };
-        dog_icon(f, art, pair, ix, 4, col, !left);
+        let ix = if left { x0 + 3 } else { x0 + pw - 17 };
+        dog_icon(f, art, pair, ix, 3, col, !left);
         let tag = match m.sides[side].ctrl {
             Ctrl::Human(0) => "1P",
             Ctrl::Human(_) => "2P",
             Ctrl::Cpu => "CPU",
         };
         let tw = text_width(tag, false);
-        let tx = if left { ix + 7 - tw / 2 } else { ix + 7 - tw / 2 };
+        let tx = ix + 7 - tw / 2;
         f.rect(tx - 1, 19, tw + 2, 9, col);
         f.text(tx, 20, tag, rgb(16, 16, 48));
-        let nx = if left { x0 + 19 } else { x0 + 79 - text_width(short, true) };
-        f.text_grad(nx, 3, short, &grad7(PAIRS[pair].color), OUTLINE, true);
-        // score
-        let total = format!("{}", m.sides[side].total());
-        let sxp = if left { x0 + 19 + text_width(&total, true) / 2 + 6 } else { x0 + 79 - text_width(&total, true) / 2 - 6 };
-        f.logo(sxp, 11, &total, 2, &grad6(rgb(248, 232, 96)), OUTLINE, rgb(8, 8, 24));
-        // toss pips
-        let n = (m.turns / 2).max(TOSSES);
-        for k in 0..n.min(8) {
+        let nw = text_width(short, true);
+        let nx = if left { x0 + 21 } else { x0 + pw - 21 - nw };
+        f.text_grad(nx, 3, short, &grad7(mix(PAIRS[pair].color, 0xFFFFFF, 0.25)), OUTLINE, true);
+        // score: big digits under the name
+        let total = m.sides[side].total();
+        let txt = format!("{}", total);
+        let n = txt.len() as i32;
+        if n <= 3 {
+            let w = n * 12 + 6;
+            let cx = if left { x0 + 21 + w / 2 } else { x0 + pw - 21 - w / 2 };
+            f.logo(cx, 12, &txt, 2, &grad6(rgb(248, 232, 96)), OUTLINE, rgb(8, 8, 24));
+        } else {
+            let w = text_width(&txt, true);
+            let x = if left { x0 + 22 } else { x0 + pw - 22 - w };
+            f.text_grad(x, 17, &txt, &grad7(rgb(248, 232, 96)), OUTLINE, true);
+        }
+        // toss pips, at the inner end of the panel
+        let total_pips = (m.turns / 2).max(TOSSES).min(8);
+        let pitch = if total_pips > 5 { 6 } else { 8 };
+        for k in 0..total_pips {
             let r = m.sides[side].results.get(k);
             let now = active == side && m.toss_no() == k + 1 && m.phase != Phase::Over;
-            let px = if left { x0 + 52 + k as i32 * 9 } else { x0 + 40 - k as i32 * 9 };
-            let px = if n > 5 { px - if left { 0 } else { 0 } } else { px };
-            pip(f, px.clamp(x0, x0 + 92), 24, r, now, t);
+            let px = if left { x0 + pw - 4 - (total_pips - k) as i32 * pitch } else { x0 + 4 + k as i32 * pitch };
+            pip(f, px, 23, r, now, t);
         }
     }
-    // centre: toss number and wind
-    let toss = if m.sudden() { "SUDDEN".to_string() } else { format!("TOSS {}/{}", m.toss_no().min(TOSSES), TOSSES) };
-    f.text_center(128, 3, &toss, rgb(160, 168, 216), OUTLINE, false);
-    windsock(f, 116, 18, m.wind, t);
+    // centre: the wind
+    f.text_center(128, 2, "WIND", rgb(160, 168, 216), OUTLINE, false);
     let mph = (m.wind.abs() * 15.0).round() as i32;
     let ws = format!("{}", mph);
-    f.text_sh(130, 14, &ws, rgb(248, 248, 248), OUTLINE, true);
     let arrow = if mph == 0 {
-        "-"
+        ""
     } else if m.wind > 0.0 {
         ">"
     } else {
         "<"
     };
-    f.text_sh(130 + text_width(&ws, true) + 2, 14, arrow, if m.wind > 0.0 { rgb(120, 248, 120) } else { rgb(248, 120, 120) }, OUTLINE, true);
-    f.text_center(128, 24, "MPH", rgb(120, 128, 176), OUTLINE, false);
-    // zoomies meter while fetching
+    let w = text_width(&ws, true) + if arrow.is_empty() { 0 } else { 8 };
+    let x = 132 - w / 2;
+    windsock(f, x - 6, 21, m.wind, t);
+    f.text_sh(x, 12, &ws, rgb(248, 248, 248), OUTLINE, true);
+    let good = m.wind > 0.0;
+    if !arrow.is_empty() {
+        f.text_sh(x + w - 7, 12, arrow, if good { rgb(120, 248, 120) } else { rgb(248, 120, 120) }, OUTLINE, true);
+    }
     if m.phase == Phase::Flight {
+        // zoomies meter while fetching
         let d = &m.dog;
         let k = (d.zoom / d.body.zoom_cap * 30.0) as i32;
-        let (zx, zy) = (113, 31);
-        f.rect(zx - 1, zy - 1, 32, 3, OUTLINE);
+        let (zx, zy) = (113, 27);
+        f.rect(zx - 1, zy - 1, 32, 4, OUTLINE);
         let c = if d.zooming && (t / 3) % 2 == 0 { rgb(248, 248, 200) } else { rgb(248, 152, 32) };
-        f.hline(zx, zx + k - 1, zy, c);
+        f.rect(zx, zy, k, 2, c);
+    } else {
+        f.text_center(128, 24, "MPH", rgb(120, 128, 176), OUTLINE, false);
+    }
+}
+
+/// Dog name short enough for the HUD.
+pub fn short_name(pair: usize) -> &'static str {
+    if pair == 2 {
+        "SIR W."
+    } else {
+        PAIRS[pair].dog.name
     }
 }
 
