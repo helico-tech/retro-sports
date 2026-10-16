@@ -271,3 +271,10 @@ fn debug_stare_overshoot() {
         }
     }
 }
+
+#[test]
+#[ignore]
+fn debug_sheet() {
+    let dir = std::env::var("DD_OUT").unwrap_or("target".into());
+    retro_sports::games::discdogs::headless::sheet_png(std::path::Path::new(&format!("{dir}/dogs.png")), std::path::Path::new(&format!("{dir}/props.png")));
+}

@@ -706,6 +706,8 @@ impl App {
         f.rect(150, 118, w, 12, OUTLINE);
         f.rect(151, 119, w - 2, 10, rgb(248, 248, 248));
         f.text(155, 121, "PLEASE?", rgb(16, 16, 48));
+        f.fill_poly(&[(152, 129), (160, 129), (149, 136)], OUTLINE);
+        f.fill_poly(&[(153, 129), (158, 129), (151, 134)], rgb(248, 248, 248));
         if (t / 20) % 2 == 0 {
             f.text_center(128, 188, "PUSH Z TO TRY AGAIN", rgb(248, 248, 248), OUTLINE, true);
         }
@@ -716,10 +718,9 @@ impl App {
         f.logo(128, 50, "GAME", 4, &grad6(rgb(216, 48, 64)), OUTLINE, rgb(0, 0, 0));
         f.logo(128, 88, "OVER", 4, &grad6(rgb(216, 48, 64)), OUTLINE, rgb(0, 0, 0));
         let me = self.cursor[0];
-        let mut d = Dog::new(me);
-        d.state = DogState::Lie;
-        draw_dog_at(f, &self.art, &d, 128, 180, t, rgb(248, 216, 48), 0, false, false);
-        rain(f, 128, 150, t);
+        f.shade_ellipse(128, 181, 24, 3, 1, 2);
+        draw_scaled(f, self.art.dogs.get(me, DogFrame::Lie), 128, 180, false, &dog_pal(me, rgb(248, 216, 48)), 2);
+        rain(f, 124, 140, t);
         let s = format!("{} WILL REMEMBER THIS.", PAIRS[me].dog.name);
         f.text_center(128, 196, &s, rgb(200, 200, 232), OUTLINE, false);
     }

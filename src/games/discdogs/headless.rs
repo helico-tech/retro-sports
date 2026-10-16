@@ -116,7 +116,7 @@ pub fn shots(out: &str) {
     press(&mut app2, Pad { down: true, ..Pad::default() });
     press(&mut app2, A);
     run(&mut app2, 10);
-    app2.update([Pad::default(), Pad { right: true, ..Pad::default() }], false);
+    app2.update([Pad::default(), Pad { down: true, ..Pad::default() }], false);
     run(&mut app2, 20);
     snap(&app2, dir, "13_select_2p.png");
     press(&mut app2, A);
@@ -249,6 +249,58 @@ pub fn shots(out: &str) {
         save_sheet(&sheet, 4, &dir.join("40_flip_sequence.png"), 2);
         println!("wrote 40_flip_sequence.png");
     }
+    // the rare ones, forced: a greedy flipper for an OOF, a huge floater for the sea
+    if !got.contains(&"oof") {
+        for seed in 0..60u64 {
+            let mut m = Match::new([1, 2], [Ctrl::Human(0), Ctrl::Cpu], [0.5, 0.5], Stage::Park, 500 + seed);
+            let sc = scenery_for(&m, seed);
+            let mut bot = Brain::human("greedy", seed);
+            let mut t = 0u32;
+            let mut done = false;
+            while !m.finished() && !done {
+                t += 1;
+                let p = if m.thrower() == 0 { bot.pad(&m, 0) } else { Pad::default() };
+                m.update(&[p, Pad::default()]);
+                m.sfx.clear();
+                if m.dog.state == DogState::Tumble && m.dog.tumble_t == 38 {
+                    snap_match(&m, &sc, &art, t, dir, "23_oof.png");
+                    done = true;
+                    got.push("oof");
+                }
+            }
+            if done {
+                break;
+            }
+        }
+    }
+    for (k, &stage) in STAGES.iter().enumerate() {
+        let mut m = Match::new([3, 0], [Ctrl::Human(0), Ctrl::Cpu], [0.5, 0.5], stage, 77);
+        let sc = scenery_for(&m, 77);
+        let mut t = 0u32;
+        let mut boosted = false;
+        while m.phase != Phase::Result && t < 3000 {
+            t += 1;
+            m.wind = 0.8;
+            if m.phase == Phase::Flight && !boosted {
+                // a throw for the ages
+                m.disc.vx *= 1.7;
+                boosted = true;
+            }
+            let p = match m.phase {
+                Phase::Aim => Pad { a: m.phase_t > 10, up: m.angle < 30.0, ..Pad::default() },
+                Phase::Power => Pad { a: m.meter_t < METER_HALF - 1, ..Pad::default() },
+                _ => Pad::default(),
+            };
+            m.update(&[p, Pad::default()]);
+            m.sfx.clear();
+        }
+        for _ in 0..50 {
+            t += 1;
+            m.update(&[Pad::default(); 2]);
+        }
+        snap_match(&m, &sc, &art, t, dir, &format!("33_out_{}.png", k + 1));
+    }
+    got.push("out");
     let missing: Vec<&&str> = events.iter().filter(|e| !got.contains(e)).collect();
     if !missing.is_empty() {
         println!("not captured: {:?}", missing);
@@ -303,20 +355,27 @@ pub fn shots(out: &str) {
 /// Every dog frame for every breed, and the owners and props, at 4x.
 pub fn sheet_png(dogs: &Path, rest: &Path) {
     let art = Art::new();
-    let mut f = Frame::new();
-    f.clear(rgb(96, 136, 104));
-    for pair in 0..4 {
-        let pal = dog_pal(pair, rgb(232, 56, 56));
-        for (k, fr) in DOG_FRAMES.iter().enumerate() {
-            let x = 16 + (k as i32 % 10) * 25;
-            let y = 28 + pair as i32 * 54 + (k as i32 / 10) * 27;
-            if (k as i32 / 10) % 2 == 1 {
-                f.rect(x - 12, y - 25, 24, 27, rgb(88, 128, 96));
+    // two breeds per frame, 7 frames a row, cells 36 wide
+    let mut frames = Vec::new();
+    for half in 0..2 {
+        let mut f = Frame::new();
+        f.clear(rgb(96, 136, 104));
+        for b in 0..2 {
+            let pair = half * 2 + b;
+            let pal = dog_pal(pair, rgb(232, 56, 56));
+            for (k, fr) in DOG_FRAMES.iter().enumerate() {
+                let (cx, cy) = ((k % 7) as i32, (k / 7) as i32);
+                let x = 18 + cx * 36;
+                let y = 32 + (b * 3) as i32 * 36 + cy * 36;
+                if (cx + cy) % 2 == 0 {
+                    f.rect(x - 18, y - 32, 36, 36, rgb(88, 128, 96));
+                }
+                draw(&mut f, art.dogs.get(pair, *fr), x, y, false, &pal);
             }
-            draw(&mut f, art.dogs.get(pair, *fr), x, y, false, &pal);
         }
+        frames.push(f);
     }
-    save_png(&f, dogs, 4);
+    save_sheet(&frames, 2, dogs, 3);
     let mut g = Frame::new();
     g.clear(rgb(96, 136, 104));
     for pair in 0..4 {

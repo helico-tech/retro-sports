@@ -203,8 +203,9 @@ pub fn draw_clipped(f: &mut Frame, s: &RSprite, x: i32, y: i32, flip: bool, pal:
     }
 }
 
-/// Upside down (a dog on its back).
+/// Upside down (a dog on its back): the top of the sprite rests on the ground at y.
 pub fn draw_vflip(f: &mut Frame, s: &RSprite, x: i32, y: i32, flip: bool, pal: &[u32]) {
+    let first = (0..s.h).find(|&sy| (0..s.w).any(|sx| s.px[(sy * s.w + sx) as usize] != T)).unwrap_or(0);
     for sy in 0..s.h {
         for sx in 0..s.w {
             let v = s.px[(sy * s.w + sx) as usize];
@@ -212,7 +213,7 @@ pub fn draw_vflip(f: &mut Frame, s: &RSprite, x: i32, y: i32, flip: bool, pal: &
                 continue;
             }
             let px = if flip { x + s.ox - sx } else { x - s.ox + sx };
-            f.set(px, y - (s.h - 1 - sy), pal[v as usize]);
+            f.set(px, y - (sy - first), pal[v as usize]);
         }
     }
 }
@@ -404,8 +405,8 @@ fn dpose(fr: DogFrame) -> DPose {
         DogFrame::Reach => p(3.0, -6.0, [(75.0, 65.0), (60.0, 55.0), (-50.0, -25.0), (-40.0, -20.0)], Head::Open, (1, 0), -5.0),
         DogFrame::Sit | DogFrame::SitWag | DogFrame::Guilty => DPose {
             lift: 0.0,
-            pitch: 38.0,
-            legs: [(0.0, 0.0), (4.0, 0.0), (95.0, -100.0), (85.0, -95.0)],
+            pitch: 48.0,
+            legs: [(-6.0, 0.0), (0.0, 0.0), (95.0, -100.0), (85.0, -95.0)],
             head: if fr == DogFrame::Guilty { Head::Sad } else { Head::Normal },
             hd: if fr == DogFrame::Guilty { (1, 2) } else { (0, 0) },
             tail: if fr == DogFrame::SitWag { 80.0 } else if fr == DogFrame::Guilty { -80.0 } else { 40.0 },
@@ -433,7 +434,58 @@ pub const DH: i32 = 32;
 pub const DOX: i32 = 17;
 pub const DOY: i32 = 29;
 
+/// The flip: a compact ball, head tucked in, paws folded (rotated at load).
+fn build_curl(b: Breed) -> RSprite {
+    let sh = shape(b);
+    let mut s = RSprite::new(DW, DH, DOX, DOY);
+    let ip = |p: (f32, f32)| (p.0.round() as i32, p.1.round() as i32);
+    let (cx, cy) = (DOX as f32 - 1.0, DOY as f32 - 12.0);
+    let r = sh.thick * 0.5 + 2.5;
+    // the tail wraps over the back
+    let tail = (cx - r + 0.5, cy - r * 0.6);
+    match sh.tail {
+        Tail::Stub => s.ellipse(tail.0 + 1.0, tail.1 + 1.0, 1.5, 1.5, 0.0, FUR),
+        Tail::Plume => s.ellipse(tail.0 + 1.0, tail.1, 3.5, 3.0, 0.0, FUR),
+        _ => s.thick(ip((cx - r, cy)), ip((cx - 1.0, cy - r - 1.5)), 2, FUR),
+    }
+    // far legs, folded
+    s.thick(ip((cx + 1.0, cy + r - 1.0)), ip((cx + r + 1.0, cy + r - 2.0)), 2, FUR_D);
+    s.thick(ip((cx - 3.0, cy + r - 1.0)), ip((cx + 1.0, cy + r + 1.0)), 2, FUR_D);
+    // body
+    s.ellipse(cx, cy, r + 1.0, r, 0.0, FUR);
+    s.ellipse(cx + 0.5, cy + r * 0.45, r * 0.75, r * 0.4, 0.0, if sh.saddle { LIGHT } else { FUR_D });
+    if sh.saddle {
+        s.ellipse(cx - 1.0, cy - r * 0.45, r * 0.8, r * 0.4, 0.0, DARK);
+    }
+    if b != Breed::Afghan {
+        s.ellipse(cx + r * 0.6, cy + 0.5, 2.0, r * 0.55, 0.0, LIGHT);
+    }
+    if sh.fringe {
+        for k in 0..5 {
+            let x = cx - r + 2.0 + k as f32 * 2.0;
+            s.thick(ip((x, cy + r - 1.0)), ip((x - 1.0, cy + r + 2.0)), 1, FUR);
+        }
+    }
+    // near legs folded against the belly, paws up by the chin
+    let paw = if sh.socks { LIGHT } else { FUR };
+    s.thick(ip((cx - 2.0, cy + r * 0.5)), ip((cx + 2.0, cy + r + 0.5)), 2, FUR);
+    s.thick(ip((cx + 2.0, cy + r + 0.5)), ip((cx + 4.0, cy + r - 0.5)), 2, paw);
+    s.thick(ip((cx + r * 0.5, cy + 1.0)), ip((cx + r + 1.0, cy + 2.0)), 2, FUR);
+    s.thick(ip((cx + r + 1.0, cy + 2.0)), ip((cx + r + 2.0, cy - 0.5)), 2, paw);
+    // collar and the head tucked in at the front
+    s.thick(ip((cx + r * 0.5, cy - r + 1.0)), ip((cx + r * 0.5 + 1.0, cy - r + 3.0)), 2, COLLAR);
+    let (rows, (nx, ny)) = head(b, Head::Open);
+    let hx = ip((cx + r * 0.5, 0.0)).0 - nx + 1;
+    let hy = ip((0.0, cy - r + 2.0)).1 - ny + 1 - if b == Breed::Afghan { 2 } else { 0 };
+    s.stamp(hx, hy, rows);
+    s.outline();
+    s
+}
+
 fn build_dog(b: Breed, fr: DogFrame) -> RSprite {
+    if matches!(fr, DogFrame::Curl0 | DogFrame::Curl1 | DogFrame::Curl2 | DogFrame::Curl3) {
+        return build_curl(b);
+    }
     let sh = shape(b);
     let pose = dpose(fr);
     let mut s = RSprite::new(DW, DH, DOX, DOY);

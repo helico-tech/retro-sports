@@ -1150,7 +1150,7 @@ impl Match {
         // double tap for zoomies
         if e.right || e.left {
             let k = if e.right { 0 } else { 1 };
-            if self.frame as i64 - self.last_tap[k] < 16 && d.zoom > 4.0 {
+            if self.frame as i64 - self.last_tap[k] < 16 && d.zoom > 4.0 && !d.zooming {
                 d.zooming = true;
                 let (x, z) = (d.x, d.z + 28.0);
                 self.popup(x, z, "ZOOMIES!".into(), rgb(248, 152, 32));
@@ -1739,7 +1739,11 @@ impl Match {
                 // keep the disc on screen, the dog if it fits
                 mid.clamp(dx - 216.0, dx - 40.0)
             }
-            Phase::Result | Phase::Over => self.dog.x - 128.0,
+            Phase::Result | Phase::Over => match self.result.map(|r| r.outcome) {
+                // show where it went
+                Some(Outcome::Miss(MissKind::Sea | MissKind::Hedge | MissKind::Crowd)) if self.phase_t < 90 => self.disc.x - 160.0,
+                _ => self.dog.x - 128.0,
+            },
         };
         let target = target.clamp(CAM_MIN, CAM_MAX);
         if self.phase == Phase::Ready {

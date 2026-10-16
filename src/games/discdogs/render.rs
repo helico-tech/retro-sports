@@ -66,7 +66,14 @@ pub fn dog_frame(d: &Dog, t: u32) -> DogFrame {
                 DogFrame::Reach
             }
         }
-        DogState::Tumble => DogFrame::Stand,
+        // on its back, legs kicking
+        DogState::Tumble => {
+            if (t / 6) % 2 == 0 {
+                DogFrame::Stand
+            } else {
+                DogFrame::Run1
+            }
+        }
         DogState::Stare => DogFrame::Stare,
         DogState::Happy => {
             if d.z > 0.0 || (t / 8) % 2 == 0 {
@@ -674,8 +681,8 @@ pub fn draw_hud(f: &mut Frame, m: &Match, art: &Art, t: u32) {
         "<"
     };
     let w = text_width(&ws, true) + if arrow.is_empty() { 0 } else { 8 };
-    let x = 132 - w / 2;
-    windsock(f, x - 6, 21, m.wind, t);
+    let x = 124.max(136 - w / 2);
+    windsock(f, 115, 21, m.wind, t);
     f.text_sh(x, 12, &ws, rgb(248, 248, 248), OUTLINE, true);
     let good = m.wind > 0.0;
     if !arrow.is_empty() {
@@ -704,18 +711,26 @@ pub fn short_name(pair: usize) -> &'static str {
 }
 
 pub fn windsock(f: &mut Frame, x: i32, y: i32, wind: f32, t: u32) {
-    f.rect(x - 1, y - 9, 2, 14, OUTLINE);
-    f.rect(x, y - 9, 1, 14, rgb(200, 200, 216));
+    f.rect(x - 1, y - 10, 3, 15, OUTLINE);
+    f.rect(x, y - 10, 1, 15, rgb(200, 200, 216));
     let dir = if wind >= 0.0 { 1 } else { -1 };
-    let lift = (wind.abs() * 6.0).min(6.0) as i32;
-    let flap = ((t / 5) % 2) as i32;
-    for k in 0..4 {
-        let sx0 = x + dir * (1 + k * 2);
-        let droop = (6 - lift) * k / 3 + if k == 3 { flap } else { 0 };
-        let c = if k % 2 == 0 { rgb(248, 96, 48) } else { rgb(248, 248, 248) };
-        let hh = 3 - k / 2;
-        f.rect(sx0.min(sx0 + dir), y - 9 + droop, 2, hh + 1, OUTLINE);
-        f.rect(sx0.min(sx0 + dir), y - 8 + droop, 2, hh - 1, c);
+    // calm: the sock hangs down; strong: it flies straight out
+    let lift = (wind.abs() * 7.0).min(6.0) as i32;
+    let flap = if lift > 2 { ((t / 4) % 2) as i32 } else { 0 };
+    let segs: Vec<(i32, i32, i32, u32)> = (0..4)
+        .map(|k| {
+            let sx0 = x + dir * (1 + k * 2) - if dir < 0 { 1 } else { 0 };
+            let droop = (6 - lift) * k / 2 + if k == 3 { flap } else { 0 };
+            let h = 4 - k / 2;
+            let c = if k % 2 == 0 { rgb(248, 96, 48) } else { rgb(248, 248, 248) };
+            (sx0, y - 10 + droop, h, c)
+        })
+        .collect();
+    for &(sx0, sy0, h, _) in &segs {
+        f.rect(sx0 - 1, sy0 - 1, 4, h + 2, OUTLINE);
+    }
+    for &(sx0, sy0, h, c) in &segs {
+        f.rect(sx0, sy0, 2, h, c);
     }
 }
 

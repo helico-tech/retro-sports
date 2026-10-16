@@ -189,6 +189,24 @@ impl Scenery {
                 f.set(x, y + 1, rgb(144, 144, 200));
             }
         }
+        if self.stage != Stage::Bowl {
+            // the Helico blimp drifts across now and then
+            let k = (t % 5400) as i32;
+            if k < 2400 {
+                blimp(f, 300 - k / 6 - (cam * 0.05) as i32, 62, t);
+            }
+        }
+        if self.stage == Stage::Park {
+            // a few birds in a loose V
+            let bx = ((t as f32 * 0.25 - cam * 0.1) as i32).rem_euclid(420) - 60;
+            for k in 0..4 {
+                let (x, y) = (bx - k * 7, 76 + (k % 2) * 3 + k * 2);
+                let flap = ((t / 8) as i32 + k) % 2;
+                f.set(x - 1, y - flap, rgb(56, 64, 104));
+                f.set(x, y, rgb(56, 64, 104));
+                f.set(x + 1, y - flap, rgb(56, 64, 104));
+            }
+        }
         if let Some(at) = self.ufo_at {
             let k = t as i32 - at as i32;
             if (0..420).contains(&k) {
@@ -323,9 +341,9 @@ impl Scenery {
             }
             Stage::Bowl => {
                 // the mascot dances by the end zone
-                let x = sx(FIELD_END + 40.0, cam);
+                let x = sx(FIELD_END + 70.0, cam);
                 if (-20..W + 20).contains(&x) {
-                    hotdog(f, x, 176, t);
+                    hotdog(f, x, GROUND_Y - 2, t);
                 }
             }
         }
@@ -554,10 +572,10 @@ fn park_props() -> Layer {
         }
         // "PLEASE DO NOT FEED THE HEDGE"
         let (sx0, sy0) = (x0 + 8, 134);
-        f.rect(sx0 - 1, sy0 - 1, 70, 19, OUTLINE);
-        f.rect(sx0, sy0, 68, 17, rgb(248, 240, 216));
-        f.text(sx0 + 2, sy0 + 1, "PLEASE DO", rgb(160, 48, 48));
-        f.text(sx0 + 2, sy0 + 9, "NOT FEED HEDGE", rgb(160, 48, 48));
+        f.rect(sx0 - 1, sy0 - 1, 90, 19, OUTLINE);
+        f.rect(sx0, sy0, 88, 17, rgb(248, 240, 216));
+        f.text(sx0 + 3, sy0 + 1, "PLEASE DO NOT", rgb(160, 48, 48));
+        f.text(sx0 + 3, sy0 + 9, "FEED THE HEDGE", rgb(160, 48, 48));
         yard_signs(f, ox, FIELD_TOP - 4, rgb(248, 248, 240), rgb(48, 96, 48));
         // the throw-line flag
         let tx = col(0.0) - ox;
@@ -959,6 +977,22 @@ fn ufo(f: &mut Frame, x: i32, y: i32, t: u32) {
     for k in 0..4 {
         let on = (t / 4 + k) % 4 == 0;
         f.set(x - 6 + k as i32 * 4, y + 1, if on { rgb(248, 248, 96) } else { rgb(248, 96, 96) });
+    }
+}
+
+fn blimp(f: &mut Frame, x: i32, y: i32, t: u32) {
+    f.fill_ellipse(x, y, 19, 7, OUTLINE);
+    f.fill_ellipse(x, y, 18, 6, rgb(216, 216, 232));
+    f.fill_ellipse(x - 2, y - 2, 14, 3, rgb(240, 240, 248));
+    f.dither_rect(x - 14, y + 3, 28, 2, rgb(176, 176, 200), rgb(216, 216, 232));
+    // fins and the gondola
+    f.fill_poly(&[(x + 15, y - 2), (x + 23, y - 8), (x + 22, y)], OUTLINE);
+    f.fill_poly(&[(x + 16, y - 2), (x + 22, y - 6), (x + 21, y - 1)], rgb(232, 64, 72));
+    f.rect(x - 4, y + 6, 9, 4, OUTLINE);
+    f.rect(x - 3, y + 7, 7, 2, rgb(232, 64, 72));
+    f.text(x - 14, y - 3, "HELICO", rgb(232, 64, 72));
+    if (t / 20) % 2 == 0 {
+        f.set(x - 18, y, rgb(248, 248, 96));
     }
 }
 
