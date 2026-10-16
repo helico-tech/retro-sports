@@ -3,5 +3,6 @@
 use crate::cart::Cart;
 
 pub mod dodgeball;
+pub mod discdogs;
 
-pub const CARTS: &[Cart] = &[dodgeball::CART];
+pub const CARTS: &[Cart] = &[dodgeball::CART, discdogs::CART];
