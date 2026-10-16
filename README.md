@@ -1,60 +1,86 @@
-# DODGE OR DIE!
+# RETRO SPORTS
 
-*Radical beach dodgeball, 1992 style.*
+*Greetings from Helico Island! Five totally radical sports, 1992 style.*
 
-A 16-bit style dodgeball game in Rust, in the spirit of California Games,
-Ski or Die and Super Dodge Ball. Everything you see and hear is generated
-in code: a 256x224 software framebuffer (SNES resolution), pixel-art
-sprites built from skeleton poses, and a chiptune synth.
+A collection of 16-bit style sports games in Rust, in the spirit of
+California Games, Ski or Die and Super Dodge Ball. Everything you see and
+hear is generated in code: a 256x224 software framebuffer (SNES
+resolution), pixel-art sprites built from skeleton poses, and a chiptune
+synth. Walk the island and pick a game.
 
-![Title](docs/screenshots/title.png)
+**Play in your browser: https://retro-sports.helico.app** (needs a
+keyboard; sound starts after your first key press).
+
+![Helico Island](docs/screenshots/island.png)
+
+## The games
+**DODGE OR DIE!** (dodgeball). 3 vs 3 on four courts, four crews, the five
+D's of dodgeball, and a coach who throws wrenches when you fall behind.
 
 | | |
 |---|---|
-| ![Boardwalk](docs/screenshots/boardwalk.png) | ![Slopes](docs/screenshots/slopes.png) |
-| ![Super shot](docs/screenshots/super-shot.png) | ![Coach's wrench](docs/screenshots/wrench.png) |
+| ![Title](docs/screenshots/title.png) | ![Super shot](docs/screenshots/super-shot.png) |
 
-## Features
-- 3 vs 3, best of three rounds, four crews with their own stats.
-- Four courts: Malibu Beach, Venice Boardwalk, Powder Peak, Dogtown Skatepark.
-- 1P ladder against the CPU (with continues), 2P versus, demo mode.
-- The five D's of dodgeball: **dodge, duck, dip, dive and dodge**.
-- Fall behind and your coach throws a wrench at you. If you can dodge a
-  wrench, you can dodge a ball (and your next throw is a super shot).
+**DISC DOGS!** (frisbee). You throw, your dog catches: leap and flip for
+up to triple points. Mind the squirrel, the pond and the seagulls on the
+pier.
 
-## Play in your browser
-**https://dodgeball.helico.app** — needs a keyboard. Sound starts after
-your first key press.
+| | |
+|---|---|
+| ![Disc Dogs](docs/screenshots/discdogs-title.png) | ![Seagull'd](docs/screenshots/discdogs-gulled.png) |
 
-## Download
-Get the latest build from the [Releases](../../releases) page.
+**TEGENWIND!** (Dutch cycling). Holland's toughest bike race, against the
+wind. Pedal in rhythm, tuck, draft, ring your bell at tourists, and try to
+deliver the cheese. Oma Riek never stops pedalling.
 
-- **macOS** (Apple Silicon and Intel): unzip `DodgeOrDie-macos.zip` and
-  open `Dodge or Die.app`. The app is not signed by Apple, so the first
-  time right-click it and choose *Open*, or run
-  `xattr -dr com.apple.quarantine "Dodge or Die.app"`.
-- **Windows** (x86_64): unzip `dodge-or-die-windows-x86_64.zip` and run
-  `dodgeball.exe`. Windows SmartScreen may warn because the exe is not
-  signed: choose *More info* and then *Run anyway*.
-- **Linux** (x86_64): unpack `dodge-or-die-linux-x86_64.tar.gz` and run
-  `./dodgeball`. Needs OpenGL, X11 and ALSA (present on most desktops).
+| | |
+|---|---|
+| ![Plons](docs/screenshots/tegenwind-plons.png) | ![Regenbui](docs/screenshots/tegenwind-shower.png) |
+
+**TRAIL MIX!** (trail running). The ultra trail of Mount Helico: pace your
+legs, jump roots, power hike with poles, glissade down the snow, and beat
+Gerald the goat.
+
+| | |
+|---|---|
+| ![Shortcut](docs/screenshots/trailmix-shortcut.png) | ![Summit](docs/screenshots/trailmix-summit.png) |
+
+**HANG TIME!** (hang gliding). Launch off the ramp, ride thermals and the
+geese, fly through the balloon hoops, mind the storm cloud, and land on
+the cross, not on the sheep.
+
+| | |
+|---|---|
+| ![Dunes](docs/screenshots/hangtime-dunes.png) | ![Storm](docs/screenshots/hangtime-storm.png) |
+
+Every game has a 1P ladder against the CPU (with continues) and a 2P mode.
 
 ## Controls
 | | Player 1 | Player 2 |
 |---|---|---|
 | Move | Arrows | W A S D |
-| Throw / catch | Z or `,` | F |
-| Jump | X or `.` | G |
-| Pass / duck | C or `/` | H |
+| A (throw, ring, grab) | Z or `,` | F |
+| B (jump, hop, flare) | X or `.` | G |
+| C (pass, tuck, floater) | C or `/` | H |
 | Start / pause | Enter | Tab |
 
-- Double-tap left or right to run. Jump while running to dive.
-- Throw at the very top of a jump for a flaming **super shot**.
-- Press catch just before the ball reaches you. Without the ball, the pass
-  key ducks.
-- Hold the ball longer than 5 seconds and it goes to the other side.
-- Esc goes back to the title (and quits from there, except in the browser).
-  F1 toggles scanlines.
+- On the island: arrows walk, Z or Enter plays.
+- Esc goes back to the game's title, then to the island (and quits from
+  the island, except in the browser). F1 toggles scanlines.
+- Each game shows its own controls on its intro cards.
+
+## Download
+Get the latest build from the [Releases](../../releases) page.
+
+- **macOS** (Apple Silicon and Intel): unzip `RetroSports-macos.zip` and
+  open `Retro Sports.app`. The app is not signed by Apple, so the first
+  time right-click it and choose *Open*, or run
+  `xattr -dr com.apple.quarantine "Retro Sports.app"`.
+- **Windows** (x86_64): unzip `retro-sports-windows-x86_64.zip` and run
+  `retro-sports.exe`. Windows SmartScreen may warn because the exe is not
+  signed: choose *More info* and then *Run anyway*.
+- **Linux** (x86_64): unpack `retro-sports-linux-x86_64.tar.gz` and run
+  `./retro-sports`. Needs OpenGL, X11 and ALSA (present on most desktops).
 
 ## Build from source
 ```sh
@@ -62,17 +88,19 @@ cargo run --release
 ```
 On Linux you need `libasound2-dev libx11-dev libxi-dev libgl1-mesa-dev`.
 On Windows the release build has no console window, so run the developer
-tools below from a debug build (`cargo run -- --sim 100`) to see output.
+tools below from a debug build to see output.
 
 Browser version: `web/build.sh` builds it into `dist/` (needs
 `rustup target add wasm32-unknown-unknown`). Serve it with
 `python3 -m http.server -d dist` and open http://localhost:8000.
 
 Developer tools, no window needed:
-- `cargo run --release -- --shots <dir>` renders screenshots of every screen.
-- `cargo run --release -- --sim 1000` prints CPU-vs-CPU balance stats.
-- `cargo run --release -- --probe 6` plays scripted "human" bots against the
-  CPU ladder to find exploits.
+- `cargo run --release -- --shots <dir> [game]` renders screenshots of
+  every screen of every game (or one game, or `hub`).
+- `cargo run --release -- --sim <game> [n]` prints CPU-vs-CPU balance
+  stats; `--probe <game> [n]` plays scripted "human" bots against the CPU
+  ladder to find exploits. Games: `dodgeball`, `discdogs`, `tegenwind`,
+  `trailmix`, `hangtime`.
 
-See [AGENTS.md](AGENTS.md) and [docs/architecture.md](docs/architecture.md)
-for how it is built.
+See [AGENTS.md](AGENTS.md), [docs/architecture.md](docs/architecture.md)
+and [docs/house-style.md](docs/house-style.md) for how it is built.

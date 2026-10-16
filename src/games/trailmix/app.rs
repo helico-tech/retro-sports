@@ -202,6 +202,8 @@ impl App {
             self.idle += 1;
         }
         if esc {
+            // Esc counts as input, or the title would restart the demo at once
+            self.idle = 0;
             match self.scene {
                 Scene::Title => self.quit = true,
                 _ => {

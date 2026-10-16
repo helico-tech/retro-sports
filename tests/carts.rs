@@ -65,6 +65,23 @@ fn esc_always_leads_back_to_the_selector() {
 }
 
 #[test]
+fn esc_leaves_the_attract_demo() {
+    for c in CARTS {
+        let mut g = (c.new)(9);
+        // idle long enough for the demo to be running
+        for _ in 0..60 * 40 {
+            g.update([Pad::default(); 2], false);
+        }
+        let mut n = 0;
+        while !g.wants_exit() {
+            g.update([Pad::default(); 2], n % 30 == 0);
+            n += 1;
+            assert!(n < 60 * 10, "{}: Esc does not lead out of the demo", c.id);
+        }
+    }
+}
+
+#[test]
 fn console_enters_and_leaves_every_game() {
     let mut con = Console::new(3);
     let press = |con: &mut Console, p: Pad| {
