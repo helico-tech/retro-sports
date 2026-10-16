@@ -96,7 +96,7 @@ impl Bot {
         // the first thing in my lane
         let mut hz: Option<(f32, OKind)> = None;
         for o in &race.objs {
-            if o.gone || matches!(o.kind, OKind::Food(_)) {
+            if o.gone || o.kind.pickup() {
                 continue;
             }
             let dx = o.x - r.x;
@@ -131,7 +131,7 @@ impl Bot {
         let other = 1 - r.lane;
         let clear = |lane: i32| -> bool {
             let ly = lane as f32;
-            !race.objs.iter().any(|o| !o.gone && !matches!(o.kind, OKind::Food(_)) && !o.kind.wide() && (o.blocking() || o.kind.slow_rider()) && (o.y - ly).abs() < 0.6 && o.x - r.x > -20.0 && o.x - r.x < 90.0)
+            !race.objs.iter().any(|o| !o.gone && !o.kind.pickup() && !o.kind.wide() && (o.blocking() || o.kind.slow_rider()) && (o.y - ly).abs() < 0.6 && o.x - r.x > -20.0 && o.x - r.x < 90.0)
                 && !race.riders.iter().enumerate().any(|(j, q)| j != me && q.riding() && (q.y - ly).abs() < 0.5 && (q.x - r.x).abs() < 22.0)
         };
         let mut busy = false;
@@ -187,7 +187,13 @@ impl Bot {
                 }
             }
             // food in the other lane when hungry
-            if r.energy < 60.0 && race.objs.iter().any(|o| !o.gone && matches!(o.kind, OKind::Food(_)) && (o.y - other as f32).abs() < 0.3 && o.x - r.x > 30.0 && o.x - r.x < 100.0) && clear(other) {
+            let shower_ahead = race.shower.map(|(a, _)| a - r.x > 0.0 && a - r.x < 600.0).unwrap_or(false) && !r.umbrella;
+            let wanted = |o: &Obj| match o.kind {
+                OKind::Food(_) => r.energy < 60.0,
+                OKind::Umbrella => shower_ahead,
+                _ => false,
+            };
+            if race.objs.iter().any(|o| !o.gone && wanted(o) && (o.y - other as f32).abs() < 0.3 && o.x - r.x > 30.0 && o.x - r.x < 100.0) && clear(other) {
                 if other == 0 {
                     p.up = true;
                 } else {

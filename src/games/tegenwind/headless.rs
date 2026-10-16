@@ -147,8 +147,8 @@ pub fn shots(out: &str) {
         for k in 0..5 {
             let mut o = proto.clone();
             o.kind = OKind::Sheep;
-            o.x = x + (k * 7 % 13) as f32;
-            o.y = -0.4 - k as f32 * 0.32;
+            o.x = x + k as f32 * 9.0;
+            o.y = -0.2 - k as f32 * 0.42;
             o.state = 1;
             o.gone = false;
             o.hit = 0;
@@ -170,6 +170,31 @@ pub fn shots(out: &str) {
     place(&mut app, OKind::Cat, 110.0, None);
     ride_until(&mut app, &mut bots, 60, |a| me(a).z > 6.0);
     snap(&app, dir, "14_hop.png");
+    // the cheese stand, a rain shower with an umbrella, a stork
+    {
+        let r = race_mut(&mut app);
+        let v = r.views[0];
+        let sx = r.stands[0].0;
+        r.riders[v].x = sx - 40.0;
+        r.rare = Some((Rare::Stork, sx + 140.0));
+    }
+    ride_until(&mut app, &mut bots, 10, |_| false);
+    snap(&app, dir, "14b_cheese_stand_stork.png");
+    {
+        let r = race_mut(&mut app);
+        let v = r.views[0];
+        let x = r.riders[v].x;
+        r.shower = Some((x + 60.0, x + 900.0));
+    }
+    place(&mut app, OKind::Umbrella, 40.0, None);
+    ride_until(&mut app, &mut bots, 70, |_| false);
+    snap(&app, dir, "14c_shower_umbrella.png");
+    place(&mut app, OKind::Pothole, 300.0, Some(0.0));
+    place(&mut app, OKind::Bollard, 330.0, Some(1.0));
+    ride_until(&mut app, &mut bots, 30, |_| false);
+    snap(&app, dir, "14d_look_ahead.png");
+    race_mut(&mut app).shower = None;
+    race_mut(&mut app).riders[0].umbrella = false;
     // a crash: a bollard at speed
     ride_until(&mut app, &mut bots, 60 * 3, |_| false);
     {
@@ -240,6 +265,15 @@ pub fn shots(out: &str) {
     run(&mut app, COUNTDOWN as usize + 2);
     ride_until(&mut app, &mut bots, 60 * 20, |a| me(a).x > 1500.0);
     snap(&app, dir, "26_cobbles.png");
+    {
+        let r = race_mut(&mut app);
+        let v = r.views[0];
+        let sx = r.stands[0].0;
+        r.riders[v].x = sx - 40.0;
+        r.rare = Some((Rare::PartyBoat, sx + 150.0));
+    }
+    ride_until(&mut app, &mut bots, 10, |_| false);
+    snap(&app, dir, "26b_herring_cart_party_boat.png");
     place(&mut app, OKind::Tourist, 90.0, None);
     ride_until(&mut app, &mut bots, 40, |_| false);
     snap(&app, dir, "27_tourist.png");
@@ -285,6 +319,14 @@ pub fn shots(out: &str) {
     run(&mut app, COUNTDOWN as usize + 2);
     ride_until(&mut app, &mut bots, 60 * 25, |_| false);
     snap(&app, dir, "35_storm.png");
+    {
+        let r = race_mut(&mut app);
+        let v = r.views[0];
+        let x = r.riders[v].x;
+        r.rare = Some((Rare::Kite, x + 30.0));
+    }
+    ride_until(&mut app, &mut bots, 10, |_| false);
+    snap(&app, dir, "35b_kite_surfer.png");
     ride_until(&mut app, &mut bots, 60 * 60, |a| {
         let r = a.race.as_ref().unwrap();
         r.wind_for(r.views[0]).0.side() > 0.0 && me(a).y > 1.15

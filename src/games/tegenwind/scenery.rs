@@ -642,13 +642,22 @@ impl Scenery {
                 let base = (k as f32 * 131.0 - cam * MID_P).rem_euclid(W as f32 + 60.0) as i32 - 30;
                 let rise = (ph as i32 * 2).min(22);
                 let fade = ph as i32;
-                for b in 0..4 {
-                    let bx = base + b * 4 - 6 + (b * fade) / 6;
-                    let by = 118 - rise + b * 3 + (fade * fade) / 60;
-                    let r = 2 + fade / 8;
-                    if by - r >= clip.0 && by + r < clip.1 {
-                        let c = if fade > 20 { rgb(176, 200, 208) } else { rgb(232, 240, 240) };
-                        f.fill_ellipse(bx, by, r, (r - 1).max(1), c);
+                for b in 0..5 {
+                    let bx = base + b * 4 - 8 + (b * fade) / 5;
+                    let by = 118 - rise + (b % 3) * 3 + (fade * fade) / 50;
+                    let r = 1 + fade / 9;
+                    if by - r < clip.0 || by + r >= clip.1 {
+                        continue;
+                    }
+                    if fade > 18 {
+                        // falling apart into droplets
+                        for d in 0..3 {
+                            f.set(bx + d * 2 - 2, by + d, rgb(208, 224, 232));
+                        }
+                    } else {
+                        f.fill_ellipse(bx, by, r + 1, r, rgb(248, 248, 248));
+                        f.set(bx - r, by + r, rgb(200, 216, 224));
+                        f.set(bx + r + 1, by - 1, rgb(200, 216, 224));
                     }
                 }
             }

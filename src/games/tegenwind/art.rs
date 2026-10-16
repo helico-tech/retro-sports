@@ -353,11 +353,63 @@ pub const BOLLARD: [&str; 15] = [".WWW.", "WWWWW", "RRRRR", "RRRRR", "WWWWW", "W
 
 pub const HERRING_ROAD: [&str; 4] = ["g.......w..", "gg.wwWWWWw.", "gwWWWWWWWKw", "g..wwwwwww."];
 
-pub const HAMMER: [&str; 9] = ["bbbbbbb..", "bBBBBBbb.", "bBBBBBbb.", "bbbbbbb..", "...BB....", "...BB....", "...BB....", "...BB....", "...bb...."];
+/// The man with the hammer's hammer: a big wooden mallet.
+pub const HAMMER: [&str; 12] = [
+    ".bbbbbbbbbbb.",
+    "bBBBTBBBBTBBb",
+    "bBBBTBBBBTBBb",
+    "bBBBTBBBBTBBb",
+    "bBBBTBBBBTBBb",
+    ".bbbbbbbbbbb.",
+    ".....bTb.....",
+    ".....bTb.....",
+    ".....bTb.....",
+    ".....bTb.....",
+    ".....bTb.....",
+    ".....bbb.....",
+];
 
 pub const BELL: [&str; 4] = [".www.", "wWWWw", "wWWWw", "gwwwg"];
 
 pub const CAMERA: [&str; 3] = ["KKgKK", "KwKKK", "KKKKK"];
+
+/// An open umbrella canopy (the stick is drawn to the hand); A/a = colours.
+pub const UMBRELLA: [&str; 7] = [
+    "..........K..........",
+    ".......AAAaAAA.......",
+    "....AAAAAaAaAAAAA....",
+    "..AAAAAAaAAAaAAAAAA..",
+    ".AAAAAAaAAAAAaAAAAAA.",
+    "AAAAAAaAAAAAAAaAAAAAA",
+    "aAa.aAa.aAa.aAa.aAa.a",
+];
+/// A folded one, lying on the path to be picked up.
+pub const UMBRELLA_FOLD: [&str; 4] = ["K.........", "KAAAAAaaaK", ".aaaaaAAK.", "........K."];
+
+pub const STORK: [[&str; 9]; 2] = [
+    [
+        "..KK..........",
+        "..KKKK........",
+        "...WWWWW......",
+        "oo.WWWWWWWWWKK",
+        "...KKKWWWWWW..",
+        ".....KKK......",
+        "......o.o.....",
+        ".....PPPP.....",
+        "....PPPPPP....",
+    ],
+    [
+        "..............",
+        "..............",
+        "...WWWWW......",
+        "oo.WWWWWWWWWKK",
+        "...WWWKWWWWW..",
+        "....KKKK......",
+        "...KKK.o.o....",
+        ".....PPPP.....",
+        "....PPPPPP....",
+    ],
+];
 
 /// A red velvet sofa, side view (the lady who moves house by bike).
 pub const SOFA: [&str; 10] = [
@@ -940,6 +992,9 @@ pub struct Art {
     pub hammer: Bmp,
     pub bell: Bmp,
     pub camera: Bmp,
+    pub umbrella: Bmp,
+    pub umbrella_fold: Bmp,
+    pub stork: [Bmp; 2],
     pub sofa: Bmp,
     pub tractor: Bmp,
     pub mill: Bmp,
@@ -1016,6 +1071,9 @@ impl Art {
             hammer: Bmp::art(&HAMMER),
             bell: Bmp::art(&BELL),
             camera: Bmp::art(&CAMERA),
+            umbrella: Bmp::art(&UMBRELLA),
+            umbrella_fold: Bmp::art(&UMBRELLA_FOLD),
+            stork: [Bmp::art(&STORK[0]), Bmp::art(&STORK[1])],
             sofa: Bmp::art(&SOFA),
             tractor: Bmp::art(&TRACTOR),
             mill: Bmp::art(&MILL),

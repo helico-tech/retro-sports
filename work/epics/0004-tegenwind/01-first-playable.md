@@ -70,5 +70,55 @@ balance, then the art and gameplay reviews.
 - 2026-10-16: the contract test hung on the old list hub (it presses RIGHT,
   the old hub only moved on UP/DOWN). Rebased `feat/tegenwind` onto
   `ea2aba7` (island hub), like the other game branches.
+- 2026-10-16: gameplay pass 1: look-ahead warning signs at the screen
+  edge (none on the ligfiets: it can't see over hedges), camera 14 px
+  further back, stroke energy raised (perfect 0.24, good 0.16) so food
+  matters on the dike, rain showers with umbrella pickups (wet without one;
+  an open umbrella is a sail: worse into the wind, a push with it), cheese
+  stand and herring cart with snacks, rare sights (stork, party boat, kite
+  surfer), GEZELLIG! when you sit on a wheel, gold crank glow in the
+  PERFECT window. Racefiets: normal cadence, suffers on cobbles.
+
+### Art review 1 (2026-10-16), against dodgeball's shots
+- MUST A1: the umbrella reads as a hat (13 px). Make it a big held umbrella.
+- MUST A2: the rain shower darkens a hard-edged rectangle of sky. Draw a
+  rain cloud instead.
+- MUST A3: drafting is hard to see (three tiny dashes). Draw a clear
+  slipstream: air lines bending round the front rider.
+- SHOULD A4: the man with the hammer is a 9 px mallet. Make it a big
+  cartoon hammer that bonks the head, with stars.
+- SHOULD A5: the raised drawbridge leaves look like bundles of sticks.
+  Planked leaves with a rail.
+- SHOULD A6: sea spray on the dike is soft grey blobs; crisper white spray.
+- SHOULD A7: the party boat crowd looks like candles; real little people.
+- SHOULD A8: the shots script stacks crossing sheep in a column (the race
+  spawn spreads them); make the shot match the game.
+- COULD A9: the crashed bike lying on the road is crude (two ellipses).
+- COULD A10: the cow cloud overlaps the logo on the title.
+- OK: riders, bikes and wheels read at 1x with outlines; pedalling frames
+  are smooth (sheet 20/52); palettes sit well together (Dutch orange HUD
+  line, red bike path, green polder); every scene has life (mills, cows,
+  geese V, tram, gulls, rain, whitecaps); jokes on every screen.
+
+### Gameplay review 1 (2026-10-16), with sim/probe numbers
+- MUST G1 (fixed): mashers never finished (bonked forever). Wasted strokes
+  now cost less energy; a masher still loses badly (polder 198 s vs 116 s
+  for the decent bot, 68% of presses wasted, 4.6 bonks).
+- MUST G2 (fixed): obstacles showed up about 1 s ahead at speed. Warning
+  signs and the camera change give about 2 s.
+- MUST G3 (fixed): energy never ran out for a good rider; now a
+  perfect-rhythm rider bonks on the dike unless they eat or draft.
+- SHOULD G4 (fixed): the racefiets won 80% on the dike (its faster cadence
+  was free power); now every bike wins 19-44% there with the decent bot.
+- SHOULD G5: rhythm feedback is HUD-only plus a tick. Added the crank glow
+  on the rider; keep the tick for every good stroke (16 sfx is the cap).
+- SHOULD G6 (fixed): Dennis was hopeless everywhere after the cobble
+  change; now he wins Amsterdam (38%), Oma the storm (38%), De Vries the
+  drafting polder (39%) in CPU races; field spread 7-16 s on average.
+- OK: tuck matters in the storm (no-tuck bot 10% wins vs 28%), drafting
+  helps placing (drafter bot 70% top 2 on the dike), rhythm beats mashing,
+  no exploit found (bell spam is free but harmless, hop spam costs energy
+  and pedalling, the umbrella-sail in a tailwind is a fair trick).
+- COULD G7: a photo finish when riders cross within a few frames.
 
 ## Follow-ups

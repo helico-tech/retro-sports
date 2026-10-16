@@ -128,7 +128,8 @@ pub struct RStats {
     pub wait_frames: u32,
     pub bites: u32,
     /// collisions per obstacle kind (`OKind::idx`)
-    pub hits: [u16; 12],
+    pub hits: [u16; 13],
+    pub wet_frames: u32,
 }
 
 #[derive(Clone, Copy, Default, Debug)]
@@ -185,6 +186,9 @@ pub struct Rider {
     /// frames of grace after a bump (no chain bumps through a flock)
     pub bump_cd: i32,
     pub brake_t: i32,
+    pub umbrella: bool,
+    /// frames in a row on someone's wheel
+    pub draft_t: i32,
     pub place: usize,
     pub stats: RStats,
     pub ai: Ai,
@@ -241,6 +245,26 @@ pub enum OKind {
     Tractor,
     Sofa,
     Food(Food),
+    /// a folded umbrella to grab before a rain shower
+    Umbrella,
+}
+
+/// Roadside stands with snacks in front of them.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Stand {
+    Cheese,
+    HerringCart,
+}
+
+/// Rare sights, one race in three.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Rare {
+    /// a stork flies over the polder with a baby in a bundle
+    Stork,
+    /// a boat full of orange party people in the canal
+    PartyBoat,
+    /// a kite surfer blown along the dike
+    Kite,
 }
 
 impl OKind {
@@ -268,8 +292,11 @@ impl OKind {
             OKind::Rails => 16.0,
             OKind::Tractor => 30.0,
             OKind::Sofa => 26.0,
-            OKind::Food(_) => 10.0,
+            OKind::Food(_) | OKind::Umbrella => 10.0,
         }
+    }
+    pub fn pickup(self) -> bool {
+        matches!(self, OKind::Food(_) | OKind::Umbrella)
     }
     /// Covers both lanes.
     pub fn wide(self) -> bool {
@@ -289,6 +316,7 @@ impl OKind {
             OKind::Tractor => 9,
             OKind::Sofa => 10,
             OKind::Food(_) => 11,
+            OKind::Umbrella => 12,
         }
     }
     pub fn slow_rider(self) -> bool {
@@ -327,7 +355,7 @@ impl Obj {
         match self.kind {
             OKind::Tourist | OKind::Cat => self.state == 0,
             OKind::Goose => self.state != 2 || (HEDGE_Y..CANAL_Y).contains(&self.y),
-            OKind::Food(_) => false,
+            OKind::Food(_) | OKind::Umbrella => false,
             _ => true,
         }
     }
@@ -469,6 +497,12 @@ pub struct Race {
     pub section: Vec<usize>,
     hup: Vec<bool>,
     say_cd: i32,
+    /// a rain shower over this stretch of the route
+    pub shower: Option<(f32, f32)>,
+    in_shower: Vec<bool>,
+    pub stands: Vec<(f32, Stand)>,
+    pub rare: Option<(Rare, f32)>,
+    gezellig_cd: i32,
 }
 
 pub fn stage(i: usize) -> &'static StageDef {
@@ -529,6 +563,8 @@ impl Race {
                     warn: 0,
                     bump_cd: 0,
                     brake_t: 0,
+                    umbrella: false,
+                    draft_t: 0,
                     place: k,
                     stats: RStats::default(),
                     ai: Ai::default(),
@@ -582,6 +618,11 @@ impl Race {
             section: vec![0; n],
             hup: vec![false; n],
             say_cd: 240,
+            shower: None,
+            in_shower: vec![false; n],
+            stands: Vec::new(),
+            rare: None,
+            gezellig_cd: 0,
         };
         race.build_course();
         race
@@ -618,11 +659,33 @@ impl Race {
     fn build_course(&mut self) {
         let st = self.def();
         let len = self.length;
+        // a stand with snacks, a rain shower, maybe a rare sight
+        let stand_x = len * self.rng.range(0.2, 0.32);
+        match st.venue {
+            Venue::Polder => self.stands.push((stand_x, Stand::Cheese)),
+            Venue::Amsterdam => self.stands.push((stand_x, Stand::HerringCart)),
+            Venue::Dijk => {}
+        }
+        if st.venue != Venue::Dijk && self.rng.f() < 0.6 {
+            let a = len * self.rng.range(0.45, 0.62);
+            self.shower = Some((a, a + 1500.0));
+        }
+        if self.rng.f() < 0.34 {
+            let rare = match st.venue {
+                Venue::Polder => Rare::Stork,
+                Venue::Amsterdam => Rare::PartyBoat,
+                Venue::Dijk => Rare::Kite,
+            };
+            self.rare = Some((rare, len * self.rng.range(0.3, 0.8)));
+        }
+        let keep_clear: Vec<f32> = self.stands.iter().map(|s| s.0).chain(self.shower.map(|s| s.0 - 260.0)).collect();
         let total: i32 = st.spawns.iter().map(|s| s.1).sum();
         let mut x = 520.0 + self.rng.int(120) as f32;
         let mut last_lane = 0;
         while x < len - 420.0 {
-            let near_special = st.bridge.map(|b| (x - b).abs() < 230.0).unwrap_or(false) || st.snackbar.map(|b| (x - b).abs() < 160.0).unwrap_or(false);
+            let near_special = st.bridge.map(|b| (x - b).abs() < 230.0).unwrap_or(false)
+                || st.snackbar.map(|b| (x - b).abs() < 160.0).unwrap_or(false)
+                || keep_clear.iter().any(|&c| (x - c).abs() < 130.0);
             if !near_special {
                 let mut pick = self.rng.int(total);
                 let mut kind = st.spawns[0].0;
@@ -643,6 +706,15 @@ impl Race {
         if let Some(sx) = st.snackbar {
             self.objs.push(Obj::new(OKind::Food(Food::Kroket), sx + 30.0, 0.0, 0));
             self.objs.push(Obj::new(OKind::Food(Food::Kroket), sx + 30.0, 1.0, 0));
+        }
+        for &(sx, stand) in &self.stands {
+            let food = if stand == Stand::Cheese { Food::Kaas } else { Food::Haring };
+            self.objs.push(Obj::new(OKind::Food(food), sx + 26.0, 0.0, 1));
+            self.objs.push(Obj::new(OKind::Food(food), sx + 60.0, 1.0, 2));
+        }
+        if let Some((a, _)) = self.shower {
+            self.objs.push(Obj::new(OKind::Umbrella, a - 260.0, 0.0, 0));
+            self.objs.push(Obj::new(OKind::Umbrella, a - 200.0, 1.0, 1));
         }
         self.objs.sort_by(|a, b| a.x.partial_cmp(&b.x).unwrap());
     }
@@ -1259,10 +1331,41 @@ impl Race {
             return;
         }
 
+        // rain shower: wet and cold without an umbrella, a sail with one
+        let showering = self.shower.map(|(a, b)| self.riders[i].x >= a && self.riders[i].x < b).unwrap_or(false);
+        if showering != self.in_shower[i] {
+            self.in_shower[i] = showering;
+            if showering && !done {
+                self.banner_rider(i, "REGENBUI!", 60, rgb(120, 176, 248));
+                if !self.riders[i].umbrella {
+                    self.popup_rider(i, "NAT!", rgb(160, 216, 248));
+                }
+            }
+        }
+        if let Some((_, b)) = self.shower {
+            if self.riders[i].umbrella && self.riders[i].x > b + 120.0 {
+                self.riders[i].umbrella = false;
+            }
+        }
+        if showering && !self.riders[i].umbrella {
+            let r = &mut self.riders[i];
+            r.energy = (r.energy - 0.03).max(0.0);
+            r.stats.wet_frames += 1;
+            if self.frame % 9 == 0 {
+                let (x, y) = (r.x + self.rng.range(-6.0, 6.0), ground_y(r.y) - 26.0 - r.z);
+                self.fx.push(Fx { x, y, vx: 0.0, vy: 0.6, life: 12, max: 12, kind: FxKind::Drop, color: rgb(160, 216, 248) });
+            }
+        }
+
         // drag
         let draft = self.draft_for(i);
         let mut landed = false;
-        let surface = if st.on_cobbles(self.riders[i].x) { 2.4 } else { 1.0 };
+        // cobbles: thin racing tyres suffer most
+        let surface = if st.on_cobbles(self.riders[i].x) {
+            if self.riders[i].bike == Bike::Race { 3.4 } else { 2.4 }
+        } else {
+            1.0
+        };
         {
             let r = &mut self.riders[i];
             r.draft = draft.1;
@@ -1271,6 +1374,10 @@ impl Race {
             let mut cd = C_AIR * b.drag;
             if r.tuck {
                 cd *= b.tuck;
+            }
+            if r.umbrella {
+                // an open umbrella is a sail: worse into the wind, better with it
+                cd *= 1.3;
             }
             cd *= draft.0;
             let drag = cd * air * air.abs() + C_ROLL * b.roll * surface * r.v;
@@ -1283,6 +1390,7 @@ impl Race {
                 r.stats.draft_frames += 1;
                 r.energy = (r.energy + 0.012).min(100.0);
             }
+            r.draft_t = if r.draft > 0.5 && !done { r.draft_t + 1 } else { 0 };
             if wind.head() > 0.45 {
                 r.stats.head_frames += 1;
                 if r.tuck {
@@ -1369,6 +1477,11 @@ impl Race {
             }
         }
 
+        if self.riders[i].draft_t == 70 && self.gezellig_cd <= 0 && self.view_of(i).is_some() {
+            self.gezellig_cd = 900;
+            self.popup_rider(i, "GEZELLIG!", rgb(248, 176, 200));
+        }
+
         // final kilometre
         if !self.hup[i] && self.progress(i) > 0.86 && !done {
             self.hup[i] = true;
@@ -1390,9 +1503,9 @@ impl Race {
         if r.since < g {
             r.stats.wasted += 1;
             if !r.bonk {
-                r.energy = (r.energy - 0.22).max(0.0);
+                r.energy = (r.energy - 0.1).max(0.0);
             }
-            r.v *= 0.99;
+            r.v *= 0.993;
             r.spin = 10;
             r.clean = false;
             r.last_stroke = Stroke::Wasted;
@@ -1405,13 +1518,13 @@ impl Race {
         let d = r.who.def();
         let b = r.bike.def();
         let (q, mult, cost) = if r.clean && r.since <= g + 3 {
-            (Stroke::Perfect, 1.2, 0.16)
+            (Stroke::Perfect, 1.2, 0.24)
         } else if r.since <= g + 14 {
-            (Stroke::Good, 1.0, 0.11)
+            (Stroke::Good, 1.0, 0.16)
         } else if r.since <= 45 {
-            (Stroke::Late, 0.85, 0.08)
+            (Stroke::Late, 0.85, 0.1)
         } else {
-            (Stroke::Late, 0.7, 0.08)
+            (Stroke::Late, 0.7, 0.1)
         };
         let wind_pow = if wind.head() > 0.45 {
             d.head_power
@@ -1538,7 +1651,7 @@ impl Race {
             if !lane_hit {
                 continue;
             }
-            if let OKind::Food(_) = o.kind {
+            if o.kind.pickup() {
                 if rz < 14.0 && (o.x - rx).abs() < 10.0 {
                     eat = Some(k);
                 }
@@ -1560,6 +1673,15 @@ impl Race {
             break;
         }
         if let Some(k) = eat {
+            if self.objs[k].kind == OKind::Umbrella {
+                self.objs[k].gone = true;
+                if !self.riders[i].umbrella {
+                    self.riders[i].umbrella = true;
+                    self.popup_rider(i, "PARAPLU!", rgb(248, 216, 96));
+                    self.human_sfx(i, Sfx::Hop);
+                }
+                return;
+            }
             let OKind::Food(food) = self.objs[k].kind else { return };
             self.objs[k].gone = true;
             let r = &mut self.riders[i];
@@ -1749,6 +1871,12 @@ impl Race {
                 if self.riders[i].ctrl == Ctrl::Cpu && self.first_cpu_finish.is_none() {
                     self.first_cpu_finish = Some(self.clock);
                 }
+                let close = self.riders.iter().enumerate().any(|(j, o)| j != i && (o.finish.map(|f| self.clock.abs_diff(f) < 12).unwrap_or(false) || (o.finish.is_none() && !o.dnf && (len - o.x) < 20.0)));
+                if close && self.view_of(i).is_some() {
+                    self.banner_rider(i, "FOTOFINISH!", 80, rgb(248, 248, 248));
+                    self.human_sfx(i, Sfx::Cheer);
+                    continue;
+                }
                 if self.view_of(i).is_some() {
                     let txt = format!("FINISH! {}", ordinal(place));
                     let col = if place < 2 { rgb(248, 216, 48) } else { rgb(200, 200, 232) };
@@ -1884,6 +2012,7 @@ impl Race {
     }
 
     fn step_fx(&mut self) {
+        self.gezellig_cd -= 1;
         for f in self.fx.iter_mut() {
             f.x += f.vx;
             f.y += f.vy;
@@ -1945,7 +2074,7 @@ impl Race {
         let r = &self.riders[i];
         let ly = lane as f32;
         for o in &self.objs {
-            if o.gone || matches!(o.kind, OKind::Food(_)) || o.kind.wide() {
+            if o.gone || o.kind.pickup() || o.kind.wide() {
                 continue;
             }
             if !o.blocking() && !o.kind.slow_rider() {
@@ -1987,7 +2116,7 @@ impl Race {
         // the first thing in my lane
         let mut hazard: Option<(f32, OKind, f32, f32)> = None;
         for o in &self.objs {
-            if o.gone || matches!(o.kind, OKind::Food(_)) {
+            if o.gone || o.kind.pickup() {
                 continue;
             }
             let dx = o.x - o.kind.width() / 2.0 - (r.x + 13.0);
@@ -2059,9 +2188,15 @@ impl Race {
             if side && r.lane == 1 {
                 want = Some(0);
             }
-            if want.is_none() && r.energy < 75.0 {
+            let shower_ahead = self.shower.map(|(a, _)| a - r.x > 0.0 && a - r.x < 900.0).unwrap_or(false) && !r.umbrella;
+            if want.is_none() && (r.energy < 75.0 || shower_ahead) {
                 for o in &self.objs {
-                    if let OKind::Food(_) = o.kind {
+                    let wanted = match o.kind {
+                        OKind::Food(_) => r.energy < 75.0,
+                        OKind::Umbrella => shower_ahead,
+                        _ => false,
+                    };
+                    if wanted {
                         let dx = o.x - r.x;
                         if !o.gone && dx > 20.0 && dx < look + 40.0 && (o.y - other as f32).abs() < 0.3 {
                             want = Some(other);

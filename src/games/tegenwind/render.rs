@@ -11,7 +11,7 @@ use crate::engine::sprites::Palette;
 use crate::engine::ui::{grad6, grad7, LOGO_SHADOW, OUTLINE, SUNSET};
 
 /// Screen x of the rider the camera follows.
-pub const CAM_X: f32 = 84.0;
+pub const CAM_X: f32 = 70.0;
 
 pub fn cam_for(race: &Race, i: usize) -> f32 {
     let r = &race.riders[i];
@@ -176,6 +176,28 @@ fn draw_rider_in_world(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32
             let done = r.finish.is_some();
             let wave = done && r.v < 1.2 && (t / 20) % 2 == 0;
             draw_bike_rider(f, art, r.who, r.bike, sx, sy, r.crank_frame(), r.wheel, r.tuck, r.z > 0.0, wave, cargo, t);
+            if r.umbrella {
+                // held up in the front hand, above the head
+                let sk = ride_skel(posture(r.bike, r.tuck), r.crank_frame());
+                let (hx, hy) = (sx + sk[6].0 - RX + 1, sy + sk[6].1 - RY);
+                let top = sy + sk[0].1 - RY - 15;
+                let pal = pal_with((rgb(232, 64, 48), rgb(152, 32, 40)), (rgb(248, 136, 24), rgb(248, 248, 248)));
+                f.line(hx, hy, hx, top + 6, OUTLINE);
+                f.line(hx + 1, hy, hx + 1, top + 6, rgb(152, 104, 64));
+                let sway = if race.gust_on { ((t / 4) % 2) as i32 } else { 0 };
+                art.umbrella.draw(f, hx - 10 + sway, top, &pal, false);
+            }
+            // the crank glows gold while a PERFECT push is possible
+            if matches!(r.ctrl, Ctrl::Human(_)) && !done && r.clean {
+                let g = race.gap_for(i);
+                if r.since >= g && r.since <= g + 3 {
+                    let gc = geo(r.bike).crank;
+                    let (cx, cy) = (sx + gc.0, sy + gc.1);
+                    for (dx, dy) in [(-4, 0), (4, 0), (0, -4), (0, 4), (-3, -3), (3, 3), (3, -3), (-3, 3)] {
+                        f.set(cx + dx, cy + dy, rgb(248, 232, 96));
+                    }
+                }
+            }
             if r.bell_t > 0 {
                 let g = geo(r.bike);
                 let (bx, by) = (sx + g.bell.0, sy + g.bell.1);
@@ -185,24 +207,42 @@ fn draw_rider_in_world(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32
                 f.text_sh(bx - 14, by - 13, "TRING!", rgb(248, 248, 96), OUTLINE, false);
             }
             if r.hammer > 0 {
-                // the man with the hammer pays a visit
-                let swing = ((r.hammer / 6) % 2) as i32;
-                let (hx, hy) = (sx - 2, sy - 40 - swing * 2);
-                art.hammer.draw(f, hx - 4 + swing * 2, hy, &PROPS, swing == 1);
-                if (t / 4) % 2 == 0 {
-                    f.text_sh(hx + 7, hy - 2, "*", rgb(248, 248, 96), OUTLINE, false);
+                // the man with the hammer pays a visit: up, BONK, up, BONK
+                let down = (r.hammer / 10) % 2 == 0;
+                let sk = ride_skel(posture(r.bike, r.tuck), 0);
+                let (hx, hy) = (sx + sk[0].0 - RX, sy + sk[0].1 - RY);
+                let lift = if down { 0 } else { 9 };
+                art.hammer.draw(f, hx - 6, hy - 22 - lift, &PROPS, false);
+                if down {
+                    for k in 0..4 {
+                        let a = t as f32 * 0.2 + k as f32 * 1.57;
+                        let (px, py) = (hx + (a.cos() * 9.0) as i32, hy - 6 + (a.sin() * 3.0) as i32);
+                        f.set(px, py, rgb(248, 248, 96));
+                        f.set(px + 1, py, rgb(248, 248, 96));
+                        f.set(px, py - 1, rgb(248, 248, 200));
+                    }
                 }
             }
             if r.warn > 0 && (t / 4) % 2 == 0 {
                 f.text_grad(sx - 2, sy - 44, "!", &grad7(rgb(248, 72, 72)), OUTLINE, true);
             }
             if r.draft > 0.35 && r.finish.is_none() {
-                // slipstream: air bends round the rider in front
-                for k in 0..3 {
-                    let ph = ((t as i32 * 3 + k * 9) % 24) as i32;
-                    let y = sy - 28 + k * 8;
-                    let x = sx + 34 - ph;
-                    f.hline(x, x + 3, y - (k == 1) as i32 * 2, rgb(232, 248, 248));
+                // slipstream: the air parts round the rider in front and
+                // closes again behind you; you sit in the calm pocket
+                if let Some(front) = race.riders.iter().filter(|o| o.riding() && (o.y - r.y).abs() < 0.4 && o.x - r.x > 8.0 && o.x - r.x < 56.0).map(|o| o.x).reduce(f32::min) {
+                    let fx = (front - cam).round() as i32;
+                    for (k, (y0, bend)) in [(sy - 36, -3), (sy + 2, 2)].iter().enumerate() {
+                        let len = fx + 18 - (sx - 8);
+                        for d in 0..len.max(0) {
+                            let x = fx + 18 - d;
+                            let ph = (d + t as i32 * 2 + k as i32 * 5) % 10;
+                            if ph < 6 {
+                                let mid = (x - fx).abs() < 14;
+                                let y = y0 + if mid { *bend } else { 0 };
+                                f.set(x, y, rgb(208, 240, 248));
+                            }
+                        }
+                    }
                 }
             }
             if let Some((s, _)) = r.say {
@@ -415,6 +455,15 @@ fn draw_obj(f: &mut Frame, art: &Art, o: &Obj, cam: f32, t: u32) {
                 bubble(f, sx - 20, gy - 32, "MOVING DAY!");
             }
         }
+        OKind::Umbrella => {
+            let bob = (((t + o.var as u32 * 13) / 10) % 2) as i32;
+            draw_shadow(f, sx, gy, 5);
+            let pal = pal_with((rgb(232, 64, 48), rgb(152, 32, 40)), (rgb(248, 136, 24), rgb(232, 232, 240)));
+            art.umbrella_fold.draw_foot(f, sx, gy - 8 - bob, &pal, false);
+            if (t / 6 + o.var as u32) % 8 == 0 {
+                f.set(sx + 4, gy - 16 - bob, rgb(248, 248, 248));
+            }
+        }
         OKind::Food(food) => {
             let bob = (((t + o.var as u32 * 13) / 10) % 2) as i32;
             draw_shadow(f, sx, gy, 4);
@@ -595,19 +644,28 @@ fn draw_bridge(f: &mut Frame, b: &Bridge, cam: f32, t: u32, clip: (i32, i32)) {
         }
     }
     let wood = rgb(232, 232, 224);
-    // deck: two leaves that lift from the middle
+    // the deck: two planked leaves that tip up from the middle
     let ang = b.lift * 1.35;
     for side in [-1, 1] {
         let pivot = if side < 0 { l } else { r };
         let len = 24.0;
-        let ex = pivot as f32 - side as f32 * len * ang.cos();
-        let ey_off = -len * ang.sin();
-        for k in 0..4 {
-            let y = ROAD_TOP + 4 + k * 12;
-            let ey = y as f32 + ey_off;
-            f.thick_line(pivot, y, ex as i32, ey as i32, 4, OUTLINE);
-            f.thick_line(pivot, y, ex as i32, ey as i32, 2, rgb(160, 112, 64));
+        let tip = pivot - side * (len * ang.cos()).round() as i32;
+        let up = (len * ang.sin()).round() as i32;
+        let quad = [(pivot, ROAD_TOP + 2), (tip, ROAD_TOP + 2 - up), (tip, ROAD_BOT - up), (pivot, ROAD_BOT)];
+        let mut o = quad;
+        for q in o.iter_mut() {
+            q.0 += if q.0 == pivot { 0 } else { -side };
         }
+        f.fill_poly(&[(o[0].0, o[0].1 - 1), (o[1].0, o[1].1 - 1), (o[2].0, o[2].1 + 1), (o[3].0, o[3].1 + 1)], OUTLINE);
+        f.fill_poly(&quad, rgb(160, 112, 64));
+        // planks across, and the white rail on the far edge
+        for k in 1..6 {
+            let y0 = ROAD_TOP + 2 + k * 8;
+            f.line(pivot, y0, tip, y0 - up, rgb(120, 80, 48));
+        }
+        f.line(pivot, ROAD_TOP + 1, tip, ROAD_TOP + 1 - up, rgb(232, 232, 224));
+        f.line(pivot, ROAD_TOP - 4, tip, ROAD_TOP - 4 - up, rgb(232, 232, 224));
+        f.line(tip, ROAD_TOP - 4 - up, tip, ROAD_TOP + 1 - up, rgb(232, 232, 224));
     }
     // white wooden frames (like the Magere Brug)
     for x in [l - 4, r + 3] {
@@ -783,6 +841,12 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, i: usize, 
     if (-60..W + 60).contains(&start) {
         draw_crowd(f, art, start - 120, t, 6);
     }
+    for &(x, stand) in &race.stands {
+        let sx = (x - cam).round() as i32;
+        if (-50..W + 50).contains(&sx) {
+            draw_stand(f, art, sx, stand, t);
+        }
+    }
     sc.draw_road(f, cam, clip, |x| st.on_cobbles(x));
     draw_flat(f, race, sc, cam, clip);
     if let Some(b) = &race.bridge {
@@ -818,6 +882,9 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, i: usize, 
         draw_start_arch(f, start);
     }
     sc.draw_water(f, cam, t, clip);
+    if let Some((Rare::PartyBoat, x)) = race.rare {
+        party_boat(f, art, (x - cam * 1.0) as i32, t, clip);
+    }
     draw_floaters(f, race, art, cam, t);
     for k in 0..race.riders.len() {
         if matches!(race.riders[k].state, RState::Swim | RState::Climb) {
@@ -829,6 +896,25 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, i: usize, 
         draw_wind_streaks(f, race, i, t, clip);
     }
     sc.draw_weather(f, t, race.gust, clip);
+    if let Some((a, b)) = race.shower {
+        draw_shower(f, (a - cam) as i32, (b - cam) as i32, t, clip);
+    }
+    match race.rare {
+        Some((Rare::Stork, x)) => {
+            let sx = ((x - cam) * 0.5) as i32 + 60;
+            if (-20..W + 20).contains(&sx) {
+                art.stork[((t / 10) % 2) as usize].draw(f, sx, 52 + ((t / 20) % 3) as i32, &PROPS, false);
+            }
+        }
+        Some((Rare::Kite, x)) => {
+            let sx = ((x - cam) * 0.6) as i32 + (t as i32 % 400) / 3;
+            kite_surfer(f, sx, t, clip);
+        }
+        _ => {}
+    }
+    if race.views.contains(&i) && race.riders[i].bike != Bike::Lig && race.phase == Phase::Race {
+        look_ahead(f, race, cam, t, clip);
+    }
     sc.draw_gulls(f, art, t, clip);
     if let Some(tx) = race.tram {
         draw_tram(f, tx as i32, t, clip);
@@ -844,6 +930,176 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, i: usize, 
             f.text_grad((x - w / 2).clamp(2, W - w - 2), y, p.text, &grad7(p.color), OUTLINE, true);
         }
     }
+}
+
+/// Warning signs at the right edge for trouble that is still off screen.
+/// (The ligfiets is too low to see over the hedges: no warnings.)
+fn look_ahead(f: &mut Frame, race: &Race, cam: f32, t: u32, clip: (i32, i32)) {
+    let mut shown = [false; 3];
+    for o in &race.objs {
+        if o.gone || o.kind.pickup() || !(o.blocking() || o.kind.slow_rider()) {
+            continue;
+        }
+        let sx = o.x - cam;
+        if !(W as f32 - 6.0..W as f32 + 150.0).contains(&sx) {
+            continue;
+        }
+        let slot = if o.kind.wide() { 2 } else if o.y < 0.5 { 0 } else { 1 };
+        if !(-0.7..1.7).contains(&o.y) && !o.kind.wide() {
+            continue;
+        }
+        if shown[slot] {
+            continue;
+        }
+        shown[slot] = true;
+        let y = if slot == 2 { ground_y(0.5) as i32 } else { ground_y(slot as f32) as i32 } - 12;
+        if y - 8 < clip.0 || y + 8 > clip.1 {
+            continue;
+        }
+        let x = W - 10 - if (t / 6) % 2 == 0 { 1 } else { 0 };
+        // a yellow diamond with a "!"
+        for k in 0..7 {
+            f.hline(x - k, x + k, y - 7 + k, OUTLINE);
+            f.hline(x - k, x + k, y + 7 - k, OUTLINE);
+        }
+        for k in 0..6 {
+            f.hline(x - k, x + k, y - 6 + k, rgb(248, 216, 48));
+            f.hline(x - k, x + k, y + 6 - k, rgb(248, 216, 48));
+        }
+        f.rect(x, y - 3, 1, 4, OUTLINE);
+        f.set(x, y + 3, OUTLINE);
+    }
+    if let Some(b) = &race.bridge {
+        let sx = b.barrier() - cam;
+        if b.lights() && sx > W as f32 - 6.0 && sx < W as f32 + 400.0 && (t / 10) % 2 == 0 {
+            let y = ROAD_TOP - 12;
+            if y - 6 >= clip.0 {
+                f.fill_ellipse(W - 10, y, 5, 5, OUTLINE);
+                f.fill_ellipse(W - 10, y, 4, 4, rgb(248, 56, 56));
+            }
+        }
+    }
+}
+
+fn draw_stand(f: &mut Frame, art: &Art, x: i32, stand: Stand, t: u32) {
+    let base = ROAD_TOP + 1;
+    match stand {
+        Stand::Cheese => {
+            // a cheese farmer's stand with a striped awning and stacked wheels
+            f.rect(x - 20, base - 26, 40, 27, OUTLINE);
+            f.rect(x - 19, base - 13, 38, 13, rgb(160, 104, 56));
+            f.hline(x - 19, x + 18, base - 13, rgb(200, 144, 88));
+            for k in 0..5 {
+                f.rect(x - 19 + k * 8, base - 25, 4, 7, rgb(248, 248, 248));
+                f.rect(x - 15 + k * 8, base - 25, 4, 7, rgb(232, 136, 24));
+            }
+            f.line(x - 19, base - 18, x - 19, base - 13, OUTLINE);
+            f.line(x + 18, base - 18, x + 18, base - 13, OUTLINE);
+            for k in 0..3 {
+                art.cargo[0].draw(f, x - 16 + k * 11, base - 17, &PROPS, false);
+            }
+            art.cargo[0].draw(f, x - 11, base - 21, &PROPS, false);
+            f.rect(x - 14, base - 34, 28, 9, OUTLINE);
+            f.rect(x - 13, base - 33, 26, 7, rgb(248, 232, 168));
+            f.text_center(x, base - 32, "KAAS", rgb(176, 72, 24), rgb(248, 232, 168), false);
+            let ppl = &art.extras.frames[1][if (t / 30) % 2 == 0 { 4 } else { 6 }];
+            blit_person(f, ppl, x + 26, base - 1, true, &extra_palette(2));
+        }
+        Stand::HerringCart => {
+            // a herring cart: white with blue, a little roof and flags
+            f.rect(x - 22, base - 22, 44, 18, OUTLINE);
+            f.rect(x - 21, base - 21, 42, 16, rgb(232, 232, 240));
+            f.rect(x - 21, base - 11, 42, 6, rgb(48, 88, 168));
+            f.rect(x - 24, base - 30, 48, 6, OUTLINE);
+            f.rect(x - 23, base - 29, 46, 4, rgb(48, 88, 168));
+            for k in 0..4 {
+                f.line(x - 20 + k * 13, base - 24, x - 20 + k * 13, base - 21, OUTLINE);
+            }
+            f.text_center(x, base - 20, "HARING", rgb(48, 88, 168), rgb(200, 216, 232), false);
+            for wx in [x - 14, x + 14] {
+                f.fill_ellipse(wx, base - 3, 4, 4, OUTLINE);
+                f.fill_ellipse(wx, base - 3, 2, 2, rgb(200, 200, 216));
+            }
+            draw_flag(f, x + 22, base - 30, t);
+            let ppl = &art.extras.frames[0][if (t / 40) % 2 == 0 { 4 } else { 6 }];
+            blit_person(f, ppl, x - 30, base - 1, false, &extra_palette(5));
+            if (t / 120) % 2 == 0 {
+                bubble(f, x - 28, base - 36, "HOLLANDSE NIEUWE!");
+            }
+        }
+    }
+}
+
+fn draw_shower(f: &mut Frame, a: i32, b: i32, t: u32, clip: (i32, i32)) {
+    let (x0, x1) = (a.max(0), b.min(W));
+    if x1 <= x0 {
+        return;
+    }
+    // a heavy grey rain cloud over this stretch, then the rain
+    let tt = t as i32;
+    if clip.0 < 70 {
+        let mut x = a + 10;
+        let mut k = 0;
+        while x < b - 6 {
+            if (-30..W + 30).contains(&x) {
+                let y = 48 + (k * 5) % 7;
+                f.fill_ellipse(x, y + 2, 20, 9, rgb(72, 80, 104));
+                f.fill_ellipse(x - 4, y - 2, 13, 7, rgb(104, 112, 136));
+                f.fill_ellipse(x + 2, y - 5, 8, 4, rgb(136, 144, 168));
+                f.hline(x - 20, x + 20, y + 10, rgb(56, 64, 88));
+            }
+            x += 30;
+            k += 1;
+        }
+    }
+    for k in 0..90 {
+        let x = x0 + ((k * 37 + tt * 2) % (x1 - x0).max(1));
+        let y = (k * 53 + tt * 5) % 190 + 34;
+        if y >= clip.0 && y + 5 < clip.1 {
+            f.line(x, y, x - 1, y + 4, rgb(176, 192, 216));
+        }
+    }
+}
+
+fn party_boat(f: &mut Frame, art: &Art, x: i32, t: u32, clip: (i32, i32)) {
+    let y = WATER_Y + 18;
+    if !(-80..W + 80).contains(&x) || y > clip.1 {
+        return;
+    }
+    // an orange party boat, everyone dancing
+    f.rect(x - 34, y - 4, 70, 8, OUTLINE);
+    f.rect(x - 33, y - 3, 68, 6, rgb(248, 136, 24));
+    f.hline(x - 33, x + 34, y - 3, rgb(248, 184, 88));
+    let _ = (art, t);
+    for k in 0..5 {
+        let px = x - 24 + k * 12;
+        let jump = ((t / 7 + k as u32) % 2) as i32;
+        let frames = &art.extras.frames[k as usize % 6];
+        let s = if jump == 1 { &frames[7] } else { &frames[6] };
+        let mut pal = extra_palette(k as usize * 3);
+        pal[crate::engine::sprites::SHIRT as usize] = rgb(248, 136, 24);
+        pal[crate::engine::sprites::SHIRT_D as usize] = rgb(192, 88, 16);
+        blit_person_clip(f, s, px, y - 2 - jump, k % 2 == 1, &pal, y - 3);
+    }
+    if (t / 30) % 2 == 0 && y - 30 > clip.0 {
+        bubble(f, x, y - 18, "HUP HOLLAND HUP!");
+    }
+}
+
+fn kite_surfer(f: &mut Frame, x: i32, t: u32, clip: (i32, i32)) {
+    let y = 90 + ((t / 16) % 3) as i32;
+    if !(-40..W + 40).contains(&x) || y - 30 < clip.0 {
+        return;
+    }
+    // a kite surfer, blown along the dike (over the sea)
+    let (kx, ky) = (x + 20, y - 26);
+    f.fill_ellipse(kx, ky, 12, 3, OUTLINE);
+    f.fill_ellipse(kx, ky, 11, 2, rgb(232, 48, 96));
+    f.line(kx - 10, ky + 1, x, y - 4, rgb(200, 200, 208));
+    f.line(kx + 10, ky + 1, x, y - 4, rgb(200, 200, 208));
+    f.rect(x - 1, y - 6, 3, 5, rgb(40, 40, 56));
+    f.rect(x - 1, y - 8, 3, 2, rgb(248, 200, 160));
+    f.hline(x - 5, x + 5, y, rgb(248, 216, 48));
 }
 
 fn draw_tram(f: &mut Frame, x: i32, t: u32, clip: (i32, i32)) {
