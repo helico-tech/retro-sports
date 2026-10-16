@@ -397,12 +397,12 @@ impl Scenery {
             }
             Court::Boardwalk => {
                 for (i, &(x, y, c)) in self.lights.iter().enumerate() {
-                    let on = (t / 12 + i as u32) % 3 != 0;
+                    let on = !(t / 12 + i as u32).is_multiple_of(3);
                     if on {
                         f.fill_ellipse(x, y, 1, 1, c);
                     }
                 }
-                if (t / 40) % 7 != 0 {
+                if !(t / 40).is_multiple_of(7) {
                     neon(f, 6, 51, "PIZZA", rgb(248, 96, 200), rgb(120, 24, 96));
                 } else {
                     f.text_bold(6, 51, "PIZZA", rgb(96, 32, 80));
@@ -463,9 +463,9 @@ impl Scenery {
 
     fn draw_fans(&self, f: &mut Frame, t: u32, excite: f32) {
         for fan in &self.fans {
-            let jump = if excite > 0.3 && ((t + fan.phase) / 6) % 2 == 0 {
+            let jump = if excite > 0.3 && ((t + fan.phase) / 6).is_multiple_of(2) {
                 ((excite * 3.0) as i32).min(3)
-            } else if ((t + fan.phase * 5) / 40) % 2 == 0 {
+            } else if ((t + fan.phase * 5) / 40).is_multiple_of(2) {
                 1
             } else {
                 0

@@ -140,7 +140,7 @@ impl Frame {
     }
 
     pub fn hline(&mut self, x0: i32, x1: i32, y: i32, c: u32) {
-        if y < 0 || y >= H {
+        if !(0..H).contains(&y) {
             return;
         }
         let (a, b) = if x0 <= x1 { (x0, x1) } else { (x1, x0) };
@@ -171,7 +171,7 @@ impl Frame {
 
     pub fn shade_ellipse(&mut self, cx: i32, cy: i32, rx: i32, ry: i32, num: u32, den: u32) {
         self.ellipse_span(cx, cy, rx, ry, |f, x0, x1, y| {
-            if y < 0 || y >= H {
+            if !(0..H).contains(&y) {
                 return;
             }
             for x in x0.max(0)..=x1.min(W - 1) {

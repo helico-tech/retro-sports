@@ -115,8 +115,8 @@ async fn run() {
     let mut scanlines = true;
     let mut playing: Option<Cue> = None;
     loop {
-        if !banks.contains_key(&console.bank()) {
-            banks.insert(console.bank(), load_bank(console.bank()).await);
+        if let std::collections::hash_map::Entry::Vacant(e) = banks.entry(console.bank()) {
+            e.insert(load_bank(console.bank()).await);
             // loading takes a moment; don't fast-forward the game to catch up
             get_frame_time();
             acc = 0.0;

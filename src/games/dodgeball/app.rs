@@ -275,7 +275,7 @@ impl App {
                 }
             }
             Scene::Continue => {
-                if self.t % 60 == 0 {
+                if self.t.is_multiple_of(60) {
                     self.count -= 1;
                     self.sfx.push(Sfx::Blip);
                 }
@@ -338,7 +338,7 @@ impl App {
                     }
                     if self.mode == Mode::Demo {
                         f.rect(0, 212, W, 12, rgb(16, 16, 48));
-                        if (t / 30) % 2 == 0 {
+                        if (t / 30).is_multiple_of(2) {
                             f.text_center(128, 214, "DEMO PLAY - PUSH START", rgb(248, 232, 64), OUTLINE, true);
                         }
                     }
@@ -395,7 +395,7 @@ impl App {
         draw_ball(f, bx as i32, by as i32, t as f32 * 0.4, None);
 
         if !self.menu_open {
-            if (t / 24) % 2 == 0 && st > 36 {
+            if (t / 24).is_multiple_of(2) && st > 36 {
                 f.text_grad_center(128, 188, "PUSH START", &grad7(rgb(248, 248, 248)), OUTLINE, true);
             }
         } else {
@@ -459,7 +459,7 @@ impl App {
             for &p in &hover {
                 let col = if p == 0 { rgb(248, 232, 64) } else { rgb(96, 224, 248) };
                 let locked = self.locked[p];
-                if locked || (t / 8) % 2 == 0 {
+                if locked || (t / 8).is_multiple_of(2) {
                     f.rect_outline(cx - 1, cy - 1, 122, 90, col);
                     f.rect_outline(cx, cy, 120, 88, col);
                 }
@@ -535,7 +535,7 @@ impl App {
             let s = self.bank.get(TEAMS[team].players[slot].style, Pose::Down);
             blit(f, s, 88 + slot as i32 * 40, 180, slot % 2 == 1, &palette(team, slot));
         }
-        if (t / 20) % 2 == 0 {
+        if (t / 20).is_multiple_of(2) {
             f.text_center(128, 196, "PUSH Z TO GET BACK IN THE GAME", rgb(248, 248, 248), OUTLINE, false);
         }
     }
@@ -563,7 +563,7 @@ impl App {
         f.rect(cx - 3, cy - 6, 6, 8, gold_d);
         f.rect(cx - 12, cy + 2, 24, 6, gold);
         f.rect(cx - 14, cy + 8, 28, 4, rgb(96, 56, 32));
-        if (t / 4) % 8 == 0 {
+        if (t / 4).is_multiple_of(8) {
             f.set(cx - 10, cy - 26, rgb(248, 248, 248));
             f.set(cx - 9, cy - 26, rgb(248, 248, 248));
             f.set(cx - 10, cy - 25, rgb(248, 248, 248));

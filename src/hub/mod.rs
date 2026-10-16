@@ -239,7 +239,7 @@ impl Hub {
             }
         }
         // foam pulses along the beach
-        if (t / 20) % 2 == 0 {
+        if (t / 20).is_multiple_of(2) {
             for x in (8..250).step_by(5) {
                 for y in MAP_TOP..MAP_BOTTOM {
                     let d = island_d(x as f32, y as f32);
@@ -279,7 +279,7 @@ impl Hub {
                 f.rect(nx + 12, hy - 2, 6, 4, OUTLINE);
                 f.rect(nx + 13, hy - 1, 4, 2, rgb(96, 200, 104));
                 f.set(nx + 15, hy - 1, OUTLINE);
-                if k > 100 && k < 300 && (k / 40) % 2 == 0 {
+                if k > 100 && k < 300 && (k / 40).is_multiple_of(2) {
                     bubble(f, nx + 16, hy - 12, "HI!");
                 }
             }
@@ -358,7 +358,7 @@ impl Hub {
         tiny_glider(f, gx as i32, gy as i32, left);
         // lighthouse lamp
         let (lx, ly) = LIGHTHOUSE;
-        if (t / 30) % 2 == 0 {
+        if (t / 30).is_multiple_of(2) {
             f.rect(lx - 1, ly - 17, 3, 2, rgb(248, 248, 200));
             for k in 0..6 {
                 f.set(lx - 4 - k * 2, ly - 16 + (k % 2), rgb(248, 248, 160));
@@ -374,7 +374,7 @@ impl Hub {
             let c = venue_grad(CARTS[st.cart].id)[2];
             let sel = k == self.stop;
             f.fill_ellipse(x, y, 6, 3, OUTLINE);
-            f.fill_ellipse(x, y, 5, 2, if sel && (t / 8) % 2 == 0 { rgb(248, 248, 168) } else { c });
+            f.fill_ellipse(x, y, 5, 2, if sel && (t / 8).is_multiple_of(2) { rgb(248, 248, 168) } else { c });
             f.fill_ellipse(x - 1, y - 1, 2, 0, rgb(248, 248, 248));
             let (px, py) = (x + 7, y - 1);
             f.rect(px - 1, py - 12, 3, 13, OUTLINE);
@@ -402,7 +402,7 @@ impl Hub {
             let a = t as f32 * 0.012 + k as f32 * 2.1;
             let (cx, cy) = ([40.0, 150.0, 230.0][k], [70.0, 168.0, 60.0][k]);
             let (x, y) = (cx + a.cos() * 18.0, cy + a.sin() * 6.0);
-            let up = ((t / 8) + k as u32) % 2 == 0;
+            let up = ((t / 8) + k as u32).is_multiple_of(2);
             gull(f, x as i32, y as i32, up);
         }
         // the blimp crosses every so often, trailing a banner
@@ -424,7 +424,7 @@ impl Hub {
         let pose = match self.phase {
             Phase::Enter(_) => Hero::Cheer,
             _ if self.walking() => {
-                if (t / 6) % 2 == 0 { Hero::Walk1 } else { Hero::Walk2 }
+                if (t / 6).is_multiple_of(2) { Hero::Walk1 } else { Hero::Walk2 }
             }
             _ => Hero::Stand,
         };
@@ -437,7 +437,7 @@ impl Hub {
         // the venue's name, and an invitation
         if !self.walking() && self.phase == Phase::Roam {
             let st = &self.stops[self.stop];
-            let txt = if (t / 40) % 2 == 0 { st.place } else { "PUSH START" };
+            let txt = if (t / 40).is_multiple_of(2) { st.place } else { "PUSH START" };
             let bob = ((t / 10) % 2) as i32;
             bubble(f, x, y - 26 - bob, txt);
         }
@@ -473,7 +473,7 @@ impl Hub {
         let x = W - (t as i32 / 2) % (w + W);
         f.text(x, 215, &msg, rgb(248, 224, 72));
         // small arrows hint that there is more to the left and right
-        if (t / 20) % 2 == 0 {
+        if (t / 20).is_multiple_of(2) {
             f.text(6, MAP_BOTTOM + 10, "<", rgb(248, 176, 32));
             f.text(W - 11, MAP_BOTTOM + 10, ">", rgb(248, 176, 32));
         }
@@ -584,7 +584,7 @@ fn tiny_person(f: &mut Frame, x: i32, y: i32, shirt: u32, arm_up: bool) {
 }
 
 fn tiny_dog(f: &mut Frame, x: i32, y: i32, t: u32) {
-    let leg = (t / 4) % 2 == 0;
+    let leg = (t / 4).is_multiple_of(2);
     f.rect(x - 3, y - 4, 7, 4, OUTLINE);
     f.rect(x - 2, y - 3, 5, 2, rgb(200, 128, 64));
     f.rect(x + 2, y - 5, 3, 3, OUTLINE);

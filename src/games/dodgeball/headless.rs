@@ -332,7 +332,7 @@ impl Bot {
         let mut pad = Pad::default();
         let hp = |t: usize| m.players.iter().filter(|q| q.team == t).map(|q| q.hp.max(0)).sum::<i32>();
         let wiggle = |pad: &mut Pad, t: u64| {
-            if (t / 30) % 2 == 0 { pad.up = true } else { pad.down = true }
+            if (t / 30).is_multiple_of(2) { pad.up = true } else { pad.down = true }
             if p.y < 4.0 { pad.up = false; pad.down = true }
             if p.y > DEPTH - 4.0 { pad.down = false; pad.up = true }
         };
@@ -413,7 +413,7 @@ impl Bot {
             }
             BallState::Loose => {
                 if self.def == Def::Mash {
-                    pad.a = self.t % 2 == 0;
+                    pad.a = self.t.is_multiple_of(2);
                 }
                 if b.x < MID + 5.0 {
                     if b.x > p.x + 2.0 { pad.right = true }
@@ -429,13 +429,12 @@ impl Bot {
                 if p.x > 60.0 { pad.left = true }
             }
         }
-        if let Some(w) = &m.wrench {
-            if w.live && w.target == me && self.def != Def::Stand {
+        if let Some(w) = &m.wrench
+            && w.live && w.target == me && self.def != Def::Stand {
                 pad.up = false;
                 pad.down = false;
                 if p.x > 40.0 { pad.left = true; pad.right = false } else { pad.right = true; pad.left = false }
             }
-        }
         self.prev = pad;
         pad
     }
@@ -494,12 +493,11 @@ fn probe_play(def: Def, off: Off, skill: f32, my: usize, opp: usize, seeds: u32,
             if prev_state == BallState::Loose && matches!(m.ball.state, BallState::Held(h) if h < 3) {
                 picked = Some(f);
             }
-            if let (Some(at), BallState::Held(h)) = (picked, m.ball.state) {
-                if h < 3 && m.players[h].state == PState::WindUp && f - at <= 10 {
+            if let (Some(at), BallState::Held(h)) = (picked, m.ball.state)
+                && h < 3 && m.players[h].state == PState::WindUp && f - at <= 10 {
                     r.insta += 1;
                     picked = None;
                 }
-            }
             for (k, p) in m.players.iter().enumerate().take(3) {
                 if p.hp < prev_hp[k] {
                     r.hits_taken += 1;
@@ -510,13 +508,11 @@ fn probe_play(def: Def, off: Off, skill: f32, my: usize, opp: usize, seeds: u32,
                 r.wrenches += 1;
             }
             had_wrench = hw;
-            if prev_state == BallState::Flying && prev_team == 1 {
-                if let BallState::Held(h) = m.ball.state {
-                    if h < 3 {
+            if prev_state == BallState::Flying && prev_team == 1
+                && let BallState::Held(h) = m.ball.state
+                    && h < 3 {
                         r.catches += 1;
                     }
-                }
-            }
             if m.ball.state == BallState::Flying && prev_state != BallState::Flying && m.ball.team == 1 && m.ball.shot != Shot::Pass {
                 r.cpu_throws += 1;
             }

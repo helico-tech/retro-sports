@@ -166,7 +166,7 @@ fn draw_coach(f: &mut Frame, m: &Match, bank: &SpriteBank, team: usize, t: u32) 
         Pose::WindUp
     } else if c.throw_t > 0 {
         Pose::Throw
-    } else if m.excite > 0.7 && (t / 12) % 2 == 0 {
+    } else if m.excite > 0.7 && (t / 12).is_multiple_of(2) {
         Pose::Stand
     } else {
         Pose::Duck
@@ -219,7 +219,7 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, bank: &SpriteBank, t: 
     if let Some(w) = &m.wrench {
         let (sx, sy) = proj(w.x, w.y, 0.0);
         f.shade_ellipse(sx, sy, 3, 1, 5, 8);
-        if w.live && (t / 4) % 2 == 0 {
+        if w.live && (t / 4).is_multiple_of(2) {
             // warning marker where it is aimed
             let (mx, my) = proj(w.tx, w.ty, 0.0);
             let c = rgb(248, 72, 72);
@@ -289,7 +289,7 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, bank: &SpriteBank, t: 
             blit_ghost(f, s, sx + sway, sy, p.face < 0.0, &ghost_palette(), t);
             f.circle_outline(sx + sway, sy - 32, 4, rgb(248, 232, 96));
             f.hline(sx + sway - 3, sx + sway + 3, sy - 33, rgb(248, 232, 96));
-            let wing = if (t / 6) % 2 == 0 { 0 } else { 1 };
+            let wing = if (t / 6).is_multiple_of(2) { 0 } else { 1 };
             for side in [-1, 1] {
                 f.line(sx + sway + side * 5, sy - 20, sx + sway + side * 10, sy - 24 - wing, rgb(248, 248, 248));
                 f.line(sx + sway + side * 5, sy - 18, sx + sway + side * 9, sy - 20 - wing, rgb(248, 248, 248));
@@ -304,7 +304,7 @@ pub fn draw_match(f: &mut Frame, m: &Match, sc: &Scenery, bank: &SpriteBank, t: 
             FxKind::Dust => {
                 let r = 1 + (fx.life * 3 / fx.max);
                 let c = dust_color(sc.court);
-                f.fill_ellipse(sx, sy, r, r.max(1) - 0, c);
+                f.fill_ellipse(sx, sy, r, r.max(1), c);
             }
             FxKind::Star => {
                 f.set(sx, sy, fx.color);
@@ -433,7 +433,7 @@ fn draw_player(f: &mut Frame, m: &Match, bank: &SpriteBank, i: usize, t: u32) {
         let (hx, hy) = sprites::hand(pose);
         let (bx, by) = canvas_to_screen(hx, hy, sx, sy, flip);
         // shot clock: the ball blinks hot when you hold it too long
-        let hot = (m.hold_t > 180 && (t / 4) % 2 == 0).then_some(t);
+        let hot = (m.hold_t > 180 && (t / 4).is_multiple_of(2)).then_some(t);
         draw_ball(f, bx + if flip { -1 } else { 1 }, by - 1, m.ball.spin, hot);
     }
     if p.state == PState::Down && p.hp > 0 {
@@ -448,8 +448,8 @@ fn draw_player(f: &mut Frame, m: &Match, bank: &SpriteBank, i: usize, t: u32) {
     }
     // marker over the human-controlled player
     for side in 0..2 {
-        if let Ctrl::Human(pi) = m.sides[side].ctrl {
-            if m.sides[side].control == i && p.alive() && m.phase != Phase::MatchOver {
+        if let Ctrl::Human(pi) = m.sides[side].ctrl
+            && m.sides[side].control == i && p.alive() && m.phase != Phase::MatchOver {
                 let bob = ((t / 8) % 2) as i32;
                 let col = if pi == 0 { rgb(248, 232, 64) } else { rgb(96, 224, 248) };
                 let label = if pi == 0 { "1P" } else { "2P" };
@@ -465,7 +465,6 @@ fn draw_player(f: &mut Frame, m: &Match, bank: &SpriteBank, i: usize, t: u32) {
                     f.hline(sx - 2 + k, sx + 2 - k, y + 9 + k, col);
                 }
             }
-        }
     }
 }
 
@@ -487,7 +486,7 @@ pub fn draw_hud(f: &mut Frame, m: &Match, bank: &SpriteBank, t: u32) {
             let pal = if p.state == PState::Out { ghost_palette() } else { palette(team, slot) };
             let s = bank.get(td.players[slot].style, Pose::Stand);
             let ctl = matches!(m.sides[side].ctrl, Ctrl::Human(_)) && m.sides[side].control == i;
-            if ctl && (t / 10) % 2 == 0 {
+            if ctl && (t / 10).is_multiple_of(2) {
                 f.rect_outline(x - 1, 12, 34, 17, rgb(248, 232, 64));
             }
             blit_region(f, s, 6, 0, 12, 12, x, 14, &pal, side == 1);
@@ -513,7 +512,7 @@ pub fn draw_hud(f: &mut Frame, m: &Match, bank: &SpriteBank, t: u32) {
     let secs = (m.time.max(0) + 59) / 60;
     let txt = format!("{:02}", secs);
     let low = secs <= 10 && m.phase == Phase::Play;
-    let col = if low && (t / 8) % 2 == 0 { rgb(248, 56, 56) } else { rgb(248, 224, 72) };
+    let col = if low && (t / 8).is_multiple_of(2) { rgb(248, 56, 56) } else { rgb(248, 224, 72) };
     f.text_center(128, 2, "TIME", rgb(160, 168, 216), OUTLINE, false);
     f.logo(128, 8, &txt, 2, &grad6(col), OUTLINE, rgb(8, 8, 24));
 }

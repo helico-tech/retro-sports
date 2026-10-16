@@ -900,18 +900,17 @@ impl Match {
         ai.since += 1;
 
         // 0. The coach's wrench is coming at me: get out of the way.
-        if let Some(w) = &self.wrench {
-            if w.live && w.target == i && !w.judged {
+        if let Some(w) = &self.wrench
+            && w.live && w.target == i && !w.judged {
                 // duck under it at the last moment, or sidestep along the court
                 let near = (w.x - me.x).hypot(w.y - me.y) < 22.0;
-                if near && me.state == PState::Normal && me.catch_cd == 0 && (i + self.frame as usize / 60) % 3 != 0 {
+                if near && me.state == PState::Normal && me.catch_cd == 0 && !(i + self.frame as usize / 60).is_multiple_of(3) {
                     it.pass = true;
                 } else if !near {
                     it.mx = if me.x > (lo + hi) / 2.0 { -1.0 } else { 1.0 };
                 }
                 return (it, ai);
             }
-        }
 
         // 1. A ball is coming: catch it, duck, jump it or step aside.
         if b.state == BallState::Flying && b.live && b.team != team && b.shot != Shot::Pass && b.vx.abs() > 0.1 {
