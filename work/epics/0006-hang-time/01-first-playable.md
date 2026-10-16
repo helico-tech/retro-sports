@@ -1,5 +1,5 @@
 ---
-status: blocked
+status: done
 created: 2026-10-16
 ---
 # 01: First playable
@@ -135,8 +135,12 @@ then reviews and balance.
   with a longer wait and once all five carts are registered). wasm builds.
   Story left `blocked` on issue 0040 only; everything else in "Done
   when" holds.
+- 2026-10-16: Merged `feat/retro-sports` (real island hub, contract test
+  that waits for the hiker, Disc Dogs and Trail Mix). CARTS order:
+  dodgeball, discdogs, trailmix, hangtime. `cargo test` and
+  `cargo test --release` fully pass; issue 0040 closed. Story done.
 
 ## Follow-ups
 - [Issue 0040](../../issues/0040-console-test-walk-too-far.md): console
-  contract test vs. the hub walk (blocks "cargo test passes" here).
+  contract test vs. the hub walk (done: fixed upstream).
 - [Issue 0041](../../issues/0041-hangtime-polish-left.md): COULD items.

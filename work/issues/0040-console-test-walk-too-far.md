@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 type: bug
 created: 2026-10-16
 ---
@@ -25,3 +25,6 @@ Checked on `feat/hangtime`: with the wait raised to 240 frames the test
 passes, so the game itself enters and leaves fine.
 Fix in the test (wait until `!hub.walking()` or simply longer), not in a
 game. The hangtime branch does not touch the hub or `tests/carts.rs`.
+
+Resolved upstream: `feat/retro-sports` (merged into `feat/hangtime`) waits
+for the hiker to arrive; all contract tests pass with every cart registered.
