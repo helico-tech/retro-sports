@@ -11,5 +11,5 @@ print(next(os.path.dirname(p["manifest_path"]) for p in pkgs if p["name"] == "ma
 rm -rf dist
 mkdir -p dist
 cp web/index.html "$MQ_DIR/js/mq_js_bundle.js" dist/
-cp target/wasm32-unknown-unknown/release/dodgeball.wasm dist/
+cp target/wasm32-unknown-unknown/release/retro-sports.wasm dist/
 ls -l dist

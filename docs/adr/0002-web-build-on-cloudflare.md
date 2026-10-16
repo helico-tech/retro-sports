@@ -1,7 +1,7 @@
 # 0002. Browser build on Cloudflare Workers static assets
 
 ## Status
-accepted
+accepted (site and worker renamed by 0003: retro-sports.helico.app)
 
 ## Context
 The game should also be playable in a browser at dodgeball.helico.app.

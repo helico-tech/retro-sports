@@ -21,13 +21,13 @@ jobs:
       - run: cargo build --release
       - name: Package
         run: |
-          mkdir -p dist/dodge-or-die
-          cp target/release/dodgeball README.md dist/dodge-or-die/
-          tar -C dist -czf dodge-or-die-linux-x86_64.tar.gz dodge-or-die
+          mkdir -p dist/retro-sports
+          cp target/release/retro-sports README.md dist/retro-sports/
+          tar -C dist -czf retro-sports-linux-x86_64.tar.gz retro-sports
       - uses: actions/upload-artifact@v7
         with:
           name: linux
-          path: dodge-or-die-linux-x86_64.tar.gz
+          path: retro-sports-linux-x86_64.tar.gz
 
   macos:
     runs-on: macos-14
@@ -42,19 +42,19 @@ jobs:
       - run: cargo build --release --target x86_64-apple-darwin
       - name: Package universal app
         run: |
-          APP="dist/Dodge or Die.app"
+          APP="dist/Retro Sports.app"
           mkdir -p "$APP/Contents/MacOS"
-          lipo -create -output "$APP/Contents/MacOS/dodgeball" \
-            target/aarch64-apple-darwin/release/dodgeball \
-            target/x86_64-apple-darwin/release/dodgeball
+          lipo -create -output "$APP/Contents/MacOS/retro-sports" \
+            target/aarch64-apple-darwin/release/retro-sports \
+            target/x86_64-apple-darwin/release/retro-sports
           VERSION=$(grep -m1 '^version' Cargo.toml | cut -d '"' -f2)
           sed "s/__VERSION__/$VERSION/" packaging/Info.plist > "$APP/Contents/Info.plist"
           codesign --force --deep -s - "$APP"
-          cd dist && ditto -c -k --keepParent "Dodge or Die.app" ../DodgeOrDie-macos.zip
+          cd dist && ditto -c -k --keepParent "Retro Sports.app" ../RetroSports-macos.zip
       - uses: actions/upload-artifact@v7
         with:
           name: macos
-          path: DodgeOrDie-macos.zip
+          path: RetroSports-macos.zip
 
   windows:
     runs-on: windows-latest
@@ -67,13 +67,13 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist/dodge-or-die | Out-Null
-          Copy-Item target/release/dodgeball.exe, README.md dist/dodge-or-die/
-          Compress-Archive -Path dist/dodge-or-die -DestinationPath dodge-or-die-windows-x86_64.zip
+          New-Item -ItemType Directory -Force dist/retro-sports | Out-Null
+          Copy-Item target/release/retro-sports.exe, README.md dist/retro-sports/
+          Compress-Archive -Path dist/retro-sports -DestinationPath retro-sports-windows-x86_64.zip
       - uses: actions/upload-artifact@v7
         with:
           name: windows
-          path: dodge-or-die-windows-x86_64.zip
+          path: retro-sports-windows-x86_64.zip
 
   release:
     needs: [linux, macos, windows]
@@ -93,4 +93,4 @@ jobs:
             exit 0
           fi
           gh release create "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" \
-            --title "Dodge or Die! $TAG" --generate-notes
+            --title "Retro Sports $TAG" --generate-notes

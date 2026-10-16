@@ -31,3 +31,6 @@ size; the module rule (engine has no game rules) does the same job.
 - A game that needs a new engine feature builds it locally first, so two
   games do not change the engine at the same time.
 - The wasm file grows with every game (now about 1 MB).
+- Hosting moves with the name: Cloudflare worker `retro-sports` on
+  retro-sports.helico.app; the `dodgeball` worker and dodgeball.helico.app
+  are removed. The code moves to github.com/helico-tech/retro-sports.
