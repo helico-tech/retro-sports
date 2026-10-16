@@ -119,6 +119,7 @@ pub fn build(f: &mut Frame) -> Spots {
     }
 
     village(f);
+    trapveldje(f);
     mountain(f);
     polder(f);
     park(f);
@@ -229,6 +230,31 @@ fn mountain(f: &mut Frame) {
             k += 1;
         });
     }
+}
+
+/// The trapveldje behind the village: left x, top y, width, height.
+pub const PITCH: (i32, i32, i32, i32) = (91, 103, 27, 15);
+
+fn trapveldje(f: &mut Frame) {
+    let (x, y, w, h) = PITCH;
+    f.rect(x - 1, y - 1, w + 2, h + 2, OUTLINE);
+    f.rect(x, y, w, h, rgb(168, 160, 152));
+    for yy in (y + 1..y + h).step_by(3) {
+        for xx in (x + (yy / 3) % 2..x + w).step_by(4) {
+            f.set(xx, yy, rgb(152, 144, 136));
+        }
+    }
+    // chalk: the outline and the keeper's box
+    f.rect_outline(x + 1, y + 1, w - 2, h - 2, rgb(240, 240, 232));
+    f.rect_outline(x + 1, y + 3, 5, h - 6, rgb(240, 240, 232));
+    // the little goal on the left, with a net
+    f.rect(x - 4, y + 3, 4, h - 6, OUTLINE);
+    for yy in y + 4..y + h - 4 {
+        for xx in x - 3..x {
+            f.set(xx, yy, if (xx + yy) % 2 == 0 { rgb(232, 232, 240) } else { rgb(96, 96, 120) });
+        }
+    }
+    f.rect(x, y + 3, 1, h - 6, rgb(248, 248, 248));
 }
 
 pub const MILL: (i32, i32) = (146, 120);
@@ -356,7 +382,7 @@ fn cliff(f: &mut Frame) {
 }
 
 /// Waypoints of the dotted path, venue to venue.
-pub const PATH_PTS: [(i32, i32); 16] = [
+pub const PATH_PTS: [(i32, i32); 17] = [
     (44, 146),
     (52, 132),
     (60, 122),
@@ -364,7 +390,8 @@ pub const PATH_PTS: [(i32, i32); 16] = [
     (84, 110),
     (96, 102),
     (110, 100),
-    (122, 108),
+    (122, 106),
+    (120, 116),
     (118, 126),
     (124, 146),
     (150, 140),
