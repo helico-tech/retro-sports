@@ -58,5 +58,22 @@ Order: course + flight + AI + sim first, then screens, then art/sound,
 then reviews and balance.
 
 ## Progress log
+- 2026-10-16: Built course (3 venues), flight model (polar, energy/zoom,
+  stall, turns, flare), race with launch run, gates, landings, sheep,
+  geese, UFO, storm; CPU brain that outputs pads; art (3D-rendered wing
+  frames, `person()` pilots incl. an eagle, critters); scenery (parallax
+  layers with ground planes, banded sky, terrain columns); all screens;
+  audio (16 sfx, 3 songs); headless shots/sim/probe; tests.
+- 2026-10-16: Rebased `feat/hangtime` on `feat/retro-sports` (new island
+  hub; `Tool` alias in `cart.rs`). `tests/carts.rs` console test fails on
+  this branch only because the hub walk between the two registered carts
+  is longer than the test waits; logged as issue 0040 (passes once all
+  five carts are registered). No engine changes.
+- 2026-10-16: CPU tuning: burn mode when too high for a hoop, storm
+  immunity after a spit-out (pilots looped in the storm), energy-aware
+  final glide with S-turns, skill habits (over-climbing, dawdling,
+  over-pulling, late stall reaction), rookie skills below 0 for stage 1.
+- 2026-10-16: Perf (native release): new() 2 ms, stage setup 1.3 ms,
+  frame 0.09 ms (1P) / 0.18 ms (2P split). wasm build ok.
 
 ## Follow-ups

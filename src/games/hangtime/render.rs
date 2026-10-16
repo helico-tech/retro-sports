@@ -281,7 +281,7 @@ pub fn cam_target(p: &Pilot, c: &Course, vh: i32, top: i32) -> (f32, f32) {
     let raw = (vh - 26) as f32 - agl;
     // close to the ground: pilot higher on screen so the ground shows;
     // too high for that: drift back to the centre
-    let r = if raw >= hi { raw.min(cy as f32 + 10.0) } else { hi + (cy as f32 - hi) * ((hi - raw) / 70.0).min(1.0) };
+    let r = if raw >= hi { raw.min((vh - 52) as f32) } else { hi + (cy as f32 - hi) * ((hi - raw) / 70.0).min(1.0) };
     (x, p.y + (r - cy as f32))
 }
 
@@ -311,7 +311,8 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam,
     draw_bundle(f, race, art, cam, t);
     sc.draw_ground(f, c, pos, cam.cy, cam.vh, t);
     draw_ramp(f, c, cam);
-    draw_props(f, race, sc, art, cam, t);
+    let cheer = race.pilots.iter().any(|p| matches!(p.state, State::Landed(k, n) if n < 70 && matches!(k, Landing::Perfect | Landing::Soft)));
+    draw_props(f, c, cheer, sc, art, cam, t);
     draw_target(f, c, cam, t);
     for s in &race.sheep {
         if !cam.visible(s.x, 20.0) {
@@ -573,8 +574,7 @@ fn draw_ramp(f: &mut Frame, c: &Course, cam: &Cam) {
     f.set(bx, by + 2, rgb(232, 48, 48));
 }
 
-fn draw_props(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam, t: u32) {
-    let c = &race.course;
+pub fn draw_props(f: &mut Frame, c: &Course, cheer: bool, sc: &Scenery, art: &Art, cam: &Cam, t: u32) {
     for (i, pr) in c.props.iter().enumerate() {
         if !cam.visible(pr.x, 60.0) {
             continue;
@@ -616,7 +616,7 @@ fn draw_props(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam, t:
                 draw_pic(f, &art.critters.cow[fr], x, y + 1, pr.var % 2 == 1);
             }
             PropKind::KiteSurfer => kite_surfer(f, x, cam.sy(6.0), pr.var, t),
-            PropKind::Crowd => crowd(f, race, x, y, t),
+            PropKind::Crowd => crowd(f, cheer, x, y, t),
             PropKind::Boat => {}
             _ => {}
         }
@@ -663,8 +663,7 @@ fn kite_surfer(f: &mut Frame, x: i32, wy: i32, var: u32, t: u32) {
     f.hline(kx - 9, kx + 9, ky + 3, OUTLINE);
 }
 
-fn crowd(f: &mut Frame, race: &Race, x: i32, y: i32, t: u32) {
-    let cheer = race.pilots.iter().any(|p| matches!(p.state, State::Landed(k, n) if n < 70 && matches!(k, Landing::Perfect | Landing::Soft)));
+fn crowd(f: &mut Frame, cheer: bool, x: i32, y: i32, t: u32) {
     let shirts = [rgb(232, 56, 64), rgb(56, 136, 232), rgb(248, 200, 48), rgb(120, 216, 96), rgb(232, 104, 200), rgb(248, 136, 32)];
     // fence
     for k in 0..9 {
@@ -810,8 +809,8 @@ fn draw_geese(f: &mut Frame, race: &Race, art: &Art, cam: &Cam, t: u32) {
         let mut birds = vec![(lx, ly)];
         for k in 1..=3 {
             let kf = k as f32;
-            birds.push((lx - 10.0 * kf, ly + 5.0 * kf));
-            birds.push((lx - 10.0 * kf + 2.0, ly - 5.0 * kf));
+            birds.push((lx - 13.0 * kf, ly + 6.0 * kf));
+            birds.push((lx - 13.0 * kf + 3.0, ly - 6.0 * kf));
         }
         for (k, (x, y)) in birds.iter().enumerate() {
             let fr = ((t / 9) as usize + k) % 2;

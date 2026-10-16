@@ -421,7 +421,7 @@ impl Race {
         let mut flock = None;
         for (k, fl) in self.flocks.iter().enumerate() {
             if let Some((lx, ly)) = fl.pos(self.t, self.course.wind) {
-                if x > lx - 64.0 && x < lx - 4.0 && (y - ly).abs() < 16.0 {
+                if x > lx - 70.0 && x < lx - 4.0 && (y - ly).abs() < 18.0 {
                     l += 0.40;
                     flock = Some(k);
                 }

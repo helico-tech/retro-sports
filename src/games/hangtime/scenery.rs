@@ -395,7 +395,7 @@ fn dunes_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
             } else {
                 rgb(104, 168, 80)
             };
-            p.set(x, y, mix(c, haze, 0.28));
+            p.set(x, y, mix(c, haze, 0.15));
         }
         // marram grass on the dunes
         if duney > 0.5 && hash(x, 7) % 3 == 0 {
@@ -452,7 +452,7 @@ fn mountains(p: &mut Pic, pts: &[(i32, i32)], body: u32, side: u32, snow: u32, s
         let (a, pk, b) = (w[0], w[1], w[2]);
         if pk.1 < a.1 && pk.1 < b.1 {
             // shaded east face
-            p.poly(&[pk, b, ((b.0 + pk.0) / 2 + 4, base)], side);
+            p.poly(&[pk, b, (pk.0 + (b.0 - pk.0) / 4, b.1 + (base - b.1) / 3)], side);
             if pk.1 < snowline {
                 let cap = (snowline - pk.1).min(22);
                 let l = (pk.0 + (a.0 - pk.0) * cap / (a.1 - pk.1).max(1), pk.1 + cap);
@@ -622,12 +622,6 @@ fn canyon_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
         let mw = 40 + rng.int(110);
         let top = 20 + rng.int(46);
         mesa(&mut p, x, mw, top, h, body, side, &bands);
-        if rng.f() < 0.25 && mw > 70 {
-            // a natural arch
-            let ax = x + mw / 2;
-            let ay = top + (h - top) / 2;
-            p.ellipse(ax, ay + 10, 10, 12, CLEAR);
-        }
         x += mw + 20 + rng.int(60);
     }
     // desert floor

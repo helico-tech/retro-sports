@@ -517,7 +517,7 @@ impl App {
                 draw_view(&mut s, race, sc, &self.art, cam, Some(v), t);
                 gate_pointer(&mut s, race, v, cam, 12, t);
                 if let Some(b) = &race.banners[v] {
-                    draw_banner(&mut s, b, cam.cy + 4);
+                    draw_banner(&mut s, b, 34);
                 }
                 draw_hud_small(&mut s, race, v, 0, t);
                 let dst = if v == 0 { 0 } else { SPLIT_H + SPLIT_GAP };
@@ -545,7 +545,7 @@ impl App {
             }
             draw_hud(f, race, if self.mode == Mode::Demo { self.follow[0] } else { 0 }, t);
             if let Some(b) = &race.banners[0] {
-                draw_banner(f, b, cam.cy);
+                draw_banner(f, b, HUD_H + 26);
             }
             if self.mode == Mode::One {
                 let me = &race.pilots[0];
@@ -596,41 +596,40 @@ impl App {
     }
 
     fn draw_title(&self, f: &mut Frame, t: u32) {
-        let cam = Cam { x: 330.0, y: 150.0, cy: 140, vh: H };
+        let cam = Cam { x: 214.0, y: 42.0, cy: 150, vh: H };
         let sc = &self.title_sc;
         let c = &self.title_course;
-        sc.draw_sky(f, cam.pos(), cam.cy, cam.vh, t);
-        sc.draw_back(f, cam.pos(), cam.cy, cam.vh, t);
-        // a thermal cloud and its storks over the beach
-        draw_pic_clip(f, &sc.cumulus[2], 200, 92, H, false);
+        sc.draw_sky(f, (cam.x, 260.0), cam.cy, cam.vh, t);
+        // the layers sit low behind the beach: placed by hand for the title
+        sc.far.draw(f, (cam.x + 2000.0, 150.0), cam.cy, H);
+        draw_pic_clip(f, &sc.cumulus[2], 196, 126, H, false);
+        draw_pic_clip(f, &sc.cow_cloud, 60, 60, H, false);
+        sc.mid.draw(f, (cam.x + 600.0, 182.0), cam.cy, H);
         sc.draw_ground(f, c, cam.pos(), cam.cy, cam.vh, t);
-        for (i, pr) in c.props.iter().enumerate() {
-            if (pr.x - cam.x).abs() < 170.0 {
-                if let Some(p) = &sc.props[i] {
-                    draw_pic(f, p, cam.sx(pr.x), cam.sy(pr.y) + 1, false);
-                }
-            }
-        }
-        // gliders soaring past
-        let paths = [(0usize, 0.0f32, 140.0f32, 70.0f32), (2, 2.4, 110.0, 50.0), (3, 4.0, 160.0, 90.0)];
-        for &(def, ph, cx, cy) in &paths {
-            let a = t as f32 * 0.008 + ph;
-            let x = cx + a.cos() * 100.0;
-            let y = cy + (a * 2.0).sin() * 14.0;
-            let flip = a.sin() > 0.0;
-            let mut l = Look::flying(-(a * 2.0).cos() * 10.0, flip);
-            let turn = a.sin().abs();
-            if turn < 0.12 {
-                l.turn = 3;
-            }
-            draw_pilot(f, &self.art, def, x as i32, y as i32, &l);
-        }
+        draw_props(f, c, false, sc, &self.art, &cam, t);
         for k in 0..3 {
             let a = t as f32 * 0.012 + k as f32 * 2.1;
-            let x = 200.0 + a.sin() * 30.0;
-            let y = 104.0 + k as f32 * 10.0;
+            let x = 196.0 + a.sin() * 34.0;
+            let y = 136.0 + k as f32 * 9.0;
             let fr = if ((t / 7) as usize + k * 5) % 30 < 4 { 1 } else { 0 };
             draw_pic(f, &self.art.critters.stork[fr], x as i32, y as i32, a.cos() < 0.0);
+        }
+        // gliders soaring past
+        let paths = [(0usize, 0.0f32, 128.0f32, 150.0f32, 110.0f32), (2, 2.4, 100.0, 162.0, 80.0), (3, 4.0, 150.0, 140.0, 120.0)];
+        for &(def, ph, cx, cy, rx) in &paths {
+            let a = t as f32 * 0.006 + ph;
+            let x = cx + a.cos() * rx;
+            let y = cy + (a * 2.0).sin() * 10.0;
+            let flip = a.sin() > 0.0;
+            let mut l = Look::flying(-(a * 2.0).cos() * 10.0, flip);
+            let edge = a.sin().abs();
+            if edge < 0.16 {
+                // turning at the end of each pass
+                let k = ((0.16 - edge) / 0.16 * 3.0) as usize;
+                l.turn = if a.cos() > 0.0 { k.min(3) } else { (6 - k).max(3) };
+                l.flip = if a.cos() > 0.0 { a.sin() > 0.0 } else { a.sin() <= 0.0 };
+            }
+            draw_pilot(f, &self.art, def, x as i32, y as i32, &l);
         }
         f.shade_rect(0, 0, W, 92, 3, 4);
         let st = self.t as i32;
@@ -656,13 +655,13 @@ impl App {
         }
         if !self.menu_open {
             if (t / 24) % 2 == 0 && st > 36 {
-                f.text_grad_center(128, 182, "PUSH START", &grad7(rgb(248, 248, 248)), OUTLINE, true);
+                f.text_grad_center(128, 112, "PUSH START", &grad7(rgb(248, 248, 248)), OUTLINE, true);
             }
         } else {
-            f.shade_rect(72, 173, 112, 24, 1, 2);
-            f.rect_outline(72, 173, 112, 24, rgb(248, 176, 32));
+            f.shade_rect(72, 108, 112, 24, 1, 2);
+            f.rect_outline(72, 108, 112, 24, rgb(248, 176, 32));
             for (k, s) in ["1 PLAYER", "2 PLAYERS"].iter().enumerate() {
-                let y = 175 + k as i32 * 11;
+                let y = 110 + k as i32 * 11;
                 let sel = self.menu == k;
                 let col = if sel { rgb(248, 232, 64) } else { rgb(184, 184, 216) };
                 f.text_sh(100, y, s, col, OUTLINE, true);
@@ -916,7 +915,7 @@ impl App {
     }
 
     fn draw_champion(&self, f: &mut Frame, t: u32) {
-        let cam = Cam { x: 4760.0, y: 90.0, cy: 140, vh: H };
+        let cam = Cam { x: 4700.0, y: 70.0, cy: 140, vh: H };
         let sc = &self.title_sc;
         let c = &self.title_course;
         sc.draw_sky(f, cam.pos(), cam.cy, H, t);
@@ -946,7 +945,8 @@ impl App {
         for &(x, y, _, col) in &self.confetti {
             f.rect(x as i32, y as i32, 2, 2, col);
         }
-        f.logo(128, 6, "SKY KING!", 4, &SUNSET, OUTLINE, rgb(8, 8, 24));
+        let title = if champ == 2 { "SKY QUEEN!" } else { "SKY KING!" };
+        f.logo(128, 6, title, 4, &SUNSET, OUTLINE, rgb(8, 8, 24));
         let s = format!("{} RULES THE SKY!", PILOTS[champ].name);
         f.text_grad_center(128, 44, &s, &grad7(rgb(96, 224, 248)), OUTLINE, true);
         if self.mode == Mode::Two {
