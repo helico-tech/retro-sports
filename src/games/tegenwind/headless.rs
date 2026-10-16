@@ -458,8 +458,8 @@ fn sprite_sheets(art: &Art, dir: &Path) {
     z.clear(bg);
     for (row, (who, bike)) in [(Who::Kees, Bike::Oma), (Who::Dennis, Bike::Race), (Who::DeVries, Bike::Bak), (Who::Anouk, Bike::Lig)].iter().enumerate() {
         for k in 0..4 {
-            let x = 22 + k as i32 * 32 + if *bike == Bike::Bak { 0 } else { 0 };
-            draw_bike_rider(&mut z, art, *who, *bike, x + row as i32 % 2 * 0, 34 + row as i32 * 36, k * 2, k as f32 * 2.0, false, false, false, Some((Cargo::Tulips, 2)), 0);
+            let x = 22 + k as i32 * 32;
+            draw_bike_rider(&mut z, art, *who, *bike, x, 34 + row as i32 * 36, k * 2, k as f32 * 2.0, false, false, false, Some((Cargo::Tulips, 2)), 0);
         }
     }
     save_png(&z, &dir.join("52_zoom_pedal.png"), 6);

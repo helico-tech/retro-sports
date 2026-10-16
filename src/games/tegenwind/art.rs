@@ -705,8 +705,8 @@ pub fn extra_palette(k: usize) -> Palette {
     pal[sp::HAIR_D as usize] = h.1;
     pal[sp::SHIRT as usize] = s.0;
     pal[sp::SHIRT_D as usize] = s.1;
-    pal[sp::PANTS as usize] = if k % 2 == 0 { rgb(240, 216, 168) } else { rgb(72, 88, 144) };
-    pal[sp::PANTS_D as usize] = if k % 2 == 0 { rgb(200, 168, 120) } else { rgb(48, 56, 104) };
+    pal[sp::PANTS as usize] = if k.is_multiple_of(2) { rgb(240, 216, 168) } else { rgb(72, 88, 144) };
+    pal[sp::PANTS_D as usize] = if k.is_multiple_of(2) { rgb(200, 168, 120) } else { rgb(48, 56, 104) };
     pal[sp::WHITE as usize] = rgb(248, 248, 248);
     pal[sp::ACC as usize] = rgb(248, 248, 248);
     pal[sp::ACC_D as usize] = rgb(184, 184, 208);

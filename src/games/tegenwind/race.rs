@@ -956,12 +956,11 @@ impl Race {
             b.t += 1;
             match b.state {
                 BState::Closed => {
-                    if let Some(tx) = trigger {
-                        if tx > b.barrier() - 200.0 && tx < b.barrier() {
+                    if let Some(tx) = trigger
+                        && tx > b.barrier() - 200.0 && tx < b.barrier() {
                             b.state = BState::Warn;
                             b.t = 0;
                         }
-                    }
                 }
                 BState::Warn => {
                     if b.t >= BRIDGE_WARN {
@@ -1105,8 +1104,8 @@ impl Race {
                         o.x += o.vx;
                     }
                 }
-                OKind::Cow => {
-                    if self.moo_cd <= 0 && o.state == 0 {
+                OKind::Cow
+                    if self.moo_cd <= 0 && o.state == 0 => {
                         for &v in &self.views {
                             if (self.riders[v].x - o.x).abs() < 110.0 {
                                 o.state = 1;
@@ -1117,7 +1116,6 @@ impl Race {
                             }
                         }
                     }
-                }
                 _ => {}
             }
         }
@@ -1345,16 +1343,15 @@ impl Race {
                 }
             }
         }
-        if let Some((_, b)) = self.shower {
-            if self.riders[i].umbrella && self.riders[i].x > b + 120.0 {
+        if let Some((_, b)) = self.shower
+            && self.riders[i].umbrella && self.riders[i].x > b + 120.0 {
                 self.riders[i].umbrella = false;
             }
-        }
         if showering && !self.riders[i].umbrella {
             let r = &mut self.riders[i];
             r.energy = (r.energy - 0.03).max(0.0);
             r.stats.wet_frames += 1;
-            if self.frame % 9 == 0 {
+            if self.frame.is_multiple_of(9) {
                 let (x, y) = (r.x + self.rng.range(-6.0, 6.0), ground_y(r.y) - 26.0 - r.z);
                 self.fx.push(Fx { x, y, vx: 0.0, vy: 0.6, life: 12, max: 12, kind: FxKind::Drop, color: rgb(160, 216, 248) });
             }
@@ -1908,11 +1905,10 @@ impl Race {
             }
         }
         if humans.is_empty() {
-            if let Some(f) = first {
-                if self.clock > f + 60 * 30 {
+            if let Some(f) = first
+                && self.clock > f + 60 * 30 {
                     over = true;
                 }
-            }
         } else if let Some(f) = self.first_cpu_finish {
             // the sweeper van collects whoever is still out there
             let cpus_done = self.riders.iter().all(|r| r.ctrl != Ctrl::Cpu || r.finish.is_some());
@@ -1977,13 +1973,12 @@ impl Race {
                     self.popup_rider(i, "LEKKER BEZIG!", rgb(120, 232, 96));
                 }
                 // the rider who got passed may have something to say
-                if let Some(&j) = order.get(place + 1) {
-                    if self.riders[j].ctrl == Ctrl::Cpu && self.riders[j].say.is_none() && self.rng.f() < 0.4 {
+                if let Some(&j) = order.get(place + 1)
+                    && self.riders[j].ctrl == Ctrl::Cpu && self.riders[j].say.is_none() && self.rng.f() < 0.4 {
                         let h = self.riders[j].who.def().heckles;
                         let s = h[self.rng.int(h.len() as i32) as usize];
                         self.riders[j].say = Some((s, 90));
                     }
-                }
             }
         }
     }
@@ -2058,7 +2053,7 @@ impl Race {
         // drips from wet riders and sparkles on perfect strokes
         for i in 0..self.riders.len() {
             let r = &self.riders[i];
-            if r.drip > 0 && r.riding() && self.frame % 7 == 0 {
+            if r.drip > 0 && r.riding() && self.frame.is_multiple_of(7) {
                 let (x, y) = (r.x + self.rng.range(-6.0, 6.0), ground_y(r.y) - 20.0 - r.z);
                 self.fx.push(Fx { x, y, vx: 0.0, vy: 0.5, life: 14, max: 14, kind: FxKind::Drop, color: rgb(160, 216, 248) });
             }
@@ -2233,13 +2228,12 @@ impl Race {
                     }
                 }
             }
-            if let Some(l) = want {
-                if l != r.lane && self.lane_clear(i, l, look.max(70.0)) {
+            if let Some(l) = want
+                && l != r.lane && self.lane_clear(i, l, look.max(70.0)) {
                     c.up_e = l == 0;
                     c.down_e = l == 1;
                     ai.lane_cd = 50;
                 }
-            }
         }
         // lean into side wind
         if wind.side() > 0.0 && r.y > r.lane as f32 + 0.08 {

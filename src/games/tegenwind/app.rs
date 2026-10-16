@@ -254,8 +254,7 @@ impl App {
             }
             Scene::Select => {
                 let players = if self.mode == Mode::Two { 2 } else { 1 };
-                for pi in 0..players {
-                    let p = e[pi];
+                for (pi, &p) in e.iter().enumerate().take(players) {
                     if !self.locked[pi] {
                         let c = self.cursor[pi];
                         let n = match (p.left, p.right, p.up, p.down) {
@@ -333,7 +332,7 @@ impl App {
                 let n = self.tally[0].len().max(self.tally[1].len()) as u32;
                 // one line every 30 frames, then the total
                 let done_at = 20 + n * 30 + 30;
-                if self.t > 20 && self.t <= 20 + n * 30 && (self.t - 20) % 30 == 0 {
+                if self.t > 20 && self.t <= 20 + n * 30 && (self.t - 20).is_multiple_of(30) {
                     self.sfx.push(Sfx::Blip);
                 }
                 if self.t == done_at {
@@ -347,7 +346,7 @@ impl App {
                 }
             }
             Scene::Continue => {
-                if self.t % 60 == 0 {
+                if self.t.is_multiple_of(60) {
                     self.count -= 1;
                     self.sfx.push(Sfx::Blip);
                 }
@@ -410,9 +409,8 @@ impl App {
                 self.last_place = if dnf { 3 } else { place };
             }
         }
-        for p in 0..2 {
-            let sum: i32 = tally[p].iter().map(|l| l.pts).sum();
-            self.score[p] += sum;
+        for (score, lines) in self.score.iter_mut().zip(tally.iter()) {
+            *score += lines.iter().map(|l| l.pts).sum::<i32>();
         }
         self.tally = tally;
     }
@@ -521,7 +519,7 @@ impl App {
         }
         if self.mode == Mode::Demo {
             f.rect(0, 212, W, 12, rgb(16, 16, 48));
-            if (t / 30) % 2 == 0 {
+            if (t / 30).is_multiple_of(2) {
                 f.text_center(128, 214, "DEMO PLAY - PUSH START", rgb(248, 232, 64), OUTLINE, true);
             }
         }
@@ -581,7 +579,7 @@ impl App {
         };
         let orange = [rgb(248, 248, 200), rgb(248, 216, 120), rgb(248, 176, 64), rgb(248, 136, 24), rgb(224, 96, 16), rgb(176, 56, 16)];
         // the second word shakes in the wind
-        let gust = if st > 40 && (t / 50) % 4 == 0 { ((t / 2) % 3) as i32 - 1 } else { 0 };
+        let gust = if st > 40 && (t / 50).is_multiple_of(4) { ((t / 2) % 3) as i32 - 1 } else { 0 };
         f.logo(122, drop(6, 0), "TEGEN", 5, &orange, OUTLINE, rgb(24, 8, 40));
         f.logo(136 + gust, drop(48, 8), "WIND!", 5, &grad6(rgb(64, 152, 232)), OUTLINE, rgb(24, 8, 40));
         if st > 36 {
@@ -591,7 +589,7 @@ impl App {
             f.text_grad_center(128, 94, "HOLLAND'S TOUGHEST BIKE RACE", &grad7(rgb(248, 248, 248)), OUTLINE, false);
         }
         if !self.menu_open {
-            if (t / 24) % 2 == 0 && st > 36 {
+            if (t / 24).is_multiple_of(2) && st > 36 {
                 f.text_grad_center(128, 110, "PUSH START", &grad7(rgb(248, 248, 248)), OUTLINE, true);
             }
         } else {
@@ -658,7 +656,7 @@ impl App {
             for &p in &hover {
                 let col = if p == 0 { rgb(248, 232, 64) } else { rgb(96, 224, 248) };
                 let locked = self.locked[p];
-                if locked || (t / 8) % 2 == 0 {
+                if locked || (t / 8).is_multiple_of(2) {
                     f.rect_outline(cx - 1, cy - 1, 122, 86, col);
                     f.rect_outline(cx, cy, 120, 84, col);
                 }
@@ -748,7 +746,7 @@ impl App {
             f.text_sh(bx + 32, by + 16, st.tip[1], rgb(248, 248, 248), OUTLINE, false);
             f.text_sh(bx + 32, by + 26, "BOTH PEDALS HELD = BRAKE", rgb(248, 232, 96), OUTLINE, false);
         }
-        if (t / 20) % 2 == 0 && self.t > 40 {
+        if (t / 20).is_multiple_of(2) && self.t > 40 {
             f.text_center(128, 208, "PUSH START", rgb(248, 248, 248), OUTLINE, true);
         }
     }
@@ -852,7 +850,7 @@ impl App {
                 f.text_sh(x0 + 5, y0 + 86, &s, rgb(184, 184, 216), OUTLINE, false);
             }
         }
-        if done && (t / 20) % 2 == 0 {
+        if done && (t / 20).is_multiple_of(2) {
             let msg = match self.mode {
                 Mode::One => {
                     let need = if self.stage + 1 >= STAGES.len() { 1 } else { 2 };
@@ -896,10 +894,10 @@ impl App {
         f.hline(98, 122, wy + 1, rgb(200, 232, 240));
         self.art.duck.draw(f, 128, wy - 4 + bob, &PROPS, true);
         self.art.cargo_bmp(self.cargo_for(self.stage)).draw(f, 60, wy - 2 - bob, &PROPS, false);
-        if (t / 40) % 2 == 0 {
+        if (t / 40).is_multiple_of(2) {
             bubble(f, 112, wy - 34, "BRRR!");
         }
-        if (t / 20) % 2 == 0 {
+        if (t / 20).is_multiple_of(2) {
             f.text_center(128, 196, "PUSH Z TO GET BACK ON YOUR BIKE", rgb(248, 248, 248), OUTLINE, false);
         }
         f.text_center(128, 210, "THE WIND IS WAITING FOR YOU", rgb(160, 200, 216), OUTLINE, false);
@@ -915,7 +913,7 @@ impl App {
         let crank = ((t / 4) % 8) as usize;
         f.shade_ellipse(x + 2, 190, 13, 2, 5, 8);
         draw_bike_rider(f, &self.art, Who::Oma, Bike::Oma, x, 190, crank, t as f32 * 2.0, false, false, false, None, t);
-        if (t / 30) % 2 == 0 {
+        if (t / 30).is_multiple_of(2) {
             bubble(f, x + 4, 156, "...");
         }
     }
@@ -941,7 +939,7 @@ impl App {
             let ppl = self.art.people(who);
             let s: &Sprite = if who == first {
                 if hop > 1 { &ppl.victory } else { &ppl.cheer }
-            } else if (t / 20) % 2 == 0 {
+            } else if (t / 20).is_multiple_of(2) {
                 &ppl.cheer
             } else {
                 &ppl.stand

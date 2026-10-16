@@ -174,7 +174,7 @@ fn draw_rider_in_world(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32
             let sy = gy - r.z.round() as i32;
             draw_shadow(f, sx + 2, gy, 13 - (r.z / 3.0) as i32);
             let done = r.finish.is_some();
-            let wave = done && r.v < 1.2 && (t / 20) % 2 == 0;
+            let wave = done && r.v < 1.2 && (t / 20).is_multiple_of(2);
             draw_bike_rider(f, art, r.who, r.bike, sx, sy, r.crank_frame(), r.wheel, r.tuck, r.z > 0.0, wave, cargo, t);
             if r.umbrella {
                 // held up in the front hand, above the head
@@ -223,7 +223,7 @@ fn draw_rider_in_world(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32
                     }
                 }
             }
-            if r.warn > 0 && (t / 4) % 2 == 0 {
+            if r.warn > 0 && (t / 4).is_multiple_of(2) {
                 f.text_grad(sx - 2, sy - 44, "!", &grad7(rgb(248, 72, 72)), OUTLINE, true);
             }
             if r.draft > 0.35 && r.finish.is_none() {
@@ -248,11 +248,10 @@ fn draw_rider_in_world(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32
             if let Some((s, _)) = r.say {
                 bubble(f, sx + 4, sy - 34, s);
             }
-            if let Ctrl::Human(p) = r.ctrl {
-                if r.hammer == 0 && (!done || (t / 20) % 2 == 0) {
+            if let Ctrl::Human(p) = r.ctrl
+                && r.hammer == 0 && (!done || (t / 20).is_multiple_of(2)) {
                     player_tag(f, sx + 2, sy - 50 - ((t / 8) % 2) as i32, p);
                 }
-            }
         }
         RState::Fly => {
             let k = r.st as f32 / 34.0;
@@ -298,7 +297,7 @@ fn draw_swimmer(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32, t: u3
                 f.hline(x - rr - 6, x - rr, line + 2, rgb(232, 248, 248));
                 f.hline(x + rr, x + rr + 6, line + 2, rgb(232, 248, 248));
             }
-            if (t / 12) % 3 == 0 {
+            if (t / 12).is_multiple_of(3) {
                 bubble(f, x, line - 26, if r.st < 33 { "PROEST!" } else { "BRRR!" });
             }
             // a duck comes to have a look
@@ -363,8 +362,8 @@ fn draw_obj(f: &mut Frame, art: &Art, o: &Obj, cam: f32, t: u32) {
             art.bollard.draw_foot(f, sx, gy, &PROPS, false);
         }
         OKind::Herring => {
-            art.herring.draw_foot(f, sx, gy, &PROPS, (o.var % 2) == 0);
-            if (t / 30 + o.var as u32) % 4 == 0 {
+            art.herring.draw_foot(f, sx, gy, &PROPS, o.var.is_multiple_of(2));
+            if (t / 30 + o.var as u32).is_multiple_of(4) {
                 // it still flaps a bit
                 f.set(sx - 6, gy - 3, rgb(200, 200, 216));
             }
@@ -401,11 +400,11 @@ fn draw_obj(f: &mut Frame, art: &Art, o: &Obj, cam: f32, t: u32) {
         }
         OKind::Cow => {
             draw_shadow(f, sx, gy, 12);
-            art.cow.draw_foot(f, sx, gy, &PROPS, o.var % 2 == 0);
+            art.cow.draw_foot(f, sx, gy, &PROPS, o.var.is_multiple_of(2));
             // the tail swishes
-            let tx = if o.var % 2 == 0 { sx + 12 } else { sx - 12 };
+            let tx = if o.var.is_multiple_of(2) { sx + 12 } else { sx - 12 };
             let sw = ((t / 15) % 2) as i32;
-            f.line(tx, gy - 13, tx + if o.var % 2 == 0 { 2 + sw } else { -2 - sw }, gy - 6, OUTLINE);
+            f.line(tx, gy - 13, tx + if o.var.is_multiple_of(2) { 2 + sw } else { -2 - sw }, gy - 6, OUTLINE);
         }
         OKind::Tourist => {
             let frames = &art.extras.frames[(2 + o.var as usize * 2) % 6];
@@ -418,7 +417,7 @@ fn draw_obj(f: &mut Frame, art: &Art, o: &Obj, cam: f32, t: u32) {
                     }
                 }
                 1 => (&frames[((o.t / 4) % 4) as usize], true),
-                _ => (&frames[if (t / 20) % 2 == 0 { 6 } else { 4 }], false),
+                _ => (&frames[if (t / 20).is_multiple_of(2) { 6 } else { 4 }], false),
             };
             draw_shadow(f, sx, gy, 6);
             let pal = extra_palette(o.var as usize + 1);
@@ -438,7 +437,7 @@ fn draw_obj(f: &mut Frame, art: &Art, o: &Obj, cam: f32, t: u32) {
             // the farmer
             let ps = &art.extras.frames[2][4];
             blit_person(f, ps, sx - 2, gy - 9, false, &extra_palette(3));
-            if (t / 6) % 2 == 0 {
+            if (t / 6).is_multiple_of(2) {
                 f.fill_ellipse(sx - 2, gy - 25, 2, 2, rgb(152, 152, 160));
             }
         }
@@ -460,7 +459,7 @@ fn draw_obj(f: &mut Frame, art: &Art, o: &Obj, cam: f32, t: u32) {
             draw_shadow(f, sx, gy, 5);
             let pal = pal_with((rgb(232, 64, 48), rgb(152, 32, 40)), (rgb(248, 136, 24), rgb(232, 232, 240)));
             art.umbrella_fold.draw_foot(f, sx, gy - 8 - bob, &pal, false);
-            if (t / 6 + o.var as u32) % 8 == 0 {
+            if (t / 6 + o.var as u32).is_multiple_of(8) {
                 f.set(sx + 4, gy - 16 - bob, rgb(248, 248, 248));
             }
         }
@@ -469,7 +468,7 @@ fn draw_obj(f: &mut Frame, art: &Art, o: &Obj, cam: f32, t: u32) {
             draw_shadow(f, sx, gy, 4);
             let b = &art.food[food as usize];
             b.draw_foot(f, sx, gy - 9 - bob, &PROPS, false);
-            if (t / 6 + o.var as u32) % 8 == 0 {
+            if (t / 6 + o.var as u32).is_multiple_of(8) {
                 f.set(sx + 4, gy - 16 - bob, rgb(248, 248, 248));
                 f.set(sx + 3, gy - 15 - bob, rgb(248, 248, 248));
                 f.set(sx + 5, gy - 15 - bob, rgb(248, 248, 248));
@@ -579,7 +578,7 @@ fn draw_finish_arch(f: &mut Frame, x: i32, t: u32) {
     f.rect(l - 34, top - 1, 82, 16, OUTLINE);
     f.rect(l - 33, top, 80, 14, rgb(248, 136, 24));
     f.hline(l - 33, l + 46, top, rgb(248, 184, 88));
-    let blink = (t / 15) % 2 == 0;
+    let blink = (t / 15).is_multiple_of(2);
     f.text_center(x + 4, top + 4, "FINISH", if blink { rgb(248, 248, 248) } else { rgb(248, 232, 96) }, OUTLINE, true);
 }
 
@@ -613,8 +612,8 @@ fn draw_crowd(f: &mut Frame, art: &Art, x0: i32, t: u32, n: usize) {
             continue;
         }
         let frames = &art.extras.frames[k % 6];
-        let jump = ((t / 8 + k as u32 * 3) % 4 == 0) as i32;
-        let s = if (t / 16 + k as u32) % 2 == 0 { &frames[6] } else { &frames[7] };
+        let jump = (t / 8 + k as u32 * 3).is_multiple_of(4) as i32;
+        let s = if (t / 16 + k as u32).is_multiple_of(2) { &frames[6] } else { &frames[7] };
         let mut pal = extra_palette(k * 5 + 1);
         if k % 3 != 2 {
             pal[crate::engine::sprites::SHIRT as usize] = rgb(248, 136, 24);
@@ -678,7 +677,7 @@ fn draw_bridge(f: &mut Frame, b: &Bridge, cam: f32, t: u32, clip: (i32, i32)) {
     let bx = (b.barrier() - cam).round() as i32 + 8;
     f.rect(bx - 1, ROAD_TOP - 14, 4, 16, OUTLINE);
     f.rect(bx, ROAD_TOP - 13, 2, 15, rgb(200, 200, 216));
-    let on = b.lights() && (t / 12) % 2 == 0;
+    let on = b.lights() && (t / 12).is_multiple_of(2);
     f.fill_ellipse(bx + 1, ROAD_TOP - 17, 3, 3, OUTLINE);
     f.fill_ellipse(bx + 1, ROAD_TOP - 17, 2, 2, if on { rgb(248, 56, 56) } else { rgb(96, 40, 40) });
     if b.blocking() {
@@ -956,7 +955,7 @@ fn look_ahead(f: &mut Frame, race: &Race, cam: f32, t: u32, clip: (i32, i32)) {
         if y - 8 < clip.0 || y + 8 > clip.1 {
             continue;
         }
-        let x = W - 10 - if (t / 6) % 2 == 0 { 1 } else { 0 };
+        let x = W - 10 - if (t / 6).is_multiple_of(2) { 1 } else { 0 };
         // a yellow diamond with a "!"
         for k in 0..7 {
             f.hline(x - k, x + k, y - 7 + k, OUTLINE);
@@ -971,7 +970,7 @@ fn look_ahead(f: &mut Frame, race: &Race, cam: f32, t: u32, clip: (i32, i32)) {
     }
     if let Some(b) = &race.bridge {
         let sx = b.barrier() - cam;
-        if b.lights() && sx > W as f32 - 6.0 && sx < W as f32 + 400.0 && (t / 10) % 2 == 0 {
+        if b.lights() && sx > W as f32 - 6.0 && sx < W as f32 + 400.0 && (t / 10).is_multiple_of(2) {
             let y = ROAD_TOP - 12;
             if y - 6 >= clip.0 {
                 f.fill_ellipse(W - 10, y, 5, 5, OUTLINE);
@@ -1002,7 +1001,7 @@ fn draw_stand(f: &mut Frame, art: &Art, x: i32, stand: Stand, t: u32) {
             f.rect(x - 14, base - 34, 28, 9, OUTLINE);
             f.rect(x - 13, base - 33, 26, 7, rgb(248, 232, 168));
             f.text_center(x, base - 32, "KAAS", rgb(176, 72, 24), rgb(248, 232, 168), false);
-            let ppl = &art.extras.frames[1][if (t / 30) % 2 == 0 { 4 } else { 6 }];
+            let ppl = &art.extras.frames[1][if (t / 30).is_multiple_of(2) { 4 } else { 6 }];
             blit_person(f, ppl, x + 26, base - 1, true, &extra_palette(2));
         }
         Stand::HerringCart => {
@@ -1021,9 +1020,9 @@ fn draw_stand(f: &mut Frame, art: &Art, x: i32, stand: Stand, t: u32) {
                 f.fill_ellipse(wx, base - 3, 2, 2, rgb(200, 200, 216));
             }
             draw_flag(f, x + 22, base - 30, t);
-            let ppl = &art.extras.frames[0][if (t / 40) % 2 == 0 { 4 } else { 6 }];
+            let ppl = &art.extras.frames[0][if (t / 40).is_multiple_of(2) { 4 } else { 6 }];
             blit_person(f, ppl, x - 30, base - 1, false, &extra_palette(5));
-            if (t / 120) % 2 == 0 && x > 150 {
+            if (t / 120).is_multiple_of(2) && x > 150 {
                 bubble(f, x - 28, base - 36, "HOLLANDSE NIEUWE!");
             }
         }
@@ -1081,7 +1080,7 @@ fn party_boat(f: &mut Frame, art: &Art, x: i32, t: u32, clip: (i32, i32)) {
         pal[crate::engine::sprites::SHIRT_D as usize] = rgb(192, 88, 16);
         blit_person_clip(f, s, px, y - 2 - jump, k % 2 == 1, &pal, y - 3);
     }
-    if (t / 30) % 2 == 0 && y - 30 > clip.0 {
+    if (t / 30).is_multiple_of(2) && y - 30 > clip.0 {
         bubble(f, x, y - 18, "HUP HOLLAND HUP!");
     }
 }
@@ -1119,7 +1118,7 @@ fn draw_tram(f: &mut Frame, x: i32, t: u32, clip: (i32, i32)) {
     f.line(x + 40, y - 1, x + 48, y - 10, OUTLINE);
     f.line(x + 48, y - 10, x + 56, y - 1, OUTLINE);
     f.hline(x + 30, x + 70, y - 11, OUTLINE);
-    if (t / 6) % 2 == 0 {
+    if (t / 6).is_multiple_of(2) {
         f.set(x + 48, y - 12, rgb(248, 248, 200));
     }
 }
@@ -1150,6 +1149,7 @@ fn bar(f: &mut Frame, x: i32, y: i32, w: i32, h: i32, frac: f32, c: u32) {
 }
 
 /// The rhythm meter: fills after each stroke; gold = PERFECT, green = good.
+#[allow(clippy::too_many_arguments)]
 fn rhythm(f: &mut Frame, race: &Race, i: usize, x: i32, y: i32, w: i32, h: i32, t: u32) {
     let r = &race.riders[i];
     let g = race.gap_for(i);
@@ -1160,7 +1160,7 @@ fn rhythm(f: &mut Frame, race: &Race, i: usize, x: i32, y: i32, w: i32, h: i32, 
     f.rect(px(g), y, px(g + 4) - px(g), h, rgb(200, 160, 32));
     f.rect(px(g + 4), y, x + w - px(g + 4), h, rgb(40, 104, 64));
     let wasted = r.last_stroke == Stroke::Wasted && r.stroke_t < 10;
-    if wasted && (t / 2) % 2 == 0 {
+    if wasted && (t / 2).is_multiple_of(2) {
         f.rect(x, y, w, h, rgb(232, 48, 48));
     }
     let k = r.since.min(span);
@@ -1242,7 +1242,7 @@ fn route_map(f: &mut Frame, race: &Race, x: i32, y: i32, w: i32, me: usize, t: u
     }
     let r = &race.riders[me];
     let px = x + (r.x.min(len) / len * w as f32) as i32;
-    let blink = (t / 8) % 2 == 0;
+    let blink = (t / 8).is_multiple_of(2);
     f.rect(px - 2, y - 2, 5, 7, OUTLINE);
     f.rect(px - 1, y - 1, 3, 5, if blink { rider_color(race, me) } else { rgb(248, 248, 248) });
 }
@@ -1268,7 +1268,7 @@ pub fn draw_hud(f: &mut Frame, race: &Race, art: &Art, i: usize, t: u32) {
     let e = r.energy / 100.0;
     let ec = if r.bonk { rgb(160, 96, 232) } else if e > 0.5 { rgb(120, 216, 88) } else if e > 0.25 { rgb(248, 200, 48) } else { rgb(232, 64, 48) };
     bar(f, 80, 12, 40, 6, e, ec);
-    if r.bonk && (t / 10) % 2 == 0 {
+    if r.bonk && (t / 10).is_multiple_of(2) {
         f.text_sh(86, 12, "LEEG!", rgb(248, 248, 248), OUTLINE, false);
     }
     art.food[0].draw(f, 122, 10, &PROPS, false);

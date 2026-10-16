@@ -587,6 +587,7 @@ impl Scenery {
     }
 
     /// Wind strength for the mills, headwind (+) for cloud drift.
+    #[allow(clippy::too_many_arguments)]
     pub fn draw(&self, f: &mut Frame, art: &Art, cam: f32, t: u32, wind: f32, head: f32, clip: (i32, i32)) {
         // sky (cached)
         let (y0, y1) = (clip.0.max(0), clip.1.min(ROAD_TOP));
@@ -603,7 +604,7 @@ impl Scenery {
             // geese flying over in a V
             let gx = ((tt * 0.4) as i32 % 600) - 60;
             for k in 0..5 {
-                let (x, y) = (256 - gx + k * 6, 46 + (k as i32 - 2).abs() * 3);
+                let (x, y) = (256 - gx + k * 6, 46 + (k - 2).abs() * 3);
                 let flap = ((t / 8 + k as u32) % 2) as i32;
                 f.set(x - 1, y - flap, rgb(64, 72, 96));
                 f.set(x, y, rgb(64, 72, 96));

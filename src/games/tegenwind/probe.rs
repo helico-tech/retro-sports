@@ -56,7 +56,7 @@ impl Bot {
         let decentish = !matches!(self.kind, BotKind::Masher | BotKind::Metronome);
         // pedalling
         let press = match self.kind {
-            BotKind::Masher => race.frame % 4 == 0,
+            BotKind::Masher => race.frame.is_multiple_of(4),
             BotKind::Metronome => r.since > g,
             BotKind::Lazy => {
                 if self.next == 0 {
@@ -263,8 +263,7 @@ struct Acc {
 
 pub fn sim(n: u32) {
     println!("CPU races: 4 CPU riders per race, {} races per stage", n);
-    for stage_i in 0..3 {
-        let st = &STAGES[stage_i];
+    for (stage_i, st) in STAGES.iter().enumerate() {
         let mut wins = [0u32; 5];
         let mut first_t = 0.0f64;
         let mut spread = 0.0f64;
@@ -317,7 +316,7 @@ pub fn probe(per: u32) {
     println!("Human bots vs the 1P ladder, {} races per stage per bike", per);
     println!("{:<10} {:<10} {:>5} {:>5} {:>6} {:>5} {:>6} {:>6} {:>6} {:>5} {:>5} {:>6} {:>5}", "bot", "stage", "top2%", "win%", "time", "place", "perf%", "waste%", "draft%", "crash", "bonk", "cargo", "dnf");
     for &kind in &kinds {
-        for stage_i in 0..3 {
+        for (stage_i, st) in STAGES.iter().enumerate() {
             let mut a = Acc::default();
             let mut per_bike = [(0u32, 0u32); 4];
             for (bi, &bike) in BIKES.iter().enumerate() {
@@ -359,7 +358,7 @@ pub fn probe(per: u32) {
             println!(
                 "{:<10} {:<10} {:>5.0} {:>5.0} {:>6.1} {:>5.2} {:>6.0} {:>6.0} {:>6.0} {:>5.2} {:>5.2} {:>6.2} {:>5}",
                 format!("{:?}", kind),
-                STAGES[stage_i].name,
+                st.name,
                 100.0 * a.top2 as f64 / n,
                 100.0 * a.wins as f64 / n,
                 a.time / n,
