@@ -75,5 +75,57 @@ then reviews and balance.
   over-pulling, late stall reaction), rookie skills below 0 for stage 1.
 - 2026-10-16: Perf (native release): new() 2 ms, stage setup 1.3 ms,
   frame 0.09 ms (1P) / 0.18 ms (2P split). wasm build ok.
+- 2026-10-16: ART REVIEW (shots at 1x and 3x, sprite sheets, turn
+  sequence sheet, compared with dodgeball's screens).
+  MUST
+  - A1 Storm cloud read as a flat grey slab with grid rain. FIXED: a
+    cumulonimbus with anvil, slanted rain and a hungry face whose open
+    mouth is the suction column ("THAT CLOUD LOOKS HUNGRY").
+  - A2 Flying low, the mid layer's ground plane filled the screen
+    (layers moved with absolute altitude). FIXED: layers move with the
+    camera's height above the smoothed terrain.
+  - A3 Banners covered the pilot in the middle of the view. FIXED: top.
+  - A4 Continue countdown hidden behind the tree. FIXED: new layout.
+  - A5 The Eagle's navy UI color was unreadable on the select screen.
+    FIXED: a menu color per pilot.
+  - A6 HUD numbers in the logo font garbled at scale 2. FIXED: bold
+    gradient text.
+  - A7 2P: 1P/2P tags clipped under the HUD strip. FIXED: clamped.
+  SHOULD
+  - A8 A canyon "arch" hole showed the sun through a mesa. FIXED: gone.
+  - A9 Alps shaded faces were long dark wedges. FIXED: shorter.
+  - A10 Dunes ground plane: hard sand/polder seam, loud stripes. FIXED.
+  - A11 Launch sign hidden behind the queue. FIXED: moved back.
+  - A12 Title: mid layer swamped the scene. FIXED: hand-placed layers,
+    sea with kite surfers, beach huts, storks, cow cloud.
+  - A13 Soil cross-section flat brown. FIXED: pebbles and bands.
+  - A14 Geese V overlapped into a smear. FIXED: wider spacing.
+  COULD (open)
+  - A15 Dune "fluff" thermal marker is small (storks and clouds carry it).
+  - A16 Intro card is a dimmed venue; a striped card could be punchier.
+  - A17 Kite surfers' kites leave the top of the title view.
+- 2026-10-16: GAMEPLAY REVIEW (sim, probe, traces, staged shots).
+  MUST
+  - G1 CPUs looped forever in the storm (burn mode flew them back in).
+    FIXED: 25 s storm immunity after a spit-out; the AI avoids the column.
+  - G2 Every flight must end. FIXED: sunset at 3:30 (no lift, sink) and a
+    hard cap 2:30 later; covered by `cpu_flights_always_end`.
+  - G3 "PRESS X TO FLARE" showed at 32 px where a flare means a hard
+    landing. FIXED: "GET READY" above, "FLARE NOW!" in the soft window.
+  - G4 Skill barely mattered. FIXED: skill habits (over-climbing,
+    dawdling, over-pulling, late stall reaction, aim errors), rookies.
+  - G5 CPUs landed ~70 px off (ignored flare float and speed energy).
+    FIXED: energy-aware final glide with S-turns (skilled ~25 px off).
+  SHOULD
+  - G6 Too high for a hoop had no answer but diving. FIXED: burn mode.
+  - G7 Geese bonus too big (up to +350). FIXED: 25 per flock.
+  - G8 Pumping the bar: checked, no gain over trim. OK.
+  - G9 Diving straight in: no hoops, no time bonus, short of the field;
+    probe "dive" wins 0%. OK.
+  - G10 Sink had no visual cue. FIXED: falling air streaks over sink.
+  COULD (open)
+  - G11 No sound on a turn (sfx bank is at 16).
+  - G12 The storm is a gamble shortcut (high but dizzy, far downwind);
+    not dominant in the sim, CPUs skirt it. Watch in playtests.
 
 ## Follow-ups

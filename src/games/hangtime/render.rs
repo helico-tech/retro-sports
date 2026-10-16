@@ -303,7 +303,7 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam,
             let shake = if race.flash > 0 { (t % 3) as i32 - 1 } else { 0 };
             draw_pic_clip(f, pic, cam.sx(st.x) + shake, cam.sy(st.base), cam.vh, false);
             if race.flash > 0 {
-                lightning(f, cam.sx(st.x) + ((t / 7 % 5) as i32 - 2) * 14, cam.sy(st.base - 6.0), cam.sy(c.ground_at(st.x)), t, cam.vh);
+                lightning(f, cam.sx(st.x) + ((t / 7 % 5) as i32 - 2) * 18, cam.sy(st.base), cam.sy(c.ground_at(st.x)), t, cam.vh);
             }
         }
     }
@@ -397,7 +397,9 @@ pub fn draw_view(f: &mut Frame, race: &Race, sc: &Scenery, art: &Art, cam: &Cam,
         // tag over human pilots
         if let Ctrl::Human(k) = p.ctrl {
             if p.airborne() || matches!(p.state, State::Wait | State::Run | State::Hop(_)) {
-                tag(f, x, y - if p.airborne() { 52 } else { 60 }, k, t);
+                // keep the tag under the HUD band
+                let top = if cam.vh < 200 { 14 } else { 36 };
+                tag(f, x, (y - if p.airborne() { 52 } else { 60 }).max(top), k, t);
             }
         }
     }
@@ -916,7 +918,20 @@ fn draw_gate(f: &mut Frame, sc: &Scenery, g: &Gate, k: usize, made: bool, cam: &
 }
 
 /// Wind lines that follow the ground: they climb on slopes with ridge lift.
+/// Over sink (lakes, canyon floors) the air visibly falls.
 fn draw_streaks(f: &mut Frame, c: &Course, cam: &Cam, t: u32) {
+    for k in 0..22u32 {
+        let wx = cam.x - 128.0 + ((k * 61) as f32 + t as f32 * 0.4).rem_euclid(300.0) - 20.0;
+        if c.sink_at(wx) < 0.05 {
+            continue;
+        }
+        let dy = ((k * 37) as f32 - t as f32 * 0.9).rem_euclid(220.0) - 110.0;
+        let (sx, sy) = (cam.sx(wx), cam.cy + dy as i32);
+        if sy > 0 && sy < cam.vh - 4 && sy < cam.sy(c.floor_at(wx)) - 4 {
+            f.line(sx, sy, sx, sy + 3, rgb(88, 104, 152));
+            f.set(sx, sy + 4, rgb(120, 136, 184));
+        }
+    }
     for k in 0..26u32 {
         let speed = 1.3 + (k % 3) as f32 * 0.3;
         let span = 340.0;

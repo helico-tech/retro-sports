@@ -103,6 +103,10 @@ pub fn shots(out: &str) {
             periodic += 1;
             snap(&app, dir, &format!("09_play_{:02}.png", periodic));
         }
+        if p.state == State::Fly && p.agl(&r.course) < 7.0 && p.clock > 600 && seen.iter().all(|s| s != "final") {
+            seen.push("final".into());
+            snap(&app, dir, "11_final_approach.png");
+        }
         let landed = p.state == State::Done;
         if !paused_shot && n == 1500 {
             paused_shot = true;
@@ -113,7 +117,7 @@ pub fn shots(out: &str) {
         }
         if landed && seen.iter().all(|s| s != "landed") {
             seen.push("landed".into());
-            snap(&app, dir, "11_landed.png");
+            snap(&app, dir, "11_landed_done.png");
         }
     }
     if !sheet.is_empty() {
@@ -241,6 +245,9 @@ pub fn shots(out: &str) {
     h.prepare_stage();
     h.scene = Scene::Play;
     if let Some(r) = h.race.as_mut() {
+        // a dizzy sheep does not run away
+        r.sheep[0].mode = SheepMode::Dizzy;
+        r.sheep[0].t = -400;
         let sx = r.sheep[0].x;
         let p = &mut r.pilots[0];
         p.state = State::Flare(0);
@@ -250,7 +257,7 @@ pub fn shots(out: &str) {
         p.vy = 0.1;
     }
     h.snap_cams();
-    for _ in 0..30 {
+    for _ in 0..24 {
         h.update([Pad::default(); 2], false);
     }
     snap(&h, dir, "22_baaad_landing.png");

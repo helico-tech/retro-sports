@@ -484,8 +484,8 @@ impl Course {
             c.props.push(Prop { kind, x, y, var });
         };
         let l = self.launch;
-        add(self, PropKind::Windsock, l.x0 - 70.0, 0);
-        add(self, PropKind::Sign, l.x0 - 30.0, 0);
+        add(self, PropKind::Windsock, l.x0 - 132.0, 0);
+        add(self, PropKind::Sign, l.x0 - 106.0, 0);
         let (f0, f1) = self.field;
         add(self, PropKind::Windsock, f0 + 30.0, 1);
         add(self, PropKind::Crowd, f1 - 70.0, 0);

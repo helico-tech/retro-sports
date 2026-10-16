@@ -14,18 +14,27 @@ pub struct Layer {
     pub pic: Pic,
     pub kx: f32,
     pub ky: f32,
-    pub base: f32,
+    /// skyline foot, in rows below the view centre, at camera height `REL0`
+    pub foot0: f32,
+    /// ground plane rows under the skyline
+    pub plane: i32,
 }
+
+/// Camera height above the general terrain where the layers sit at `foot0`.
+pub const REL0: f32 = 40.0;
 
 /// Rows at the bottom of a layer that repeat below it (the ground plane).
 const TILE: i32 = 12;
 
 impl Layer {
-    pub fn draw(&self, f: &mut Frame, cam: (f32, f32), cy: i32, vh: i32) {
+    /// `rel`: camera height above the smoothed terrain under it. The layers
+    /// sink slowly as you climb, so close to the ground the hills sit just
+    /// above it and high up the far ground plane opens below you.
+    pub fn draw(&self, f: &mut Frame, cam_x: f32, rel: f32, cy: i32, vh: i32) {
         let p = &self.pic;
-        let off = ((cam.0 - 128.0) * self.kx) as i32;
-        let bottom = cy + ((cam.1 - self.base) * self.ky) as i32;
-        let top = bottom - (p.h - 1);
+        let off = ((cam_x - 128.0) * self.kx) as i32;
+        let foot = cy + (self.foot0 + (rel - REL0) * self.ky) as i32;
+        let top = foot - (p.h - self.plane - 1);
         for sy in top.max(0)..vh.min(H) {
             let mut r = sy - top;
             if r >= p.h {
@@ -60,7 +69,8 @@ pub struct Scenery {
     pub envelopes: Vec<Pic>,
     pub family: Pic,
     pub sun: (i32, i32),
-    pub hz: u32,
+    /// smoothed terrain height every 8 px (what "high" means for the layers)
+    pub ref_g: Vec<f32>,
 }
 
 
@@ -106,11 +116,10 @@ impl Scenery {
                 rgb(248, 200, 120),
             ],
         };
-        let ly = course.launch.y0;
         let (far, mid) = match venue {
-            Venue::Dunes => (dunes_far(&mut rng, &sky, ly), dunes_mid(&mut rng, &sky, ly)),
-            Venue::Alps => (alps_far(&mut rng, &sky, ly), alps_mid(&mut rng, &sky, ly)),
-            Venue::Canyon => (canyon_far(&mut rng, &sky, ly), canyon_mid(&mut rng, &sky, ly)),
+            Venue::Dunes => (dunes_far(&mut rng, &sky), dunes_mid(&mut rng, &sky)),
+            Venue::Alps => (alps_far(&mut rng, &sky), alps_mid(&mut rng, &sky)),
+            Venue::Canyon => (canyon_far(&mut rng, &sky), canyon_mid(&mut rng, &sky)),
         };
         let tint = match venue {
             Venue::Canyon => rgb(248, 216, 200),
@@ -140,8 +149,16 @@ impl Scenery {
                 Venue::Alps => (60, 40),
                 Venue::Canyon => (196, 120),
             },
-            hz: 0,
+            ref_g: ref_ground(course),
         }
+    }
+
+    /// Camera height above the general terrain.
+    pub fn rel(&self, cam: (f32, f32)) -> f32 {
+        let i = (cam.0 / 8.0).clamp(0.0, (self.ref_g.len() - 1) as f32);
+        let (a, b) = (i.floor() as usize, (i.floor() as usize + 1).min(self.ref_g.len() - 1));
+        let g = self.ref_g[a] + (self.ref_g[b] - self.ref_g[a]) * i.fract();
+        cam.1 - g
     }
 
     /// Sky color for screen row `sy` (centre row `cy`) at camera altitude `cam_y`:
@@ -204,14 +221,15 @@ impl Scenery {
 
     /// Far layer, its decorative clouds and the cow cloud, then the mid layer.
     pub fn draw_back(&self, f: &mut Frame, cam: (f32, f32), cy: i32, vh: i32, t: u32) {
-        self.far.draw(f, cam, cy, vh);
+        let rel = self.rel(cam);
+        self.far.draw(f, cam.0, rel, cy, vh);
         // small clouds drift slowly in the far sky
         let kx = 0.22;
         for &(x, y, k) in &self.deco {
             let span = 1400.0;
             let wx = (x + t as f32 * 0.02).rem_euclid(span);
             let sx = (wx - (cam.0 * kx).rem_euclid(span)).rem_euclid(span) as i32 - 100;
-            let sy = cy - (y + 200.0 - cam.1 * 0.3) as i32;
+            let sy = cy - (y + 40.0 - (rel - REL0) * 0.3) as i32;
             if sy > -40 && sy < vh + 40 {
                 let p = &self.cumulus[k];
                 draw_pic_clip(f, p, sx, sy, vh, true);
@@ -222,11 +240,28 @@ impl Scenery {
             let span = 2000.0;
             let wx = (700.0 + t as f32 * 0.03).rem_euclid(span);
             let sx = (wx - (cam.0 * 0.25).rem_euclid(span)).rem_euclid(span) as i32 - 200;
-            let sy = cy - (260.0 - cam.1 * 0.3) as i32;
+            let sy = cy - (120.0 - (rel - REL0) * 0.3) as i32;
             draw_pic_clip(f, &self.cow_cloud, sx, sy, vh, false);
         }
-        self.mid.draw(f, cam, cy, vh);
+        self.mid.draw(f, cam.0, rel, cy, vh);
     }
+}
+
+fn ref_ground(c: &Course) -> Vec<f32> {
+    let n = (LEN / 8 + 1) as usize;
+    (0..n)
+        .map(|k| {
+            let x = k as f32 * 8.0;
+            let (mut sum, mut cnt) = (0.0, 0.0);
+            let mut d = -320.0;
+            while d <= 320.0 {
+                sum += c.floor_at((x + d).clamp(0.0, LEN as f32));
+                cnt += 1.0;
+                d += 20.0;
+            }
+            sum / cnt
+        })
+        .collect()
 }
 
 /// Draw a picture clipped to rows < vh; `small` halves it (far away).
@@ -266,12 +301,6 @@ fn layer_w(kx: f32) -> i32 {
     (LEN as f32 * kx) as i32 + W + 8
 }
 
-/// Base so the layer's skyline foot shows `drop` px below the view centre
-/// at launch height (`plane` rows of ground plane hang below it).
-fn base_for(launch_y: f32, ky: f32, drop: f32, plane: i32) -> f32 {
-    launch_y - (drop + plane as f32) / ky
-}
-
 /// Append a ground plane below a layer: bands of fields that get bigger
 /// toward the viewer, colors from `pal(x, band, field)`.
 fn with_plane(p: Pic, rows: i32, haze: u32, pal: impl Fn(i32, i32, u32) -> u32) -> Pic {
@@ -291,7 +320,7 @@ fn with_plane(p: Pic, rows: i32, haze: u32, pal: impl Fn(i32, i32, u32) -> u32) 
                 if first {
                     c = shade(c, 3, 4);
                 }
-                let hz = (0.45 - band as f32 * 0.05).max(0.0);
+                let hz = (0.55 - band as f32 * 0.05).max(0.18);
                 q.set(x, p.h + y, mix(c, haze, hz));
             }
         }
@@ -304,8 +333,8 @@ fn with_plane(p: Pic, rows: i32, haze: u32, pal: impl Fn(i32, i32, u32) -> u32) 
 
 const PLANE: i32 = 60;
 
-fn dunes_far(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
-    let (kx, ky) = (0.12, 0.22);
+fn dunes_far(rng: &mut Rng, sky: &[u32]) -> Layer {
+    let (kx, ky) = (0.12, 0.1);
     let w = layer_w(kx);
     let h = 70;
     let mut p = new_layer(w, h);
@@ -358,11 +387,11 @@ fn dunes_far(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
         x += 40 + rng.int(70);
     }
     let p = with_plane(p, 24, haze, |_, _, h| [rgb(136, 168, 104), rgb(152, 176, 112), rgb(120, 160, 96)][(h % 3) as usize]);
-    Layer { pic: p, kx, ky, base: base_for(ly, ky, 40.0, 24) }
+    Layer { pic: p, kx, ky, foot0: -6.0, plane: 24 }
 }
 
-fn dunes_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
-    let (kx, ky) = (0.4, 0.5);
+fn dunes_mid(rng: &mut Rng, sky: &[u32]) -> Layer {
+    let (kx, ky) = (0.4, 0.22);
     let w = layer_w(kx);
     let h = 70;
     let mut p = new_layer(w, h);
@@ -424,23 +453,26 @@ fn dunes_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
         x += 30 + rng.int(60);
     }
     let split = (1500.0 * kx) as i32;
-    let p = with_plane(p, PLANE, haze, |x, _, h| {
-        if x < split {
-            [rgb(232, 208, 152), rgb(216, 192, 136), rgb(184, 192, 112), rgb(240, 224, 168)][(h % 4) as usize]
+    let p = with_plane(p, PLANE, haze, |x, band, h| {
+        // dunes fade into the polder over a dithered stretch
+        let blend = ((x - split + 60) as f32 / 120.0).clamp(0.0, 1.0);
+        let sandy = (hash(x / 3, band) % 100) as f32 / 100.0 >= blend;
+        if sandy {
+            [rgb(232, 208, 152), rgb(216, 192, 136), rgb(176, 184, 112), rgb(240, 224, 168)][(h % 4) as usize]
         } else {
             [
-                rgb(104, 184, 72),
-                rgb(136, 200, 88),
-                rgb(248, 216, 64),
-                rgb(232, 72, 88),
-                rgb(88, 160, 72),
-                rgb(168, 120, 72),
-                rgb(232, 120, 184),
-                rgb(120, 192, 80),
+                rgb(112, 184, 80),
+                rgb(136, 192, 88),
+                rgb(216, 200, 88),
+                rgb(200, 104, 104),
+                rgb(96, 160, 80),
+                rgb(160, 128, 88),
+                rgb(200, 136, 176),
+                rgb(120, 176, 80),
             ][(h % 8) as usize]
         }
     });
-    Layer { pic: p, kx, ky, base: base_for(ly, ky, 74.0, PLANE) }
+    Layer { pic: p, kx, ky, foot0: 12.0, plane: PLANE }
 }
 
 fn mountains(p: &mut Pic, pts: &[(i32, i32)], body: u32, side: u32, snow: u32, snow_d: u32, base: i32, snowline: i32) {
@@ -464,8 +496,8 @@ fn mountains(p: &mut Pic, pts: &[(i32, i32)], body: u32, side: u32, snow: u32, s
     }
 }
 
-fn alps_far(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
-    let (kx, ky) = (0.12, 0.2);
+fn alps_far(rng: &mut Rng, sky: &[u32]) -> Layer {
+    let (kx, ky) = (0.12, 0.1);
     let w = layer_w(kx);
     let h = 120;
     let mut p = new_layer(w, h);
@@ -490,11 +522,11 @@ fn alps_far(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
     pts.push((w + 60, h - 10));
     mountains(&mut p, &pts, mix(rgb(88, 104, 168), haze, 0.25), mix(rgb(72, 88, 152), haze, 0.25), mix(rgb(240, 244, 248), haze, 0.1), mix(rgb(184, 200, 232), haze, 0.15), h, 62);
     let p = with_plane(p, 24, haze, |_, _, h| [rgb(96, 136, 120), rgb(104, 144, 120), rgb(88, 128, 112)][(h % 3) as usize]);
-    Layer { pic: p, kx, ky, base: base_for(ly, ky, 30.0, 24) }
+    Layer { pic: p, kx, ky, foot0: -4.0, plane: 24 }
 }
 
-fn alps_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
-    let (kx, ky) = (0.4, 0.5);
+fn alps_mid(rng: &mut Rng, sky: &[u32]) -> Layer {
+    let (kx, ky) = (0.4, 0.22);
     let w = layer_w(kx);
     let h = 90;
     let mut p = new_layer(w, h);
@@ -556,7 +588,7 @@ fn alps_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
     let p = with_plane(p, PLANE, haze, |_, _, h| {
         [rgb(104, 176, 88), rgb(128, 192, 96), rgb(48, 112, 72), rgb(96, 168, 80), rgb(144, 200, 104), rgb(40, 96, 64), rgb(112, 184, 88)][(h % 7) as usize]
     });
-    Layer { pic: p, kx, ky, base: base_for(ly, ky, 80.0, PLANE) }
+    Layer { pic: p, kx, ky, foot0: 12.0, plane: PLANE }
 }
 
 fn mesa(p: &mut Pic, x: i32, w: i32, top: i32, base: i32, body: u32, side: u32, bands: &[u32]) {
@@ -582,8 +614,8 @@ fn mesa(p: &mut Pic, x: i32, w: i32, top: i32, base: i32, body: u32, side: u32, 
     p.hline(x + 5, x + w - 5, top, mix(body, 0xFFFFFF, 0.25));
 }
 
-fn canyon_far(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
-    let (kx, ky) = (0.12, 0.2);
+fn canyon_far(rng: &mut Rng, sky: &[u32]) -> Layer {
+    let (kx, ky) = (0.12, 0.1);
     let w = layer_w(kx);
     let h = 90;
     let mut p = new_layer(w, h);
@@ -605,11 +637,11 @@ fn canyon_far(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
     }
     p.rect(0, h - 12, w, 12, mix(rgb(176, 112, 120), haze, 0.4));
     let p = with_plane(p, 24, haze, |_, _, h| [rgb(184, 120, 120), rgb(192, 128, 120), rgb(176, 112, 112)][(h % 3) as usize]);
-    Layer { pic: p, kx, ky, base: base_for(ly, ky, 30.0, 24) }
+    Layer { pic: p, kx, ky, foot0: -4.0, plane: 24 }
 }
 
-fn canyon_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
-    let (kx, ky) = (0.4, 0.5);
+fn canyon_mid(rng: &mut Rng, sky: &[u32]) -> Layer {
+    let (kx, ky) = (0.4, 0.22);
     let w = layer_w(kx);
     let h = 100;
     let mut p = new_layer(w, h);
@@ -634,7 +666,7 @@ fn canyon_mid(rng: &mut Rng, sky: &[u32], ly: f32) -> Layer {
     let p = with_plane(p, PLANE, haze, |_, _, h| {
         [rgb(216, 152, 96), rgb(232, 176, 112), rgb(200, 128, 80), rgb(224, 160, 104), rgb(184, 112, 72), rgb(240, 192, 128)][(h % 6) as usize]
     });
-    Layer { pic: p, kx, ky, base: base_for(ly, ky, 90.0, PLANE) }
+    Layer { pic: p, kx, ky, foot0: 14.0, plane: PLANE }
 }
 
 /// Puffy cumulus with a flat base. Origin: middle of the base.
@@ -717,53 +749,85 @@ fn cow_cloud() -> Pic {
     p
 }
 
+/// The hungry storm cloud: a cumulonimbus with an anvil, slanted rain and
+/// a face whose open mouth is where it sucks pilots in.
 fn storm_pic() -> Pic {
-    let (w, h) = (230, 170);
-    let mut p = Pic::new(w, h, w / 2, h - 30);
-    let body = rgb(72, 64, 104);
+    let (w, h) = (220, 184);
+    let base = 150;
+    let mut p = Pic::new(w, h, w / 2, base);
     let dark = rgb(48, 40, 80);
-    let lit = rgb(120, 112, 160);
-    // anvil top
-    p.ellipse(115, 22, 105, 16, body);
-    p.ellipse(60, 26, 50, 12, body);
-    p.ellipse(170, 26, 52, 12, body);
-    // tower
-    for k in 0..7 {
-        let cy = 40 + k * 15;
-        let r = 46 + (k % 2) * 8;
-        p.ellipse(115 + (k % 3) * 6 - 6, cy, r, 14, body);
+    let body = rgb(80, 72, 120);
+    let mid = rgb(112, 104, 152);
+    let lit = rgb(160, 152, 200);
+    let puffs: [(i32, i32, i32, bool); 22] = [
+        (110, 128, 42, false),
+        (74, 134, 30, false),
+        (146, 134, 30, false),
+        (110, 98, 38, false),
+        (84, 104, 26, false),
+        (136, 100, 28, false),
+        (110, 70, 34, false),
+        (92, 74, 24, false),
+        (128, 72, 24, false),
+        (110, 50, 26, false),
+        (110, 34, 40, true),
+        (72, 30, 34, true),
+        (148, 30, 34, true),
+        (40, 28, 24, true),
+        (180, 28, 24, true),
+        (18, 30, 14, true),
+        (202, 30, 14, true),
+        (60, 140, 18, false),
+        (160, 140, 18, false),
+        (96, 120, 20, false),
+        (126, 116, 20, false),
+        (110, 18, 26, true),
+    ];
+    for &(cx, cy, r, flat) in &puffs {
+        let (rx, ry) = if flat { (r * 8 / 5, r * 11 / 20) } else { (r, r * 4 / 5) };
+        p.ellipse(cx, cy, rx, ry, dark);
+        p.ellipse(cx - 2, cy - 2, rx - 3, ry - 3, body);
+        p.ellipse(cx - rx / 4, cy - ry / 3, rx / 2, ry / 3, mid);
+        p.ellipse(cx - rx / 3, cy - ry / 2, rx / 4, (ry / 6).max(1), lit);
     }
-    // base, flat and dark, with hanging rain
-    p.ellipse(115, 140, 70, 12, dark);
-    for y in 140..h {
+    // flat dark base
+    for y in base..h {
         for x in 0..w {
-            if p.get(x, y) != CLEAR && y > 145 {
-                p.set(x, y, CLEAR);
+            p.set(x, y, CLEAR);
+        }
+    }
+    for x in 0..w {
+        if p.get(x, base - 1) != CLEAR {
+            for y in base - 4..base {
+                p.set(x, y, if y == base - 1 { rgb(32, 24, 56) } else { dark });
             }
         }
     }
-    for x in (60..170).step_by(5) {
-        for y in 146..h {
-            if (y + x) % 9 < 5 {
-                p.set(x + (y - 146) / 6, y, rgb(104, 104, 144));
+    // rain, slanted with the wind
+    for x in (40..180).step_by(4) {
+        for y in base..h {
+            let k = y - base;
+            if (k + x) % 9 < 5 {
+                p.set(x + k / 3, y, rgb(136, 144, 192));
             }
         }
     }
-    let src = p.px.clone();
-    let at = |x: i32, y: i32| if x >= 0 && y >= 0 && x < w && y < h { src[(y * w + x) as usize] } else { CLEAR };
-    for y in 0..h {
-        for x in 0..w {
-            let c = at(x, y);
-            if c == body && (at(x - 2, y - 2) == CLEAR || at(x - 3, y) == CLEAR) {
-                p.set(x, y, lit);
-            } else if c == body && (at(x + 3, y + 2) == CLEAR) {
-                p.set(x, y, dark);
-            } else if c == body && y > 100 && (x + y) & 1 == 0 {
-                p.set(x, y, dark);
-            }
-        }
+    // the face: angry eyes and a hungry mouth over the suction column
+    for (ex, dir) in [(92, 1), (128, -1)] {
+        p.ellipse(ex, 112, 9, 7, rgb(24, 16, 40));
+        p.ellipse(ex, 112, 7, 5, rgb(248, 248, 232));
+        p.rect(ex + dir * 2 - 1, 113, 4, 4, rgb(24, 16, 40));
+        p.set(ex + dir * 2, 113, rgb(248, 248, 248));
+        p.thick(ex - 9, 101 + dir * 4, ex + 9, 101 - dir * 4, 3, rgb(24, 16, 40));
     }
-    p.outline(rgb(32, 24, 56));
+    p.ellipse(110, 136, 22, 11, rgb(24, 16, 40));
+    p.ellipse(110, 138, 18, 8, rgb(88, 24, 56));
+    p.ellipse(110, 141, 10, 4, rgb(184, 72, 104));
+    for k in 0..6 {
+        let tx = 94 + k * 6;
+        p.poly(&[(tx, 127), (tx + 5, 127), (tx + 2, 132)], rgb(248, 248, 232));
+    }
+    p.outline(rgb(24, 16, 48));
     p
 }
 
@@ -1124,9 +1188,18 @@ impl Scenery {
                 if surf == Surf::Field && d < 4 && (wx / 12) % 2 == 0 {
                     col = mix(col, rgb(208, 248, 152), 0.3);
                 }
-                // speckles
-                if d > 2 && hash(wx, sy - top) % 23 == 0 {
+                // speckles, pebbles and a darker band of deep soil
+                let hh = hash(wx, sy - top);
+                if d > 2 && hh % 23 == 0 {
                     col = shade(col, 7, 8);
+                }
+                if d > 18 && surf != Surf::Rock && hh % 97 < 2 {
+                    col = rgb(168, 152, 136);
+                } else if d > 18 && surf != Surf::Rock && hh % 97 == 2 {
+                    col = rgb(208, 192, 176);
+                }
+                if d > 30 && ((alt as i32).rem_euclid(9) == 0) && (sx + sy) & 1 == 0 && surf != Surf::Rock {
+                    col = shade(col, 6, 7);
                 }
                 f.px[(sy * W + sx) as usize] = col;
             }

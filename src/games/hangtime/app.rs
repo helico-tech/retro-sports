@@ -584,11 +584,12 @@ impl App {
             State::Wait => Some("GET READY..."),
             State::Run | State::Hop(_) if p.x >= z0 => Some("NOW! PRESS X!"),
             State::Run | State::Hop(_) => Some("TAP LEFT, RIGHT, LEFT, RIGHT!"),
-            State::Fly if p.agl(c) < FLARE_MAX_AGL && p.agl(c) > 2.0 && p.vy < 0.0 && race.pilots[0].clock > 120 => Some("PRESS X TO FLARE!"),
+            State::Fly if p.agl(c) < 9.0 && p.agl(c) > 1.5 && race.pilots[0].clock > 120 => Some("FLARE NOW! PRESS X!"),
+            State::Fly if p.agl(c) < 30.0 && p.agl(c) >= 9.0 && race.pilots[0].clock > 120 => Some("GET READY TO FLARE..."),
             _ => None,
         };
         if let Some(m) = msg {
-            if blink || matches!(p.state, State::Wait) {
+            if blink || matches!(p.state, State::Wait) || m.starts_with("GET") {
                 f.rect(0, 200, W, 12, rgb(16, 16, 48));
                 f.text_center(128, 202, m, rgb(248, 248, 248), OUTLINE, true);
             }
@@ -601,10 +602,10 @@ impl App {
         let c = &self.title_course;
         sc.draw_sky(f, (cam.x, 260.0), cam.cy, cam.vh, t);
         // the layers sit low behind the beach: placed by hand for the title
-        sc.far.draw(f, (cam.x + 2000.0, 150.0), cam.cy, H);
+        sc.far.draw(f, cam.x + 2000.0, 70.0, cam.cy, H);
         draw_pic_clip(f, &sc.cumulus[2], 196, 126, H, false);
         draw_pic_clip(f, &sc.cow_cloud, 60, 60, H, false);
-        sc.mid.draw(f, (cam.x + 600.0, 182.0), cam.cy, H);
+        sc.mid.draw(f, cam.x + 600.0, 120.0, cam.cy, H);
         sc.draw_ground(f, c, cam.pos(), cam.cy, cam.vh, t);
         draw_props(f, c, false, sc, &self.art, &cam, t);
         for k in 0..3 {
@@ -890,13 +891,15 @@ impl App {
 
     fn draw_continue(&self, f: &mut Frame, t: u32) {
         stripes(f, t, rgb(32, 8, 24), rgb(48, 16, 40));
-        f.logo(128, 26, "CONTINUE?", 3, &SUNSET, OUTLINE, rgb(0, 0, 0));
-        let n = format!("{}", self.count.max(0));
-        f.logo(128, 64, &n, 6, &grad6(rgb(248, 232, 64)), OUTLINE, rgb(0, 0, 0));
+        f.logo(128, 8, "CONTINUE?", 3, &SUNSET, OUTLINE, rgb(0, 0, 0));
         // your pilot, stuck in a tree
-        tree_with_pilot(f, &self.art, self.cursor[0], 128, 196, t);
+        tree_with_pilot(f, &self.art, self.cursor[0], 70, 204, t);
+        let n = format!("{}", self.count.max(0));
+        f.logo(178, 60, &n, 7, &grad6(rgb(248, 232, 64)), OUTLINE, rgb(0, 0, 0));
+        f.text_center(178, 128, "STUCK IN A TREE.", rgb(232, 232, 248), OUTLINE, false);
+        f.text_center(178, 140, "AGAIN.", rgb(232, 232, 248), OUTLINE, false);
         if (t / 20) % 2 == 0 {
-            f.text_center(128, 204, "PUSH Z TO TRY AGAIN", rgb(248, 248, 248), OUTLINE, false);
+            f.text_center(128, 212, "PUSH Z TO TRY AGAIN", rgb(248, 248, 248), OUTLINE, true);
         }
     }
 
@@ -1005,6 +1008,8 @@ fn mini_glider(f: &mut Frame, _art: &Art, x: i32, y: i32, t: u32) {
 /// Continue screen: a big tree with your glider stuck in it.
 fn tree_with_pilot(f: &mut Frame, art: &Art, def: usize, x: i32, y: i32, t: u32) {
     f.rect(0, y, W, H - y, rgb(80, 136, 64));
+    f.hline(0, W - 1, y, rgb(136, 200, 96));
+    f.dither_rect(0, y + 1, W, 2, rgb(136, 200, 96), rgb(80, 136, 64));
     f.rect(x - 6, y - 60, 12, 60, OUTLINE);
     f.rect(x - 5, y - 60, 10, 60, rgb(120, 80, 48));
     f.rect(x + 1, y - 60, 4, 60, rgb(96, 64, 40));
