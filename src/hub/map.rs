@@ -174,10 +174,28 @@ fn village(f: &mut Frame) {
     for (x, y, t) in [(104, 74, false), (114, 70, true), (126, 75, false), (96, 82, false), (134, 82, false), (118, 84, false)] {
         house(f, x, y, t);
     }
-    // a little square with a fountain
-    f.fill_ellipse(112, 92, 6, 3, rgb(208, 200, 184));
-    f.fill_ellipse(112, 92, 2, 1, DITCH);
+    // a canal along the front of the houses, with a quay and a bridge
+    let (cx, cy, cw) = CANAL;
+    f.rect(cx - 1, cy - 2, cw + 2, 7, OUTLINE);
+    f.rect(cx, cy - 1, cw, 5, rgb(184, 176, 168));
+    f.rect(cx, cy, cw, 3, DITCH);
+    f.hline(cx + 2, cx + 8, cy + 1, rgb(120, 192, 232));
+    f.hline(cx + 26, cx + 31, cy + 2, rgb(120, 192, 232));
+    let bx = cx + cw - 12;
+    f.rect(bx - 1, cy - 2, 7, 6, OUTLINE);
+    f.rect(bx, cy - 1, 5, 4, rgb(160, 72, 56));
+    f.set(bx + 2, cy + 2, DITCH);
+    // bikes parked along the quay
+    for k in 0..5 {
+        let x = cx + 3 + k * 6;
+        f.set(x, cy - 3, OUTLINE);
+        f.set(x + 2, cy - 3, OUTLINE);
+        f.set(x + 1, cy - 4, [ROOF, rgb(48, 48, 64), rgb(64, 120, 216)][(k % 3) as usize]);
+    }
 }
+
+/// The canal through the village: left x, water top y, width.
+pub const CANAL: (i32, i32, i32) = (90, 91, 50);
 
 pub const PEAK: (i32, i32) = (196, 46);
 
@@ -338,13 +356,16 @@ fn cliff(f: &mut Frame) {
 }
 
 /// Waypoints of the dotted path, venue to venue.
-pub const PATH_PTS: [(i32, i32); 13] = [
+pub const PATH_PTS: [(i32, i32); 16] = [
     (44, 146),
     (52, 132),
     (60, 122),
     (76, 116),
-    (92, 124),
-    (104, 140),
+    (84, 110),
+    (96, 102),
+    (110, 100),
+    (122, 108),
+    (118, 126),
     (124, 146),
     (150, 140),
     (166, 120),

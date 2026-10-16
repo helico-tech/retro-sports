@@ -15,12 +15,13 @@ use std::f32::consts::TAU;
 pub use audio::sounds;
 
 /// Each game's venue: cart id, place name, index of its stop in `PATH_PTS`.
-const VENUES: [(&str, &str, usize); 5] = [
+const VENUES: [(&str, &str, usize); 6] = [
     ("dodgeball", "BEACH COURT", 0),
     ("discdogs", "SUNNY HILL PARK", 3),
-    ("tegenwind", "THE POLDER", 6),
-    ("trailmix", "MOUNT HELICO", 9),
-    ("hangtime", "HELICO CLIFFS", 12),
+    ("zenuwen", "HELICODAM", 6),
+    ("tegenwind", "THE POLDER", 9),
+    ("trailmix", "MOUNT HELICO", 12),
+    ("hangtime", "HELICO CLIFFS", 15),
 ];
 
 const WALK: f32 = 1.3;
@@ -314,6 +315,26 @@ impl Hub {
         }
         tiny_dog(f, dog_x as i32, 125 - jump as i32, t);
 
+        // zenuwen: a thief rides off along the canal, a BOA runs after; Sjaak's boat waits
+        let (cx, cy, cw) = CANAL;
+        let k = (t % 320) as i32;
+        let tx = cx + 2 + k * (cw - 4) / 320;
+        tiny_bike(f, tx, cy + 8, t);
+        if k > 50 {
+            let bx = cx + 2 + (k - 50) * (cw - 14) / 270;
+            tiny_person(f, bx, cy + 9, rgb(40, 56, 112), (t / 6).is_multiple_of(2));
+            if (t / 10).is_multiple_of(2) {
+                f.set(bx + 1, cy - 1, rgb(232, 64, 48));
+                f.set(bx + 1, cy, rgb(232, 64, 48));
+                f.set(bx + 1, cy + 2, rgb(232, 64, 48));
+            }
+        }
+        let sx = cx + 16 + ((t / 40) % 6) as i32;
+        f.rect(sx - 4, cy, 9, 3, OUTLINE);
+        f.hline(sx - 3, sx + 3, cy + 1, rgb(176, 184, 192));
+        f.set(sx - 1, cy - 1, rgb(248, 216, 48));
+        f.set(sx + 1, cy - 1, rgb(232, 64, 48));
+
         // tegenwind: windmill sails and a cyclist on the dike road
         let (mx, my) = MILL;
         let (hx, hy) = (mx, my - 2);
@@ -506,6 +527,7 @@ fn venue_grad(id: &str) -> [u32; 6] {
         "tegenwind" => grad6(rgb(248, 136, 32)),
         "trailmix" => grad6(rgb(120, 216, 88)),
         "hangtime" => grad6(rgb(96, 200, 248)),
+        "zenuwen" => grad6(rgb(232, 88, 104)),
         _ => SUNSET,
     }
 }
