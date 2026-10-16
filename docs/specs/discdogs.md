@@ -74,3 +74,26 @@ Songs: a bouncy title song, a happy play song, a win jingle. Effects:
 throw whoosh, bark, catch chomp, flip whoosh, oof, splash, seagull
 squawk, squirrel chitter, wind gust, meter tick, perfect ding, whistle,
 cheer, menu blip and confirm.
+
+## Balance results
+Measured 2026-10-16 with `cargo run --release -- --sim discdogs 1000`
+and `--probe discdogs 50` (4 dogs x 50 matches per stage). The ladder
+uses CPU skill 0.0 / 0.5 / 0.88 (`app::CPU_SKILL`).
+
+| Target | Result |
+|---|---|
+| CPU catch rate 60-85% from easy to hard | 62% (0.0), 77% (0.5), 80% (0.9), 85% (1.0) |
+| Typical toss 20-60 yards | 32 yd (easy CPU) to 53 yd (hard CPU); caught at 30-51 yd |
+| Decent probe wins stage 1 about 90% | 93% (per dog 88-98%) |
+| Decent probe wins stage 3 about 35% | 36% (per dog 30-40%) |
+| Always flipping not better than safe | greedy 42 / 37 / 45 pts per toss vs safe 55 / 59 / 68; wins 74 / 34 / 22% vs 93 / 65 / 39% |
+
+Other numbers: stage 2 decent 70%; a stage takes 60-70 s of play (CPU
+vs CPU), so a 1P run is about 5-6 minutes with the screens. Dogs in CPU
+vs CPU win 44-55% at skill 0.0 and 0.9, 37-74% at 0.5 (issue 0010).
+Over-the-shoulder bonus on 2-9% of catches, about one squirrel stare and
+one sausage per match at the park, seagulls steal 1-2% of all tosses.
+
+Tuning knobs: `sim.rs` (disc LIFT/DRAG/DISC_G, dog speed and jump in
+`dog_body`, FLIP_LEN, stare length, swim speed), `ai.rs` (`Brain::cpu`
+noise per skill, planning margin), `app::CPU_SKILL`.

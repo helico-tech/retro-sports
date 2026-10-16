@@ -72,11 +72,18 @@ fn console_enters_and_leaves_every_game() {
         con.update([Pad::default(); 2], false);
     };
     for i in 0..CARTS.len() {
+        let settle = |con: &mut Console| {
+            let mut n = 0;
+            while !con.hub.ready() {
+                con.update([Pad::default(); 2], false);
+                n += 1;
+                assert!(n < 60 * 10, "hiker never arrives");
+            }
+        };
+        settle(&mut con);
         while con.hub.cursor != i {
             press(&mut con, Pad { right: true, ..Pad::default() });
-            for _ in 0..120 {
-                con.update([Pad::default(); 2], false);
-            }
+            settle(&mut con);
         }
         press(&mut con, Pad { start: true, ..Pad::default() });
         for _ in 0..180 {
