@@ -78,6 +78,8 @@ pub struct Scenery {
     pub clouds: Vec<CSprite>,
     pub verge: [u32; 3],
     pub haze: u32,
+    pub balloon: CSprite,
+    pub cow_cloud: CSprite,
 }
 
 pub fn ground_index(g: Ground) -> usize {
@@ -129,6 +131,46 @@ fn rock_px(x: i32, y: i32, s: u32, r: u32) -> u32 {
     }
 }
 
+fn balloon() -> CSprite {
+    let mut f = scratch();
+    let (x, base) = (128, 200);
+    let cy = base - 22;
+    let cols = [rgb(232, 64, 64), rgb(248, 216, 48)];
+    for dy in -12..=10 {
+        let w = (((144 - dy * dy) as f32).max(0.0).sqrt() * if dy > 0 { 1.0 - dy as f32 * 0.04 } else { 1.0 }) as i32;
+        for dx in -w..=w {
+            let stripe = ((dx + 12) / 4) % 2;
+            f.set(x + dx, cy + dy, cols[stripe as usize]);
+        }
+    }
+    f.text(x - 8, cy - 3, "HEL", rgb(48, 48, 120));
+    f.line(x - 5, cy + 10, x - 3, base - 5, rgb(96, 64, 40));
+    f.line(x + 5, cy + 10, x + 3, base - 5, rgb(96, 64, 40));
+    f.rect(x - 3, base - 5, 7, 5, rgb(152, 104, 56));
+    f.set(x, base - 7, rgb(248, 200, 160));
+    cut(&f, 28, 38)
+}
+
+fn cow_cloud() -> CSprite {
+    let mut f = scratch();
+    let (x, base) = (128, 200);
+    let (c, sh) = (rgb(248, 248, 248), rgb(208, 224, 240));
+    // body, head, legs and a tail, all fluffy
+    f.fill_ellipse(x, base - 12, 16, 7, sh);
+    f.fill_ellipse(x, base - 13, 15, 6, c);
+    f.fill_ellipse(x + 17, base - 17, 6, 5, c);
+    f.fill_ellipse(x + 21, base - 15, 4, 3, sh);
+    f.fill_ellipse(x + 14, base - 22, 2, 2, c);
+    for lx in [x - 10, x - 5, x + 6, x + 11] {
+        f.fill_ellipse(lx, base - 4, 2, 4, c);
+    }
+    f.line(x - 16, base - 14, x - 21, base - 8, sh);
+    f.fill_ellipse(x - 21, base - 7, 2, 2, c);
+    let mut s = CSprite::cut(&f, x - 26, base - 28, 56, 30, false);
+    s.ay = s.h - 2;
+    s
+}
+
 fn hash(x: i32, y: i32, s: u32) -> u32 {
     let mut h = (x as u32).wrapping_mul(374761393) ^ (y as u32).wrapping_mul(668265263) ^ s.wrapping_mul(2246822519);
     h = (h ^ (h >> 13)).wrapping_mul(1274126177);
@@ -169,6 +211,8 @@ impl Scenery {
             clouds: Vec::new(),
             verge: [0; 3],
             haze,
+            balloon: balloon(),
+            cow_cloud: cow_cloud(),
         };
         s.make_far(&mut rng);
         s.make_hills(&mut rng);
@@ -523,6 +567,25 @@ impl Scenery {
                 }
             }
             self.tex.push(Tex { top, front: fr, edge, lip });
+        }
+    }
+
+    /// Rare sky visitors: a Helico balloon or a cloud shaped like a cow.
+    pub fn draw_rare(&self, f: &mut Frame, rare: u32, cam_x: f32, y0: i32, y1: i32, t: u32) {
+        if self.stage == 2 {
+            return;
+        }
+        match rare % 4 {
+            0 => {
+                let x = ((300.0 - cam_x * 0.04 + t as f32 * 0.05) as i32).rem_euclid(W + 80) - 40;
+                let y = y0 + 22 + ((t as f32 * 0.03).sin() * 3.0) as i32;
+                self.balloon.draw_clip(f, x, y + 30, y0, y1);
+            }
+            1 => {
+                let x = ((180.0 - cam_x * 0.05 - t as f32 * 0.03) as i32).rem_euclid(W + 120) - 60;
+                self.cow_cloud.draw_clip(f, x, y0 + 40, y0, y1);
+            }
+            _ => {}
         }
     }
 

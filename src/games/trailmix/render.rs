@@ -92,7 +92,9 @@ pub fn draw_view(f: &mut Frame, cx: &Ctx, v: &View, t: u32) {
     let race = cx.race;
     let cam = camera(race, v);
     cx.sc.draw_back(f, cam.x, cam.alt, v.y0, v.h, t, cam.ground_y);
+    cx.sc.draw_rare(f, race.rare, cam.x, v.y0, cam.ground_y - 40, t);
     draw_fog_back(f, cx, &cam, t);
+    draw_yeti(f, cx, &cam, t);
     draw_back_props(f, cx, &cam);
     draw_terrain(f, cx, &cam, t);
     draw_trail(f, cx, &cam, v, t);
@@ -135,6 +137,24 @@ fn prop_sprite(p: &PropArt, k: PropKind, var: u8) -> &CSprite {
         PropKind::Church => &p.church,
         PropKind::Hut => &p.hut,
     }
+}
+
+/// Sometimes, in the summit fog, something big and white walks by.
+fn draw_yeti(f: &mut Frame, cx: &Ctx, cam: &Cam, t: u32) {
+    let race = cx.race;
+    let c = &race.course;
+    if c.stage != 2 || race.rare % 3 != 0 {
+        return;
+    }
+    let Some(z) = c.zones.iter().find(|z| z.kind == ZoneKind::Fog) else { return };
+    let x = z.x0 + 520.0 + (t as f32 * 0.15) % 200.0;
+    let sx = cam.sx(x);
+    if !(-20..W + 20).contains(&sx) {
+        return;
+    }
+    let sy = cam.sy(c.height(x)) - 14;
+    let flip = (t / 90) % 2 == 0;
+    cx.art.yeti.draw(f, sx, sy, flip, &cx.art.yeti_pal);
 }
 
 fn draw_back_props(f: &mut Frame, cx: &Ctx, cam: &Cam) {
@@ -1137,7 +1157,8 @@ pub fn draw_hud(f: &mut Frame, cx: &Ctx, runner: usize, t: u32) {
     if steep {
         pole_meter(f, r, 3, 23);
     } else {
-        f.text_sh(3, 23, "LEGS", rgb(200, 200, 232), OUTLINE, false);
+        let (label, col) = if r.hype > 0 && (t / 6) % 2 == 0 { ("HYPE", rgb(248, 120, 200)) } else { ("LEGS", rgb(200, 200, 232)) };
+        f.text_sh(3, 23, label, col, OUTLINE, false);
         legs_bar(f, r, 30, 24, 46, t);
     }
     // centre: time and the course

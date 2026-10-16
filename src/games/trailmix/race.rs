@@ -310,6 +310,8 @@ pub struct Race {
     /// demo / sim: stop when the leader is done
     pub cpu_only: bool,
     leader_done: Option<u32>,
+    /// picks the rare sightings of this race (yeti, balloon, cow cloud)
+    pub rare: u32,
 }
 
 const YELLOW: u32 = rgb(248, 232, 64);
@@ -410,7 +412,9 @@ impl Race {
             .map(|s| Animal { kind: s.kind, x: s.x, home: s.x, t: rng.int(200), state: 0, face: if rng.f() < 0.5 { 1.0 } else { -1.0 }, rang: 0 })
             .collect();
         let deer = course.zones.iter().filter(|z| z.kind == ZoneKind::Deer).map(|z| DeerX { x: (z.x0 + z.x1) / 2.0, t: 0, active: false, n: 0 }).collect();
+        let rare = rng.next();
         let mut r = Race {
+            rare,
             course,
             runners,
             animals,

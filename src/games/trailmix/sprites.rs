@@ -678,6 +678,26 @@ const DEER2: [&str; 20] = [
     "........................",
 ];
 
+const YETI: [&str; 17] = [
+    "....WWWW....",
+    "...WWWWWW...",
+    "..WWsssWWW..",
+    "..WsKssKsW..",
+    "..WsssssWW..",
+    "..WWsPPsWW..",
+    ".WWWWWWWWWW.",
+    "WWWWWWWWWWWW",
+    "WW.WWWWWW.WW",
+    "WW.WWWWWW.WW",
+    "W..WWWWWW..W",
+    "...WWWWWW...",
+    "...WWWWWW...",
+    "...WW..WW...",
+    "...WW..WW...",
+    "..WWW..WWW..",
+    "............",
+];
+
 const COWBELL: [&str; 5] = [".YY.", "YYYY", "YyyY", "yyyy", ".KK."];
 
 const ITEMS: [[&str; 7]; 4] = [
@@ -704,6 +724,8 @@ pub struct Art {
     /// legs tucked, mid-leap
     pub deer2: Bm,
     pub cowbell: Bm,
+    pub yeti: Bm,
+    pub yeti_pal: BPal,
     pub items: Vec<Bm>,
     pub goat_pal: BPal,
     pub cow_pals: [BPal; 2],
@@ -730,6 +752,8 @@ impl Art {
             deer: Bm::from(&DEER),
             deer2: Bm::from(&DEER2),
             cowbell: Bm::from(&COWBELL),
+            yeti: Bm::from(&YETI),
+            yeti_pal: bpal(&[(b'W', rgb(200, 208, 224)), (b's', rgb(152, 160, 192)), (b'K', OUTLINE), (b'P', rgb(200, 120, 136))]),
             items: ITEMS.iter().map(|r| Bm::from(r)).collect(),
             goat_pal: bpal(&[
                 (b'W', fur),

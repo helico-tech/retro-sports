@@ -252,6 +252,28 @@ pub fn shots(out: &str) {
     idle(&mut app4, 400);
     snap(&app4, dir, "48_results_2p.png");
 
+    // rare sightings: a balloon and a cow cloud over the meadow, a yeti in the fog
+    for (k, (stage, rare)) in [(1usize, 0u32), (1, 1), (2, 0)].iter().enumerate() {
+        let mut ra = App::new(21);
+        ra.mode = Mode::One;
+        ra.stage = *stage;
+        ra.start_race(&lineup(*stage, 1, Ctrl::Human(0)));
+        idle(&mut ra, 230);
+        if let Some(race) = ra.race.as_mut() {
+            race.rare = *rare;
+            let x = match stage {
+                2 => race.course.zones.iter().find(|z| z.kind == super::course::ZoneKind::Fog).map(|z| z.x0 + 470.0).unwrap_or(3000.0),
+                _ => 1500.0,
+            };
+            for r in race.runners.iter_mut() {
+                r.x = x - (3 - r.lane) as f32 * 9.0;
+                r.alt = race.course.height(r.x);
+            }
+        }
+        idle(&mut ra, 40);
+        snap(&ra, dir, &format!("50_rare_{}.png", k));
+    }
+
     // attract mode
     let mut app5 = App::new(3);
     idle(&mut app5, 900 + 600);
