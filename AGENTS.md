@@ -3,8 +3,8 @@
 A collection of 16-bit style sports games on Helico Island, in Rust, in the
 spirit of California Games, Ski or Die and Super Dodge Ball. All art and
 sound are generated in code. Games: DODGE OR DIE! (dodgeball), DISC DOGS!
-(frisbee), TEGENWIND! (Dutch cycling), TRAIL MIX! (trail running),
-HANG TIME! (hang gliding).
+(frisbee), STALEN ZENUWEN! (bike lifting in Amsterdam), TEGENWIND! (Dutch
+cycling), TRAIL MIX! (trail running), HANG TIME! (hang gliding).
 
 ## Build and run
 - `cargo run --release` — play (window, keyboard, sound); starts on the

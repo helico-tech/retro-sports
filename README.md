@@ -1,6 +1,6 @@
 # RETRO SPORTS
 
-*Greetings from Helico Island! Five totally radical sports, 1992 style.*
+*Greetings from Helico Island! Six totally radical sports, 1992 style.*
 
 A collection of 16-bit style sports games in Rust, in the spirit of
 California Games, Ski or Die and Super Dodge Ball. Everything you see and
@@ -28,6 +28,15 @@ pier.
 | | |
 |---|---|
 | ![Disc Dogs](docs/screenshots/discdogs-title.png) | ![Seagull'd](docs/screenshots/discdogs-gulled.png) |
+
+**STALEN ZENUWEN!** (bike lifting). Your bike was stolen. Again. Take
+one back on the Amsterdam canals: pick the lock, act casual, hide in the
+krul, and throw your loot on Sjaak's boat before the BOA's write you a
+fine. 2P: one steals, the other is the BOA.
+
+| | |
+|---|---|
+| ![Krul](docs/screenshots/zenuwen-krul.png) | ![Koningsdag](docs/screenshots/zenuwen-koningsdag.png) |
 
 **TEGENWIND!** (Dutch cycling). Holland's toughest bike race, against the
 wind. Pedal in rhythm, tuck, draft, ring your bell at tourists, and try to
@@ -99,8 +108,8 @@ Developer tools, no window needed:
   every screen of every game (or one game, or `hub`).
 - `cargo run --release -- --sim <game> [n]` prints CPU-vs-CPU balance
   stats; `--probe <game> [n]` plays scripted "human" bots against the CPU
-  ladder to find exploits. Games: `dodgeball`, `discdogs`, `tegenwind`,
-  `trailmix`, `hangtime`.
+  ladder to find exploits. Games: `dodgeball`, `discdogs`, `zenuwen`,
+  `tegenwind`, `trailmix`, `hangtime`.
 
 See [AGENTS.md](AGENTS.md), [docs/architecture.md](docs/architecture.md)
 and [docs/house-style.md](docs/house-style.md) for how it is built.

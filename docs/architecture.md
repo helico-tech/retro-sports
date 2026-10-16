@@ -26,6 +26,7 @@ src/
     mod.rs       CARTS: every game, in selector order
     dodgeball/   DODGE OR DIE!
     discdogs/    DISC DOGS!     (frisbee)
+    zenuwen/     STALEN ZENUWEN! (bike lifting)
     tegenwind/   TEGENWIND!     (Dutch cycling)
     trailmix/    TRAIL MIX!     (trail running)
     hangtime/    HANG TIME!     (hang gliding)
