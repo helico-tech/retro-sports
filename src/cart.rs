@@ -29,6 +29,9 @@ pub struct Bank {
     pub music: Vec<Sound>,
 }
 
+/// A headless tool: its name on the command line and what it runs with `n`.
+pub type Tool = (&'static str, fn(n: u32));
+
 /// One game in the collection.
 pub struct Cart {
     /// Short id for the command line, e.g. "dodgeball".
@@ -44,5 +47,5 @@ pub struct Cart {
     /// Writes scripted PNG screenshots of every screen into a directory.
     pub shots: fn(dir: &str),
     /// Extra headless tools, e.g. ("sim", run n CPU matches).
-    pub tools: &'static [(&'static str, fn(n: u32))],
+    pub tools: &'static [Tool],
 }
