@@ -161,7 +161,7 @@ pub fn bubble(f: &mut Frame, x: i32, y: i32, text: &str) {
 fn draw_rider_in_world(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32, t: u32) {
     let r = &race.riders[i];
     let cargo = match r.ctrl {
-        Ctrl::Human(_) => Some((race.def().cargo, r.cargo)),
+        Ctrl::Human(_) => Some((race.cargo, r.cargo)),
         Ctrl::Cpu => None,
     };
     let gy = ground_y(r.y) as i32;
@@ -249,7 +249,7 @@ fn draw_rider_in_world(f: &mut Frame, race: &Race, art: &Art, i: usize, cam: f32
                 bubble(f, sx + 4, sy - 34, s);
             }
             if let Ctrl::Human(p) = r.ctrl {
-                if !done || (t / 20) % 2 == 0 {
+                if r.hammer == 0 && (!done || (t / 20) % 2 == 0) {
                     player_tag(f, sx + 2, sy - 50 - ((t / 8) % 2) as i32, p);
                 }
             }
@@ -1023,7 +1023,7 @@ fn draw_stand(f: &mut Frame, art: &Art, x: i32, stand: Stand, t: u32) {
             draw_flag(f, x + 22, base - 30, t);
             let ppl = &art.extras.frames[0][if (t / 40) % 2 == 0 { 4 } else { 6 }];
             blit_person(f, ppl, x - 30, base - 1, false, &extra_palette(5));
-            if (t / 120) % 2 == 0 {
+            if (t / 120) % 2 == 0 && x > 150 {
                 bubble(f, x - 28, base - 36, "HOLLANDSE NIEUWE!");
             }
         }
@@ -1292,8 +1292,7 @@ pub fn draw_hud(f: &mut Frame, race: &Race, art: &Art, i: usize, t: u32) {
     f.text(253 - text_width(wn, false), 2, wn, wc);
     wind_icon(f, 230, 11, wind, race.gust, t);
     // cargo, then the route
-    let cargo = race.def().cargo;
-    let b = art.cargo_bmp(cargo);
+    let b = art.cargo_bmp(race.cargo);
     if r.cargo_max > 0 {
         b.draw(f, 2, 21, &PROPS, false);
         let s = format!("{}", r.cargo);

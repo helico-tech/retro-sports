@@ -464,6 +464,8 @@ pub enum Phase {
 
 pub struct Race {
     pub stage: usize,
+    /// what the humans carry on this stage
+    pub cargo: Cargo,
     pub riders: Vec<Rider>,
     pub objs: Vec<Obj>,
     pub bridge: Option<Bridge>,
@@ -588,6 +590,7 @@ impl Race {
         let n = riders.len();
         let mut race = Race {
             stage: stage_i,
+            cargo: st.cargo,
             riders,
             objs: Vec::new(),
             bridge: st.bridge.map(|x| Bridge { x, state: BState::Closed, t: 0, lift: 0.0 }),
@@ -1509,7 +1512,7 @@ impl Race {
             r.spin = 10;
             r.clean = false;
             r.last_stroke = Stroke::Wasted;
-            if view.is_some() && r.tip_cd == 0 {
+            if view.is_some() && r.tip_cd == 0 && !r.bonk {
                 r.tip_cd = 100;
                 self.popup_rider(i, "TE SNEL!", rgb(248, 96, 72));
             }
@@ -1585,6 +1588,10 @@ impl Race {
                     pops.push((o.x, ground_y(o.y) - 16.0, "MIAUW!"));
                 }
                 OKind::Goose if dx < 90.0 => {
+                    // geese do not step aside: they take it personally
+                    o.state = 1;
+                    o.target = i;
+                    o.t = 0;
                     pops.push((o.x, ground_y(o.y) - 22.0, "SSSS!"));
                 }
                 OKind::Sheep if dx < 90.0 => {
@@ -1791,7 +1798,7 @@ impl Race {
 
     /// Knock up to `n` pieces off the rack; `luck` scales the bike's grip.
     fn shed_cargo(&mut self, i: usize, n: i32, luck: f32) {
-        let cargo = self.def().cargo;
+        let cargo = self.cargo;
         let mut lost = 0;
         for _ in 0..n {
             let r = &self.riders[i];

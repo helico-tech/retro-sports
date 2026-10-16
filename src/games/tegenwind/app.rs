@@ -76,6 +76,8 @@ pub struct App {
     pub tally: [Vec<Line>; 2],
     pub names: Vec<(Who, Bike, Ctrl)>,
     pub last_place: usize,
+    /// tries on this stage: after a continue you carry something sillier
+    pub tries: usize,
     scratch: RefCell<Frame>,
 }
 
@@ -108,6 +110,7 @@ impl App {
             tally: [Vec::new(), Vec::new()],
             names: Vec::new(),
             last_place: 0,
+            tries: 0,
             scratch: RefCell::new(Frame::new()),
         }
     }
@@ -171,10 +174,21 @@ impl App {
         let seed = self.rng.next() as u64;
         let field = self.field(stage_i);
         self.names = field.iter().map(|f| (f.0, f.1, f.2)).collect();
-        self.race = Some(Race::new(stage_i, &field, seed));
+        let mut race = Race::new(stage_i, &field, seed);
+        race.cargo = self.cargo_for(stage_i);
+        self.race = Some(race);
         self.ensure_scenery(stage_i, seed ^ 0x55);
         self.paused = false;
         self.go(Scene::Play);
+    }
+
+    /// The stage's cargo, or a tuba and then a grandfather clock after a continue.
+    pub fn cargo_for(&self, stage_i: usize) -> Cargo {
+        match (self.mode, self.tries) {
+            (Mode::One, 1) => Cargo::Tuba,
+            (Mode::One, t) if t >= 2 => Cargo::Clock,
+            _ => STAGES[stage_i.min(2)].cargo,
+        }
     }
 
     pub fn start_demo(&mut self) {
@@ -268,6 +282,7 @@ impl App {
                 }
                 if self.locked[..players].iter().all(|&l| l) && self.t > 10 {
                     self.stage = 0;
+                    self.tries = 0;
                     self.score = [0; 2];
                     self.go(Scene::Intro);
                 }
@@ -371,7 +386,6 @@ impl App {
     fn make_results(&mut self) {
         let Some(r) = self.race.as_ref() else { return };
         self.results = r.results();
-        let st = r.def();
         let mut tally: [Vec<Line>; 2] = [Vec::new(), Vec::new()];
         for (place, &(i, _, dnf)) in self.results.iter().enumerate() {
             let Ctrl::Human(p) = r.riders[i].ctrl else { continue };
@@ -383,7 +397,7 @@ impl App {
             } else {
                 v.push(Line { label: format!("{} PLACE", ordinal(place)), pts: PLACE_PTS[place.min(3)] });
             }
-            v.push(Line { label: format!("{} X {}", st.cargo.one(), rd.cargo), pts: rd.cargo * b.cargo_pts });
+            v.push(Line { label: format!("{} X {}", r.cargo.one(), rd.cargo), pts: rd.cargo * b.cargo_pts });
             v.push(Line { label: format!("PERFECT X {}", rd.stats.perfect), pts: rd.stats.perfect as i32 * 2 });
             if rd.stats.eaten > 0 {
                 v.push(Line { label: format!("SNACKS X {}", rd.stats.eaten), pts: rd.stats.eaten as i32 * 25 });
@@ -409,6 +423,7 @@ impl App {
                 let need = if self.stage + 1 >= STAGES.len() { 1 } else { 2 };
                 if self.last_place < need {
                     self.stage += 1;
+                    self.tries = 0;
                     if self.stage >= STAGES.len() {
                         self.make_confetti();
                         self.go(Scene::Champion);
@@ -416,6 +431,7 @@ impl App {
                         self.go(Scene::Intro);
                     }
                 } else {
+                    self.tries += 1;
                     // this stage's points don't count if you try again
                     let sum: i32 = self.tally[0].iter().map(|l| l.pts).sum();
                     self.score[0] -= sum;
@@ -698,7 +714,7 @@ impl App {
             let x = 128 - (n - 1) * 31 + k as i32 * 62 + if k % 2 == 0 { -slide } else { slide };
             let y = 111;
             let crank = ((t / 5 + k as u32 * 2) % 8) as usize;
-            let cargo = if human { Some((st.cargo, bike.def().cargo_n)) } else { None };
+            let cargo = if human { Some((self.cargo_for(self.stage), bike.def().cargo_n)) } else { None };
             f.shade_ellipse(x + 2, y, 13, 2, 5, 8);
             draw_bike_rider(f, &self.art, who, bike, x, y, crank, t as f32, false, false, false, cargo, t);
             let name = who.def().short;
@@ -710,7 +726,7 @@ impl App {
             }
         }
         // cargo and tip box
-        let cargo = format!("CARGO: {} {}", BIKES[self.cursor[0]].def().cargo_n, st.cargo.name());
+        let cargo = format!("CARGO: {} {}", BIKES[self.cursor[0]].def().cargo_n, self.cargo_for(self.stage).name());
         f.text_center(128, 128, &cargo, rgb(248, 216, 96), OUTLINE, false);
         let need = match self.mode {
             Mode::One if self.stage + 1 < STAGES.len() => "FINISH IN THE TOP 2 TO GO ON",
@@ -879,7 +895,7 @@ impl App {
         blit_person_clip(f, s, 110, wy + 16 + bob, false, &pal, wy + 1);
         f.hline(98, 122, wy + 1, rgb(200, 232, 240));
         self.art.duck.draw(f, 128, wy - 4 + bob, &PROPS, true);
-        self.art.cargo_bmp(STAGES[self.stage.min(2)].cargo).draw(f, 60, wy - 2 - bob, &PROPS, false);
+        self.art.cargo_bmp(self.cargo_for(self.stage)).draw(f, 60, wy - 2 - bob, &PROPS, false);
         if (t / 40) % 2 == 0 {
             bubble(f, 112, wy - 34, "BRRR!");
         }
