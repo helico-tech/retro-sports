@@ -2,7 +2,8 @@
 
 use crate::cart::Cart;
 
+pub mod discdogs;
 pub mod dodgeball;
 pub mod trailmix;
 
-pub const CARTS: &[Cart] = &[dodgeball::CART, trailmix::CART];
+pub const CARTS: &[Cart] = &[dodgeball::CART, discdogs::CART, trailmix::CART];

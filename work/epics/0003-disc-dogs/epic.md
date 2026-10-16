@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 created: 2026-10-16
 ---
 # Epic 0003: DISC DOGS!
