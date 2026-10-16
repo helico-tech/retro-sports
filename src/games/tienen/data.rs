@@ -53,7 +53,7 @@ impl Kind {
             Kind::Chest => (5.5, 6.0),
             Kind::Header => (4.5, 5.5),
             Kind::Heel => (6.0, 6.5),
-            Kind::Bicycle => (7.0, 8.0),
+            Kind::Bicycle => (9.5, 10.5),
         }
     }
     /// Head kinds use KOP, foot kinds SCHOT.
@@ -328,6 +328,8 @@ pub struct Venue {
     pub fence: bool,
     /// the ice cream van drives past
     pub van: bool,
+    /// 1P: goal points you must score to earn respect (and the stage)
+    pub quota: i32,
 }
 
 pub const VENUES: [Venue; 3] = [
@@ -345,6 +347,7 @@ pub const VENUES: [Venue; 3] = [
         dog: true,
         fence: false,
         van: false,
+        quota: 3,
     },
     Venue {
         place: Place::School,
@@ -360,6 +363,7 @@ pub const VENUES: [Venue; 3] = [
         dog: true,
         fence: true,
         van: false,
+        quota: 4,
     },
     Venue {
         place: Place::Kooi,
@@ -367,7 +371,7 @@ pub const VENUES: [Venue; 3] = [
         short: "DE KOOI",
         tagline: ["THE CAGE, UNDER THE LAMPS.", "THE BIG KIDS FROM THE NEXT STREET."],
         kids: [10, 11, 12],
-        skill: 0.9,
+        skill: 0.85,
         rival: "RICARDO",
         heckles: &["KEEPER IS EEN GATENKAAS!", "HEB JE HEM?!", "BILLENBRAND! BILLENBRAND!"],
         tip: ["JUMP (X) WITH YOUR BACK TO THE GOAL,", "THEN Z: OMHAAL! 5 POINTS. IF IT WORKS."],
@@ -375,6 +379,7 @@ pub const VENUES: [Venue; 3] = [
         dog: false,
         fence: false,
         van: true,
+        quota: 4,
     },
 ];
 

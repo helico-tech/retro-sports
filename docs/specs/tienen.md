@@ -76,17 +76,20 @@ Keeper:
 
 ## Venues (1P ladder)
 Each stage is one game of tienen against three local kids. You win the
-stage when somebody else hits zero; you lose when you do (continue).
-1. DE GALERIJFLAT, Saturday morning behind the flats: TIMMY (plays in
+stage when somebody else hits zero **and** you scored the pitch's target
+in goal points (DOEL: 3, 4, 4): the big kids only respect you if you
+score. You lose when you hit zero, or when somebody else does before you
+reached the target (continue).
+1. GALERIJFLAT, Saturday morning behind the flats: TIMMY (plays in
    his pyjamas), MO and JESSICA. Cars cross the pitch (AUTO!), a poodle
    chases the ball, a mum shouts from the balcony.
-2. HET SCHOOLPLEIN, break time: DAAN, NOOR and BRAM from group 8. The
+2. SCHOOLPLEIN, break time: DAAN, NOOR and BRAM from group 8. The
    janitor's bell, a fence with MEVROUW KNORR's garden behind it.
 3. DE KOOI, the cage at dusk under the lamps: the big kids from the next
    street, with RICARDO (the rival who heckles), and the twins JAYDEN
    and JAYLA. The ice cream van.
 Score: goal points you scored, saves, points you have left, billenbrand
-hits.
+hits, respect.
 
 2P: two humans and two CPU kids on a venue picked in the menu. The game
 ends when somebody hits zero. If a human lost, the other wins; if a CPU
@@ -119,3 +122,25 @@ Targets:
 - Greed is punished: the bicycle-kick bot does worse than the decent one.
 - A lazy keeper loses.
 - A game takes about 1.5-3.5 minutes.
+
+## As built (decisions)
+- Why the target (DOEL): in tienen you only go in goal through your own
+  mistake, so a 1P player who never touches the ball cannot lose. The
+  target makes you play, and shooting is the risk.
+- Crosses are lobs with a top of 36-58 px, high enough to head; a cross
+  lands where the mate will be. The receiver lets a ball drop to the feet
+  (a trap) unless they swing; a shot off your own touch does not count.
+- A goal straight from a cross, or off your own touch, is AFGEKEURD: the
+  keeper gets the ball back, nobody changes.
+- A keeper's touch (a parry) counts as a pass through the air, so a
+  rebound may be volleyed in. A keeper who punches the ball out puts the
+  last field player in goal (the rule says field player).
+- The keeper rolls the ball out (on the ground); a human keeper who waits
+  three seconds rolls it out by itself.
+- A dead ball nobody comes for (8 s) goes back to the keeper.
+- After 5 minutes the mums call everybody in (ETEN!): the kid with the
+  fewest points loses.
+- The poodle takes any ball on the ground outside the keeper's area, even
+  from somebody's feet; touch her and she drops it.
+- Mevrouw Knorr only plays a part when the ball goes over the far fence at
+  the school (OVER HET HEK!, a keeper change like any ball out).

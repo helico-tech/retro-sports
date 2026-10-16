@@ -56,6 +56,14 @@ fn start_1p(app: &mut App, stage: usize, pick: usize) {
     world(app).auto = [Some(BotKind::Decent), Some(BotKind::Decent)];
 }
 
+/// A 1P game on the flats, past the latjetrap.
+fn fresh(seed: u64) -> App {
+    let mut app = App::new(seed);
+    start_1p(&mut app, 0, (seed % 4) as usize);
+    skip_latje(&mut app, 0);
+    app
+}
+
 /// Skip the latjetrap: kid `k` keeps.
 fn skip_latje(app: &mut App, k: usize) {
     let w = world(app);
@@ -112,23 +120,30 @@ pub fn shots(out: &str) {
     if until(&mut app, 60 * 60, |w| w.phase == Phase::Goal && w.pt == 30) {
         snap(&app, dir, "12_goal.png");
     }
-    if until(&mut app, 60 * 60, |w| w.phase == Phase::Wissel && w.pt == 30 && w.why.is_some()) {
+    // fresh games from here on, one per moment
+    let mut app = fresh(11);
+    if until(&mut app, 60 * 90, |w| w.phase == Phase::Wissel && w.pt == 30 && w.why.is_some()) {
         snap(&app, dir, "13_wissel.png");
     }
-    if until(&mut app, 60 * 60, |w| w.kids.iter().any(|k| matches!(k.act, Act::Dive(_)) && k.at == 8)) {
+    let mut app = fresh(12);
+    if until(&mut app, 60 * 90, |w| w.kids.iter().any(|k| matches!(k.act, Act::Dive(_)) && k.at == 8)) {
         snap(&app, dir, "14_dive.png");
     }
     // the car
+    let mut app = fresh(13);
     world(&mut app).next_car = 0;
-    if until(&mut app, 60 * 60, |w| w.phase == Phase::Car && w.pt == 80) {
+    if until(&mut app, 60 * 90, |w| w.phase == Phase::Car && w.pt == 80) {
         snap(&app, dir, "15_auto.png");
     }
     // the poodle
+    let mut app = fresh(14);
     world(&mut app).next_dog = 0;
-    if until(&mut app, 60 * 60, |w| w.dog.as_ref().map(|d| d.has && d.t > 40).unwrap_or(false)) {
+    if until(&mut app, 60 * 90, |w| w.dog.as_ref().map(|d| d.has && d.t > 40).unwrap_or(false)) {
         snap(&app, dir, "16_fifi.png");
     }
     // a bicycle kick, set up: a cross falls onto Lieke's back
+    let mut app = fresh(15);
+    until(&mut app, 60 * 3, |_| false);
     {
         let w = world(&mut app);
         w.phase = Phase::Play;
@@ -158,21 +173,20 @@ pub fn shots(out: &str) {
     app.paused = true;
     snap(&app, dir, "18_pause.png");
     app.paused = false;
-    // the end: put the keeper on 1 and let them play to zero
-    for _ in 0..40 {
-        let w = world(&mut app);
-        if w.phase == Phase::Over {
-            break;
+    // the end: a CPU keeper on 1 until somebody else scores the last point
+    let mut app = fresh(16);
+    for _ in 0..60 * 60 * 6 {
+        if let Some(w) = app.world.as_mut() {
+            let kp = w.keeper;
+            if w.phase == Phase::Play && w.kids[kp].human().is_none() && w.kids[kp].pts > 1 {
+                w.kids[kp].pts = 1;
+            }
+            if w.phase == Phase::Over && w.pt == 40 {
+                break;
+            }
         }
-        let kp = w.keeper;
-        if w.kids[kp].pts > 1 {
-            w.kids[kp].pts = 1;
-        }
-        if until(&mut app, 60 * 30, |w| matches!(w.phase, Phase::Over)) {
-            break;
-        }
+        app.update([Pad::default(); 2], false);
     }
-    until(&mut app, 200, |w| w.phase == Phase::Over && w.pt == 40);
     snap(&app, dir, "19_op_nul.png");
     if until(&mut app, 600, |w| w.phase == Phase::Brand && w.brand.stage == 0 && w.brand.st == 30 && w.pt > 60) {
         snap(&app, dir, "20_billenbrand.png");
@@ -210,12 +224,28 @@ pub fn shots(out: &str) {
         until(&mut app, 60 * 12, |_| false);
         snap(&app, dir, &format!("{}_{}.png", 24 + st * 2, name));
     }
-    // the fence at the school
+    // the fence at the school: a shot flies over it into Mevrouw Knorr's garden
     {
         let mut app = App::new(31);
         start_1p(&mut app, 1, 0);
         skip_latje(&mut app, 0);
-        if until(&mut app, 60 * 120, |w| w.why == Some(Why::Fence) && w.phase == Phase::Wissel && w.pt == 40) {
+        until(&mut app, 60 * 4, |w| w.phase == Phase::Play && !w.ball.held);
+        {
+            let w = world(&mut app);
+            let s = (0..4).find(|&k| k != w.keeper).unwrap_or(0);
+            let b = &mut w.ball;
+            b.owner = None;
+            b.held = false;
+            b.x = 70.0;
+            b.y = 8.0;
+            b.z = 30.0;
+            b.vx = 0.2;
+            b.vy = -1.6;
+            b.vz = 0.5;
+            b.last_field = Some(s);
+            b.air = true;
+        }
+        if until(&mut app, 60 * 10, |w| w.why == Some(Why::Fence) && w.phase == Phase::Wissel && w.pt == 80) {
             snap(&app, dir, "29_knorr.png");
         }
     }

@@ -442,6 +442,8 @@ pub struct World {
     pub tally: [u32; 7],
     /// a bot plays this human's kid (screenshots)
     pub auto: [Option<BotKind>; 2],
+    /// 1P: goal points the human must score for respect
+    pub quota: Option<i32>,
 }
 
 impl World {
@@ -489,6 +491,7 @@ impl World {
             touches: 0,
             tally: [0; 7],
             auto: [None; 2],
+            quota: None,
         };
         w.latje.left = (0..4).collect();
         w.start_latje_turn();
@@ -1459,7 +1462,14 @@ impl World {
         let before = self.kids[kp].pts;
         let after = before - v;
         self.kids[by].stats.goals[kind.index()] += 1;
+        let had = self.kids[by].stats.scored;
         self.kids[by].stats.scored += v;
+        if let Some(q) = self.quota {
+            if self.kids[by].human().is_some() && had < q && had + v >= q {
+                let (x, y) = (self.kids[by].x, self.kids[by].y);
+                self.popup(x, y - 52.0, "RESPECT!", 0x60E0F8);
+            }
+        }
         self.kids[kp].stats.conceded += v;
         self.kids[by].set(Act::Cheer);
         self.kids[kp].set(Act::Sulk);
@@ -1894,7 +1904,7 @@ impl World {
         }
         if self.dog.is_none() {
             let b = &self.ball;
-            if self.play_t > self.next_dog && b.loose() && b.z < 1.0 && b.speed() < 1.6 && !in_area(b.x, b.y) && b.x < FIELD_X1 && b.cross_to.is_none() {
+            if self.play_t > self.next_dog && !b.held && !b.dog && b.z < 1.0 && !in_area(b.x, b.y) && b.x < FIELD_X1 {
                 self.dog = Some(Dog { x: 262.0, y: b.y.clamp(4.0, 68.0), tx: b.x, ty: b.y, has: false, t: 0, leaving: false });
                 self.next_dog = self.play_t + 60 * 50 + self.rng.int(60 * 40) as u32;
                 self.banner("FIFI!", "THE POODLE WANTS TO PLAY", 90, 0xF8C8E0);
@@ -1902,7 +1912,8 @@ impl World {
             }
             return;
         }
-        let (bx, by, bloose) = (self.ball.x, self.ball.y, self.ball.loose());
+        // the poodle wants any ball on the ground, even at somebody's feet
+        let (bx, by, bloose) = (self.ball.x, self.ball.y, !self.ball.held && !self.ball.dog && self.ball.z < 3.0 && !in_area(self.ball.x, self.ball.y));
         let r1 = self.rng.range(70.0, 230.0);
         let r2 = self.rng.range(6.0, 66.0);
         let mut drop_at: Option<usize> = None;
@@ -1947,7 +1958,7 @@ impl World {
             }
             let (dx, dy) = (d.tx - d.x, d.ty - d.y);
             let l = (dx * dx + dy * dy).sqrt().max(0.01);
-            let sp: f32 = if d.has { 1.9 } else { 2.3 };
+            let sp: f32 = if d.has { 1.9 } else { 2.8 };
             d.x += dx / l * sp.min(l);
             d.y += dy / l * sp.min(l) * 0.8;
             if d.leaving && d.x > 280.0 {
@@ -1955,6 +1966,9 @@ impl World {
             }
         }
         if bark {
+            if let Some(o) = self.ball.owner {
+                self.kids[o].say("HE! FIFI!", 50);
+            }
             self.ball.dog = true;
             self.ball.owner = None;
             self.ball.shot = None;

@@ -8,6 +8,8 @@ use crate::engine::input::Pad;
 
 pub struct Game {
     pub secs: f32,
+    /// goal points seat 0 scored
+    pub scored: i32,
     pub loser: usize,
     pub dinner: bool,
     pub goals: [u32; 5],
@@ -35,7 +37,7 @@ pub fn play(venue: usize, roster: [(usize, Ctrl, f32); 4], seed: u64) -> Game {
             *g += n;
         }
     }
-    Game { secs: w.play_t as f32 / 60.0, loser: w.loser.unwrap_or(9), dinner: w.dinner, goals, tally: w.tally, latje_secs: latje as f32 / 60.0 }
+    Game { secs: w.play_t as f32 / 60.0, scored: w.kids[0].stats.scored, loser: w.loser.unwrap_or(9), dinner: w.dinner, goals, tally: w.tally, latje_secs: latje as f32 / 60.0 }
 }
 
 fn cpu_roster(venue: usize, extra: usize) -> [(usize, Ctrl, f32); 4] {
@@ -112,6 +114,8 @@ pub fn probe(n: u32) {
         let mut line = format!("{:?}:", kind);
         for (vi, v) in VENUES.iter().enumerate() {
             let mut wins = 0;
+            let mut safe = 0;
+            let mut scored = 0;
             let mut secs = 0.0;
             let mut dinner = 0;
             for g in 0..n {
@@ -119,14 +123,27 @@ pub fn probe(n: u32) {
                 let roster = [(pick, Ctrl::Probe(kind), 0.75), (v.kids[0], Ctrl::Cpu, v.skill), (v.kids[1], Ctrl::Cpu, v.skill), (v.kids[2], Ctrl::Cpu, v.skill)];
                 let r = play(vi, roster, 5000 + g as u64 * 17 + vi as u64 * 3);
                 if r.loser != 0 {
-                    wins += 1;
+                    safe += 1;
+                    if r.scored >= v.quota {
+                        wins += 1;
+                    }
                 }
+                scored += r.scored;
                 if r.dinner {
                     dinner += 1;
                 }
                 secs += r.secs;
             }
-            line += &format!("  {} {:.0}% ({:.0}s{})", v.short, 100.0 * wins as f32 / n as f32, secs / n as f32, if dinner > 0 { format!(", eten {}", dinner) } else { String::new() });
+            line += &format!(
+                "  {} {:.0}% (safe {:.0}%, scored {:.1}/{}, {:.0}s{})",
+                v.short,
+                100.0 * wins as f32 / n as f32,
+                100.0 * safe as f32 / n as f32,
+                scored as f32 / n as f32,
+                v.quota,
+                secs / n as f32,
+                if dinner > 0 { format!(", eten {}", dinner) } else { String::new() }
+            );
         }
         println!("{}", line);
     }

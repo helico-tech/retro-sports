@@ -45,5 +45,26 @@ and sound, then the island, then reviews and tuning.
 
 ## Progress log
 - 2026-10-16: spec, epic and story written; branch `feat/tienen`.
+- 2026-10-16: simulation (`world.rs`), CPU and probe bots, tuned headless
+  first. First runs: every game hit the 5-minute cap. Causes: crosses
+  bounced off the receiver's own body (and that touch made the shot
+  illegal), deflected balls nobody fetched, crosses too low to head (top
+  at 17 px, a head is at 25), and receivers with a negative timing error
+  that never swung. Fixed all four: games now take 2.5-3 minutes.
+- 2026-10-16: art (`art.rs`, poses and props), backdrops (`scenery.rs`:
+  the flats, the school with Mevrouw Knorr's garden, the cage at dusk),
+  `render.rs`, `app.rs` (all screens), `audio.rs` (16 sfx, 4 songs),
+  `headless.rs`. Looked at every shot; fixed the title logo running off,
+  the venue names too wide (dropped "DE"/"HET"), see-through tip boxes,
+  the school sign, the HUD hint over the points, bubbles stacking into
+  banners, a goal that did not read (now a dark mouth, thicker posts).
+- 2026-10-16: island venue HET TRAPVELDJE between Helicodam and the polder
+  (a new path stop; CARTS order follows the path). `tests/tienen.rs` (15
+  tests). `cargo test --release` passes for all games.
+- 2026-10-16: design hole: you only go in goal through your own mistake,
+  so a 1P player who never touches the ball cannot lose. Added a target
+  per pitch (DOEL 3/4/4 goal points). Probe with 100 games: decent 89% /
+  67% / 35%, greedy (bicycle kicks) and lazy keeper clearly worse. Made the
+  bicycle kick wider (riskier) and the cage kids skill 0.85.
 
 ## Follow-ups

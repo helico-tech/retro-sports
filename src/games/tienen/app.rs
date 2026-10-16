@@ -153,7 +153,11 @@ impl App {
                 [(pick, Ctrl::Cpu, 0.7), (d.kids[0], Ctrl::Cpu, d.skill), (d.kids[1], Ctrl::Cpu, d.skill), (d.kids[2], Ctrl::Cpu, d.skill)]
             }
         };
-        self.world = Some(World::new(v, roster, self.rng.next() as u64));
+        let mut w = World::new(v, roster, self.rng.next() as u64);
+        if self.mode == Mode::One {
+            w.quota = Some(d.quota);
+        }
+        self.world = Some(w);
         self.ensure_scenery(v);
         self.paused = false;
         self.go(Scene::Play);
@@ -423,8 +427,19 @@ impl App {
             }
             _ => {
                 let me = w.human_kid(0).unwrap_or(0);
-                let lines = Self::lines_for(w, me);
-                self.cleared = w.loser != Some(me);
+                let mut lines = Self::lines_for(w, me);
+                let q = VENUES[w.venue].quota;
+                let s = w.kids[me].stats.scored;
+                let safe = w.loser != Some(me);
+                self.cleared = safe && s >= q;
+                if s >= q {
+                    lines.push(Line { label: format!("RESPECT {}/{}", s, q), pts: 300 });
+                } else {
+                    lines.push(Line { label: format!("DOEL {}/{}", s, q), pts: 0 });
+                    if safe {
+                        self.reason = format!("ONLY {} OF {} GOAL POINTS. NO RESPECT.", s, q);
+                    }
+                }
                 if self.cleared {
                     self.score[0] += lines.iter().map(|x| x.pts).sum::<i32>();
                 }
@@ -759,8 +774,8 @@ impl App {
             f.text_sh(tx + 8, ty - 3, "TIP", rgb(248, 136, 24), OUTLINE, false);
             f.text_sh(tx + 6, ty + 6, d.tip[0], white(), OUTLINE, false);
             f.text_sh(tx + 6, ty + 15, d.tip[1], white(), OUTLINE, false);
-            f.text_sh(tx + 6, ty + 26, "EVERYBODY HAS 10. SOMEBODY ELSE ON", rgb(248, 232, 96), OUTLINE, false);
-            f.text_sh(tx + 6, ty + 35, "ZERO = YOU WIN. YOU ON ZERO = AU!", rgb(248, 232, 96), OUTLINE, false);
+            f.text_sh(tx + 6, ty + 26, &format!("SCORE {} GOAL POINTS FOR RESPECT,", d.quota), rgb(248, 232, 96), OUTLINE, false);
+            f.text_sh(tx + 6, ty + 35, "AND DON'T BE THE ONE ON ZERO!", rgb(248, 232, 96), OUTLINE, false);
         }
         if (t / 20).is_multiple_of(2) && self.t > 40 {
             f.text_center(128, 204, "PUSH START", white(), OUTLINE, true);
@@ -775,6 +790,8 @@ impl App {
             "UITSLAG"
         } else if self.cleared {
             "GEWONNEN!"
+        } else if self.reason.starts_with("ONLY") {
+            "GEEN RESPECT"
         } else {
             "OP NUL..."
         };
@@ -820,6 +837,7 @@ impl App {
         if done && (t / 20).is_multiple_of(2) {
             let msg = match self.mode {
                 Mode::One if self.cleared => "ON TO THE NEXT PITCH! PUSH START",
+                Mode::One if self.reason.starts_with("ONLY") => "THEY WON'T PICK YOU... PUSH START",
                 Mode::One => "YOUR BOTTOM HURTS... PUSH START",
                 _ => "PUSH START",
             };
@@ -846,7 +864,8 @@ impl App {
         let bx = ((t as i32 * 2) % 320) - 30;
         self.art.ball[((t / 4) % 2) as usize].draw(f, bx, gy - 5, &PROPS, false);
         if (t / 50).is_multiple_of(2) {
-            bubble(f, 112, gy - 34, "AU... MIJN BILLEN");
+            let s = if self.reason.starts_with("ONLY") { "NEXT TIME I SCORE!" } else { "AU... MIJN BILLEN" };
+            bubble(f, 112, gy - 34, s);
         }
         f.text_center(128, 118, "ONE MORE GAME BEFORE DINNER?", rgb(248, 216, 96), OUTLINE, false);
         if (t / 20).is_multiple_of(2) {
