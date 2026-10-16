@@ -77,7 +77,7 @@ pub fn sfx_samples(s: Sfx) -> Vec<f32> {
                 ph += f / SR;
                 let trem = 0.6 + 0.4 * (t * 26.0 * std::f32::consts::TAU).sin().abs();
                 let env = (t / 0.03).min(1.0) * (1.0 - u).powf(0.6);
-                b.s[k] += osc(Wave::Square(0.3), ph) * 0.16 * env * trem;
+                b.s[k] += osc(Wave::Square(0.3), ph) * 0.26 * env * trem;
             }
         }
         Sfx::Whistle => {
@@ -95,7 +95,7 @@ pub fn sfx_samples(s: Sfx) -> Vec<f32> {
                 y += (r - y) * lp;
                 y2 += (y - y2) * 0.5;
                 let env = (t / 0.2).min(1.0) * (1.0 - u).powf(1.3);
-                b.s[k] += (y - y2 * 0.5) * 0.8 * env;
+                b.s[k] += (y - y2 * 0.5) * 1.3 * env;
             }
             for st in [0.1f32, 0.35, 0.6, 0.85] {
                 b.tone(st, 0.18, 560.0, 560.0, Wave::Square(0.5), 0.03, 0.001, 2.0);
