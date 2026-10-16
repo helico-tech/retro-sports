@@ -897,6 +897,8 @@ impl App {
         if (t / 40).is_multiple_of(2) {
             bubble(f, 112, wy - 34, "BRRR!");
         }
+        let next = format!("NEXT TRY YOU CARRY {}", self.cargo_for(self.stage).name());
+        f.text_center(128, 112, &next, rgb(248, 216, 96), OUTLINE, false);
         if (t / 20).is_multiple_of(2) {
             f.text_center(128, 196, "PUSH Z TO GET BACK ON YOUR BIKE", rgb(248, 248, 248), OUTLINE, false);
         }
