@@ -341,7 +341,6 @@ impl Race {
     pub fn new(stage: usize, racers: &[(usize, Ctrl)], seed: u64) -> Race {
         let course = Course::new(stage);
         let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1);
-        let n = racers.len();
         let mut runners = Vec::new();
         for (k, &(def, ctrl)) in racers.iter().enumerate() {
             // humans in the front lanes, so they are never hidden
@@ -355,7 +354,6 @@ impl Race {
                 _ => 2 + k,
             };
             let x = START_X - 6.0 - slot as f32 * 13.0;
-            let _ = n;
             runners.push(Runner {
                 def,
                 ctrl,
@@ -938,7 +936,8 @@ impl Race {
             for k in 0..self.course.crowds.len() {
                 let cr = self.course.crowds[k];
                 let bit = 1u32 << (k % 32);
-                if (x - cr.x).abs() < 18.0 && self.runners[i].five_done & bit == 0 {
+                let (a, b) = cr.span();
+                if x >= a && x <= b && self.runners[i].five_done & bit == 0 {
                     let r = &mut self.runners[i];
                     r.five_done |= bit;
                     r.hype = r.hype.max(150);
@@ -1644,7 +1643,7 @@ impl Race {
             }
         }
         for k in 0..self.course.crowds.len() {
-            let cx = self.course.crowds[k].x;
+            let cx = self.course.crowds[k].mid();
             let bit = 1u32 << (k % 32);
             let ai = self.runners[i].ai;
             if (x - cx).abs() < 12.0 && ai.five_try & bit == 0 {

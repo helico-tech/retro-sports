@@ -146,7 +146,7 @@ fn prop_sprite(p: &PropArt, k: PropKind, var: u8) -> &CSprite {
 fn draw_yeti(f: &mut Frame, cx: &Ctx, cam: &Cam, t: u32) {
     let race = cx.race;
     let c = &race.course;
-    if c.stage != 2 || race.rare % 3 != 0 {
+    if c.stage != 2 || !race.rare.is_multiple_of(3) {
         return;
     }
     let Some(z) = c.zones.iter().find(|z| z.kind == ZoneKind::Fog) else { return };
@@ -156,7 +156,7 @@ fn draw_yeti(f: &mut Frame, cx: &Ctx, cam: &Cam, t: u32) {
         return;
     }
     let sy = cam.sy(c.height(x)) - 14;
-    let flip = (t / 90) % 2 == 0;
+    let flip = (t / 90).is_multiple_of(2);
     cx.art.yeti.draw(f, sx, sy, flip, &cx.art.yeti_pal);
 }
 
@@ -314,10 +314,9 @@ fn draw_trail(f: &mut Frame, cx: &Ctx, cam: &Cam, v: &View, t: u32) {
             }
         }
     }
-    for (i, p) in c.props.iter().enumerate() {
+    for p in &c.props {
         if matches!(p.kind, PropKind::StartArch | PropKind::FinishArch) && p.x > lo - 40.0 && p.x < hi + 40.0 {
             things.push((-2, Thing::Arch(p.kind == PropKind::FinishArch)));
-            let _ = i;
         }
     }
     let mut i = c.first_ob(lo);
@@ -360,7 +359,7 @@ fn draw_trail(f: &mut Frame, cx: &Ctx, cam: &Cam, v: &View, t: u32) {
     for (_, th) in &things {
         match *th {
             Thing::Ob(i) => draw_obstacle(f, cx, cam, i, t),
-            Thing::Runner(i) => draw_runner(f, cx, cam, i, t, v),
+            Thing::Runner(i) => draw_runner(f, cx, cam, i, t),
             Thing::Animal(i) => draw_animal(f, cx, cam, i, t),
             Thing::Crowd(i, k) => draw_fan(f, cx, cam, i, k, t),
             Thing::Volunteer(i) => draw_volunteer(f, cx, cam, i, t, v),
@@ -513,7 +512,7 @@ fn draw_deer(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32) {
 fn draw_fan(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, k: u32, t: u32) {
     let c = &cx.race.course;
     let cr = c.crowds[i];
-    let x = cr.x - 18.0 + k as f32 * 9.0 + (hash(cr.seed as i32 + k as i32) % 4) as f32;
+    let x = cr.fan_x(k) + (hash(cr.seed as i32 + k as i32) % 4) as f32;
     let sx = cam.sx(x);
     let sy = cam.sy(c.height(x)) + (k % 2) as i32;
     let seed = cr.seed.wrapping_add(k * 7919);
@@ -652,7 +651,7 @@ fn goat_frame(r: &Runner, t: u32) -> usize {
     }
 }
 
-fn draw_runner(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32, v: &View) {
+fn draw_runner(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32) {
     let race = cx.race;
     let r = &race.runners[i];
     let c = &race.course;
@@ -734,7 +733,6 @@ fn draw_runner(f: &mut Frame, cx: &Ctx, cam: &Cam, i: usize, t: u32, v: &View) {
                 }
             }
         }
-    let _ = v;
 }
 
 fn draw_fx(f: &mut Frame, cx: &Ctx, cam: &Cam) {
@@ -975,7 +973,7 @@ pub fn tip(race: &Race, i: usize) -> Option<&'static str> {
         }
     }
     for cr in &c.crowds {
-        let d = cr.x - r.x;
+        let d = cr.span().0 - r.x;
         if d > 0.0 && d < 60.0 {
             return Some("Z: HIGH FIVE THE FANS FOR HYPE!");
         }
@@ -1160,7 +1158,7 @@ pub fn draw_hud(f: &mut Frame, cx: &Ctx, runner: usize, t: u32) {
     if steep {
         pole_meter(f, r, 3, 23);
     } else {
-        let (label, col) = if r.hype > 0 && (t / 6) % 2 == 0 { ("HYPE", rgb(248, 120, 200)) } else { ("LEGS", rgb(200, 200, 232)) };
+        let (label, col) = if r.hype > 0 && (t / 6).is_multiple_of(2) { ("HYPE", rgb(248, 120, 200)) } else { ("LEGS", rgb(200, 200, 232)) };
         f.text_sh(3, 23, label, col, OUTLINE, false);
         legs_bar(f, r, 30, 24, 46, t);
     }

@@ -123,6 +123,21 @@ pub struct Crowd {
     pub seed: u32,
 }
 
+impl Crowd {
+    /// Where fan `k` stands.
+    pub fn fan_x(&self, k: u32) -> f32 {
+        self.x - 18.0 + k as f32 * 9.0
+    }
+    /// The stretch of trail where you can high-five them.
+    pub fn span(&self) -> (f32, f32) {
+        (self.fan_x(0) - 6.0, self.fan_x(self.n.max(1) - 1) + 8.0)
+    }
+    pub fn mid(&self) -> f32 {
+        let (a, b) = self.span();
+        (a + b) / 2.0
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ZoneKind {
     /// the trail zig-zags: runners cover ground slowly, Gerald climbs straight up

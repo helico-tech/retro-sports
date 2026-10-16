@@ -583,7 +583,7 @@ impl Bot {
                 }
             }
             for cr in &c.crowds {
-                if (x - (cr.x + self.grab_off)).abs() < 1.2 && !self.prev.a {
+                if (x - (cr.mid() + self.grab_off)).abs() < 1.2 && !self.prev.a {
                     p.a = true;
                 }
             }

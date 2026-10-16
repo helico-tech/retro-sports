@@ -825,10 +825,9 @@ impl App {
                 let tm = if s.finished { time_str(s.time) } else { format!("~{}", time_str(s.time)) };
                 f.text_sh(150, y, &tm, col, OUTLINE, false);
                 if self.mode == Mode::Two {
-                    if let Some(p) = s.human {
+                    if s.human.is_some() {
                         let pts = format!("+{}", POINTS[k.min(3)]);
                         f.text_sh(206, y, &pts, col, OUTLINE, false);
-                        let _ = p;
                     }
                 } else if self.mode == Mode::One && ((self.stage < 2 && k < 2) || (self.stage == 2 && k == 0)) {
                     f.text_sh(210, y, "Q", rgb(120, 232, 96), OUTLINE, true);
